@@ -5,7 +5,6 @@ import java.io.IOException;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.snmp4j.log.LogLevel;
 
 import fr.jrds.snmpcodec.objects.Symbol;
 
@@ -13,14 +12,13 @@ public class OidTreeNodeTest {
 
     @BeforeClass
     static public void configure() throws IOException {
-        LogUtils.setLevel(OidTreeNodeTest.class, LogLevel.TRACE, OidTreeNode.class.getName());
+        LogUtils.setLevel(OidTreeNodeTest.class, OidTreeNode.class.getName());
     }
 
     @Test
-    public void manualfill() {
+    public void manualfill() throws MibException {
         OidTreeNode top = new OidTreeNode();
         top.add(new int[] {1}, new Symbol("","iso"));
-        System.out.println(top.find(new int[] {1}));
         top.add(new int[] {1, 1}, new Symbol("","std"));
         top.add(new int[] {1, 1, 8802}, new Symbol("","iso8802"));
         top.add(new int[] {1, 1, 8802, 1}, new Symbol("", "ieee802dot1"));

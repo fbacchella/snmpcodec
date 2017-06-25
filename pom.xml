@@ -67,6 +67,23 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${mavenSurefirePlugin}</version>
+                <configuration>
+                    <systemProperties>
+                        <property>
+                            <name>maven</name>
+                            <value>true</value>
+                        </property>
+                        <property>
+                            <name>testloglevel</name>
+                            <value>warn</value>
+                        </property>
+                    </systemProperties>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.3</version>
                 <configuration>

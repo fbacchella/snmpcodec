@@ -3,7 +3,7 @@ package fr.jrds.snmpcodec.objects;
 import java.util.HashMap;
 
 public class Symbol {
-    
+
     public static class SymbolMap<V> extends HashMap<Symbol, V> {
 
         @Override
@@ -26,9 +26,9 @@ public class Symbol {
                 return true;
             }
         }
-        
+
     }
-    
+
     public final String module;
     public final String name;
     public Symbol(String module, String name) {
@@ -42,7 +42,7 @@ public class Symbol {
         } else {
             this.module = null;
         }
-        // If '.' is not found, separator = -1 +1 it gives the start
+        // If '.' is not found, separator = -1 +1 it return 0, hence the start
         this.name = name.substring(separator + 1);
     }
     @Override

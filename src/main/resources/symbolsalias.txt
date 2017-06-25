@@ -1,0 +1,19 @@
+# bad = good
+SNMPv2-SMI.iso=ISO.iso
+RFC1155-SMI.iso=ISO.iso
+SNMPv2-SMI-v1.iso=ISO.iso
+SNMPv2-SMI-v1.iso==ISO.iso
+RFC-1213.mib-2=RFC1213-MIB.mib-2
+RFC1271-MIB.rmon=RMON-MIB.rmon
+RFC1271-MIB.history=RMON-MIB.history
+RFC1271-MIB.statistics=RMON-MIB.statistics
+mib-2=SNMPv2-SMI.mib-2
+RFC1316-MIB.mib-2=SNMPv2-SMI.mib-2
+RFC1065-SMI.enterprises=SNMPv2-SMI.enterprises
+SUN-SNMP.enterprises=SNMPv2-SMI.enterprises
+Integer32=SNMPv2-SMI.Integer32
+Unsigned32=SNMPv2-SMI.Unsigned32
+IpAddress=SNMPv2-SMI.IpAddress
+Gauge32=SNMPv2-SMI.Gauge32
+Gauge32=SNMPv2-SMI.Counter32
+TimeTicks=SNMPv2-SMI.TimeTicks
