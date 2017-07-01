@@ -1,4 +1,4 @@
-package fr.jrds.snmpcodec.objects;
+package fr.jrds.snmpcodec.smi;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
