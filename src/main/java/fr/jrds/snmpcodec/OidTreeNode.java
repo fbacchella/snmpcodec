@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 
 import org.snmp4j.smi.OID;
 
-import fr.jrds.snmpcodec.objects.Symbol;
+import fr.jrds.snmpcodec.smi.Symbol;
 
 public class OidTreeNode {
 

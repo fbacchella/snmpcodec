@@ -11,9 +11,7 @@ import org.snmp4j.smi.VariableBinding;
 import org.snmp4j.util.OIDTextFormat;
 import org.snmp4j.util.VariableTextFormat;
 
-import fr.jrds.snmpcodec.objects.DisplayHint;
-import fr.jrds.snmpcodec.objects.SnmpType;
-import fr.jrds.snmpcodec.objects.Symbol;
+import fr.jrds.snmpcodec.smi.SmiType;
 
 public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
 
@@ -56,23 +54,6 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
         return formatter;
     }
 
-    /**
-     * Added a new custom TextualConvention to the current mib base
-     * @param clazz
-     */
-    public void addTextualConvention(Class<? extends DisplayHint> clazz) {
-        resolver.addTextualConvention(clazz);
-    }
-
-    /**
-     * Added a new TextualConvention described using a display hint string to the current mib base
-     * @param name the name of the textual convention
-     * @param displayHint, taken from the <code>DISPLAY-HINT</code> field from the <code>TEXTUAL-CONVENTION</code>.
-     */
-    public void addTextualConvention(String name, String displayHint) {
-        resolver.addTextualConvention(name, displayHint);
-    }
-
     @Override
     public String format(int[] value) {
         Object[] parsed = resolver.parseIndexOID(value);
@@ -93,9 +74,8 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
     @Override
     public int[] parse(String text) throws ParseException {
         try {
-            Symbol s = new Symbol(text);
-            if(resolver.containsKey(s)) {
-                return resolver.getFromName(s);
+            if(resolver.containsKey(text)) {
+                return resolver.getFromName(text);
             } else {
                 return previous.parse(text);
             }
@@ -135,26 +115,26 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
         switch (smiSyntax) {
         // The natives BER types
         case SMIConstants.SYNTAX_INTEGER:
-            return SnmpType.INTEGER.parse(text);
+            return SmiType.INTEGER.parse(text);
         case SMIConstants.SYNTAX_OCTET_STRING:
-            return SnmpType.OctetString.parse(text);
+            return SmiType.OctetString.parse(text);
         case SMIConstants.SYNTAX_NULL:
             return new org.snmp4j.smi.Null();
         case SMIConstants.SYNTAX_OBJECT_IDENTIFIER :
-            return SnmpType.ObjID.parse( text);
+            return SmiType.ObjID.parse( text);
             // The BER types declared in SNMPv2-SMI
         case SMIConstants.SYNTAX_IPADDRESS:
-            return SnmpType.IpAddr.parse(text);
+            return SmiType.IpAddr.parse(text);
         case SMIConstants.SYNTAX_COUNTER32:
-            return SnmpType.Counter32.parse(text);
+            return SmiType.Counter32.parse(text);
         case SMIConstants.SYNTAX_GAUGE32:           // also matches SMIConstants.SYNTAX_UNSIGNED_INTEGER32
-            return SnmpType.Gauge32.parse(text);
+            return SmiType.Gauge32.parse(text);
         case SMIConstants.SYNTAX_TIMETICKS:
-            return SnmpType.TimeTicks.parse(text);
+            return SmiType.TimeTicks.parse(text);
         case SMIConstants.SYNTAX_OPAQUE:
-            return SnmpType.Opaque.parse(text);
+            return SmiType.Opaque.parse(text);
         case SMIConstants.SYNTAX_COUNTER64 :
-            return SnmpType.Counter64.parse(text);
+            return SmiType.Counter64.parse(text);
         }
         return previousVar.parse(smiSyntax, text);
     }

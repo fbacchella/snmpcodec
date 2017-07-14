@@ -1,6 +1,7 @@
-package fr.jrds.snmpcodec.objects;
+package fr.jrds.snmpcodec.smi;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.regex.Matcher;
@@ -22,7 +23,7 @@ import fr.jrds.snmpcodec.log.LogAdapter;
  * @author Fabrice Bacchella
  *
  */
-public enum SnmpType {
+public enum SmiType implements Codec {
 
     /**
      * From SNMPv2-SMI, defined as [APPLICATION 4]<p>
@@ -34,6 +35,14 @@ public enum SnmpType {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Opaque();
+        }
+        @Override
+        public Variable getVariable(Object source) {
+            if (! (source instanceof byte[])) {
+                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+            }
+            byte[] a = (byte[]) source;
+            return new org.snmp4j.smi.Opaque(a);
         }
         @Override
         public Object convert(Variable v) {
@@ -67,6 +76,14 @@ public enum SnmpType {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.OctetString();
+        }
+        @Override
+        public Variable getVariable(Object source) {
+            if (! (source instanceof byte[])) {
+                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+            }
+            byte[] a = (byte[]) source;
+            return new org.snmp4j.smi.OctetString(a);
         }
         @Override
         public Object convert(Variable v) {
@@ -105,20 +122,32 @@ public enum SnmpType {
             return new org.snmp4j.smi.UnsignedInteger32();
         }
         @Override
+        public Variable getVariable(Object source) {
+            if (! (source instanceof Number)) {
+                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+            }
+            Number n = (Number) source;
+            return new org.snmp4j.smi.UnsignedInteger32(n.longValue());
+        }
+        @Override
         public Object convert(Variable v) {
             return v.toLong();
         }
     },
     /**
      * @deprecated
-   *    The BIT STRING type has been temporarily defined in RFC 1442
-   *    and obsoleted by RFC 2578. Use OctetString (i.e. BITS syntax)
-   *    instead.
+     *    The BIT STRING type has been temporarily defined in RFC 1442
+     *    and obsoleted by RFC 2578. Use OctetString (i.e. BITS syntax)
+     *    instead.
      */
     BitString {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.BitString();
+        }
+        @Override
+        public Variable getVariable(Object source) {
+            return null;
         }
         @Override
         public Object convert(Variable v) {
@@ -143,6 +172,17 @@ public enum SnmpType {
             return new org.snmp4j.smi.IpAddress();
         }
         @Override
+        public Variable getVariable(Object source) {
+            if (! (source instanceof InetAddress) && ! (source instanceof String)) {
+                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+            }
+            if (source instanceof InetAddress) {
+                return new org.snmp4j.smi.IpAddress((InetAddress) source);
+            } else {
+                return new org.snmp4j.smi.IpAddress((String) source);
+            }
+        }
+        @Override
         public Object convert(Variable v) {
             return ((IpAddress)v).getInetAddress();
         }
@@ -160,6 +200,17 @@ public enum SnmpType {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.OID();
+        }
+        @Override
+        public Variable getVariable(Object source) {
+            if (source instanceof int[]) {
+                int[] oid = (int[]) source;
+                return new org.snmp4j.smi.OID(oid);
+            } else if(source instanceof String) {
+                return new org.snmp4j.smi.OID((String)source);
+            } else {
+                throw new IllegalArgumentException("Given a variable of type  instead of OID");
+            }
         }
         @Override
         public Object convert(Variable v) {
@@ -180,6 +231,14 @@ public enum SnmpType {
             return new org.snmp4j.smi.Integer32();
         }
         @Override
+        public Variable getVariable(Object source) {
+            if (! (source instanceof Number)) {
+                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+            }
+            Number n = (Number) source;
+            return new org.snmp4j.smi.Integer32(n.intValue());
+        }
+        @Override
         public Object convert(Variable v) {
             return v.toInt();
         }
@@ -189,7 +248,7 @@ public enum SnmpType {
         }
         @Override
         public Variable parse(String text) {
-            return new org.snmp4j.smi.Integer32(Integer.getInteger(text));
+            return new org.snmp4j.smi.Integer32(Integer.parseInt(text));
         }
     },
     /**
@@ -209,6 +268,14 @@ public enum SnmpType {
             return new org.snmp4j.smi.Counter32();
         }
         @Override
+        public Variable getVariable(Object source) {
+            if (! (source instanceof Number)) {
+                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+            }
+            Number n = (Number) source;
+            return new org.snmp4j.smi.Counter32(n.longValue());
+        }
+        @Override
         public Object convert(Variable v) {
             return v.toLong();
         }
@@ -218,7 +285,7 @@ public enum SnmpType {
         }
         @Override
         public Variable parse(String text) {
-            return new org.snmp4j.smi.Counter32(Long.getLong(text));
+            return new org.snmp4j.smi.Counter32(Long.parseLong(text));
         }
     },
     /**
@@ -238,6 +305,14 @@ public enum SnmpType {
             return new org.snmp4j.smi.Counter64();
         }
         @Override
+        public Variable getVariable(Object source) {
+            if (! (source instanceof Number)) {
+                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+            }
+            Number n = (Number) source;
+            return new org.snmp4j.smi.Counter64(n.longValue());
+        }
+        @Override
         public Object convert(Variable v) {
             return Utils.getUnsigned(v.toLong());
         }
@@ -247,7 +322,7 @@ public enum SnmpType {
         }
         @Override
         public Variable parse(String text) {
-            return new org.snmp4j.smi.Counter64(Long.getLong(text));
+            return new org.snmp4j.smi.Counter64(Long.parseLong(text));
         }
     },
     /**
@@ -267,6 +342,14 @@ public enum SnmpType {
             return new org.snmp4j.smi.Gauge32();
         }
         @Override
+        public Variable getVariable(Object source) {
+            if (! (source instanceof Number)) {
+                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+            }
+            Number n = (Number) source;
+            return new org.snmp4j.smi.Gauge32(n.longValue());
+        }
+        @Override
         public Object convert(Variable v) {
             return v.toLong();
         }
@@ -276,7 +359,7 @@ public enum SnmpType {
         }
         @Override
         public Variable parse(String text) {
-            return new org.snmp4j.smi.Gauge32(Long.getLong(text));
+            return new org.snmp4j.smi.Gauge32(Long.parseLong(text));
         }
     },
     /**
@@ -295,6 +378,14 @@ public enum SnmpType {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.TimeTicks();
+        }
+        @Override
+        public Variable getVariable(Object source) {
+            if (! (source instanceof Number)) {
+                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+            }
+            Number n = (Number) source;
+            return new TimeTicks(n.longValue());
         }
         @Override
         public Object convert(Variable v) {
@@ -333,6 +424,10 @@ public enum SnmpType {
             return new org.snmp4j.smi.Null();
         }
         @Override
+        public Variable getVariable(Object source) {
+            return getVariable();
+        }
+        @Override
         public Object convert(Variable v) {
             return null;
         }
@@ -350,7 +445,7 @@ public enum SnmpType {
     // Used to parse time ticks
     static final private Pattern TimeTicksPattern = Pattern.compile("(?:(?<days>\\d+) days?, )?(?<hours>\\d+):(?<minutes>\\d+):(?<seconds>\\d+)(?:\\.(?<fraction>\\d+))?");
 
-    static final private LogAdapter logger = LogAdapter.getLogger(SnmpType.class);
+    static final private LogAdapter logger = LogAdapter.getLogger(SmiType.class);
 
     static final private byte TAG1 = (byte) 0x9f;
     static final private byte TAG_FLOAT = (byte) 0x78;
@@ -360,6 +455,7 @@ public enum SnmpType {
      * @return a empty instance of the associated Variable type
      */
     public abstract Variable getVariable();
+    public abstract Variable getVariable(Object source);
     public String format(Variable v) {
         return v.toString();
     };

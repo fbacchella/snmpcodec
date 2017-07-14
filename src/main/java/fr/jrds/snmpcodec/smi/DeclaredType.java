@@ -1,4 +1,4 @@
-package fr.jrds.snmpcodec.objects;
+package fr.jrds.snmpcodec.smi;
 
 import java.util.Map;
 
@@ -31,11 +31,11 @@ public abstract class DeclaredType<CONTENT> {
 
     @Override
     public String toString() {
-        return getClass().getName().replace("fr.jrds.smiextensions.mib.", "") + "[" + content + "]";
+        return getClass().getName().replace("fr.jrds.snmpcodec.smi.", "") + "[" + content + "]";
     }
 
-    public static class Native extends DeclaredType<SnmpType> {
-        public Native(SnmpType content, Map<Number, String> names) {
+    public static class Native extends DeclaredType<SmiType> {
+        public Native(SmiType content, Map<Number, String> names) {
             super(content, names);
         }
         public AsnType getType() {

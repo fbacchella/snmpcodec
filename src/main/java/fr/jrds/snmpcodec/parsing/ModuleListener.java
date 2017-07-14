@@ -16,7 +16,6 @@ import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 
-import fr.jrds.snmpcodec.parsing.ASNParser.ActualParameterListContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.AssignmentContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.BitDescriptionContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.BitsTypeContext;
@@ -38,14 +37,14 @@ import fr.jrds.snmpcodec.parsing.ASNParser.TextualConventionAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.TypeAssignmentContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.TypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ValueAssignmentContext;
+import fr.jrds.snmpcodec.smi.Constraint;
+import fr.jrds.snmpcodec.smi.DeclaredType;
+import fr.jrds.snmpcodec.smi.SmiType;
+import fr.jrds.snmpcodec.smi.Symbol;
+import fr.jrds.snmpcodec.smi.Oid.OidComponent;
+import fr.jrds.snmpcodec.smi.Oid.OidPath;
 import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.MibStore;
-import fr.jrds.snmpcodec.objects.Constraint;
-import fr.jrds.snmpcodec.objects.DeclaredType;
-import fr.jrds.snmpcodec.objects.Oid.OidComponent;
-import fr.jrds.snmpcodec.objects.Oid.OidPath;
-import fr.jrds.snmpcodec.objects.SnmpType;
-import fr.jrds.snmpcodec.objects.Symbol;
 
 public class ModuleListener extends ASNBaseListener {
 
@@ -241,15 +240,15 @@ public class ModuleListener extends ASNBaseListener {
             case referencedType:
                 return new DeclaredType.Referenced(resolveSymbol((String) typeDescription), names);
             case octetStringType:
-                return new DeclaredType.Native(SnmpType.OctetString, names);
+                return new DeclaredType.Native(SmiType.OctetString, names);
             case bitStringType:
                 return new DeclaredType.Bits((Map<String, Integer>) typeDescription, names);
             case integerType:
-                return new DeclaredType.Native(SnmpType.INTEGER, names);
+                return new DeclaredType.Native(SmiType.INTEGER, names);
             case objectidentifiertype:
-                return new DeclaredType.Native(SnmpType.ObjID, names);
+                return new DeclaredType.Native(SmiType.ObjID, names);
             case nullType:
-                return new DeclaredType.Native(SnmpType.Null, names);
+                return new DeclaredType.Native(SmiType.Null, names);
             case sequenceType:
                 return new DeclaredType.Sequence((Map<String, DeclaredType<?>>)typeDescription, names);
             case sequenceOfType:
@@ -263,10 +262,10 @@ public class ModuleListener extends ASNBaseListener {
             case setType:
             case setOfType:
                 System.out.format("unmanaged type: %s\n", this);
-                return new DeclaredType.Native(SnmpType.Null, names);
+                return new DeclaredType.Native(SmiType.Null, names);
             default:
                 System.out.format("unchecked type: %s\n", this);
-                return new DeclaredType.Native(SnmpType.Null, names);
+                return new DeclaredType.Native(SmiType.Null, names);
             }
         }
     }
@@ -280,7 +279,7 @@ public class ModuleListener extends ASNBaseListener {
     Map<OidType, MibObject> symbols = new HashMap<>();
 
     String currentModule = null;
-    
+
     private final MibStore store;
 
 
@@ -305,10 +304,8 @@ public class ModuleListener extends ASNBaseListener {
         currentModule = ctx.IDENTIFIER().getText();
         objects.clear();
         importedFrom.clear();
-        try {
-            store.newModule(currentModule);
-        } catch (MibException e) {
-            throw new ModuleException(e.getMessage(), parser.getInputStream().getSourceName());
+        if ( ! store.newModule(currentModule)) {
+            throw new ModuleException.DuplicatedMibException(currentModule, parser.getInputStream().getSourceName());
         }
     }
 
@@ -358,7 +355,11 @@ public class ModuleListener extends ASNBaseListener {
         StructuredObject macro = (StructuredObject) stack.pop();
         Symbol s = (Symbol) stack.pop();
         macro.value = value;
-        store.addMacroValue(s, macro.name, macro.values, macro.value.value);
+        try {
+            store.addMacroValue(s, macro.name, macro.values, macro.value.value);
+        } catch (MibException e) {
+            throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
+        }
     }
 
     @Override
@@ -384,7 +385,7 @@ public class ModuleListener extends ASNBaseListener {
         TypeDescription td = (TypeDescription) stack.pop();
         DeclaredType<?> type = td.resolve();
         Symbol s = (Symbol) stack.pop();
-        
+
         if (type != null) {
             store.addType(s, type);
         }
@@ -402,7 +403,11 @@ public class ModuleListener extends ASNBaseListener {
         }
         TypeDescription td = (TypeDescription) stack.pop();
         Symbol s = (Symbol) stack.pop();
-        store.addValue(s, td.resolve(), value);
+        try {
+            store.addValue(s, td.resolve(), value);
+        } catch (MibException e) {
+            throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
+        }
     }
 
     /****************************************

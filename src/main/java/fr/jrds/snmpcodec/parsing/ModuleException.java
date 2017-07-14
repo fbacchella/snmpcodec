@@ -2,6 +2,8 @@ package fr.jrds.snmpcodec.parsing;
 
 import org.antlr.v4.runtime.Token;
 
+import fr.jrds.snmpcodec.MibException;
+
 public class ModuleException extends RuntimeException {
     private final int startLine;
     private final int startChar;
@@ -45,5 +47,14 @@ public class ModuleException extends RuntimeException {
     public String getLocation() {
         return String.format("file %s%s", fileName, startLine > 0 ? ", line " + startLine + ":" + startChar : "");
     }
+
+    public static class DuplicatedMibException extends ModuleException {
+
+        DuplicatedMibException(String module, String fileName) {
+            super("Duplicated module " + module, fileName);
+        }
+
+    }
+
 
 }

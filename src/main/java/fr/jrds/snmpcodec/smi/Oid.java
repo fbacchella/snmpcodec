@@ -1,4 +1,4 @@
-package fr.jrds.snmpcodec.objects;
+package fr.jrds.snmpcodec.smi;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -7,20 +7,18 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import fr.jrds.snmpcodec.MibException;
-import fr.jrds.snmpcodec.objects.Oid.OidComponent;
-import fr.jrds.snmpcodec.objects.Oid.OidPath;
 
 public class Oid {
-    
+
     public static class OidComponent {
         public Integer value = null;
         public Symbol symbol = null;
         @Override
         public String toString() {
-            return String.format("%s%s", symbol !=null ? symbol.toString() : "", value != null ? String.format("(%d)", value): "");
+            return String.format("%s%s", symbol !=null ? symbol.toString() : "", value != null ? String.format("%d", value): "");
         }
     }
-    
+
     public static class OidPath extends ArrayList<OidComponent> {
         public OidPath() {
             super();
@@ -29,9 +27,14 @@ public class Oid {
         public OidPath(List<OidComponent> components) {
             super(components);
         }
+        
+
+        @Override
+        public String toString() {
+            return stream().map( i -> i.toString()).collect(Collectors.joining("."));
+        }
 
         public static OidPath getRoot(int value) {
-            // iso oid is not defined in any mibs, and may be called in different modules
             OidComponent newroot = new OidComponent();
             newroot.value = value;
             OidPath newRootpath = new OidPath();
@@ -43,14 +46,20 @@ public class Oid {
 
     final Map<Symbol, Oid> oids;
     private List<Integer> path = null;
-    OidPath components;
+    private OidPath components;
 
-    public Oid(OidPath components, Map<Symbol, Oid> oids) {
+    public Oid(OidPath components, Map<Symbol, Oid> oids) throws MibException {
+        if (components.size() == 0) {
+            throw new MibException("Creating empty OID");
+        }
         this.oids = oids;
         this.components = components;
     }
 
-    public Oid(int[] components, Map<Symbol, Oid> oids) {
+    public Oid(int[] components, Map<Symbol, Oid> oids) throws MibException {
+        if (components.length == 0) {
+            throw new MibException("Creating empty OID");
+        }
         this.oids = oids;
         this.path = Arrays.stream(components).mapToObj(Integer::valueOf).collect(Collectors.toList());
     }
@@ -66,11 +75,12 @@ public class Oid {
                         } else if (i.symbol != null) {
                             Oid parent = oids.get(i.symbol);
                             if (parent != null) {
-                                List<Integer> parentpath = oids.get(i.symbol).getPath();
+                                Oid step = oids.get(i.symbol);
+                                List<Integer> parentpath = step.getPath();
                                 if (! parentpath.isEmpty()) {
                                     path.addAll(oids.get(i.symbol).getPath());
                                 } else {
-                                    throw new RuntimeException("blurb " + components);
+                                    throw new RuntimeException("Invalid oid path for symbol " + i.symbol);
                                 }
                             } else {
                                 throw new RuntimeException(String.format("missing symbol %s in %s\n",i.symbol, components));
@@ -87,4 +97,14 @@ public class Oid {
         }
         return path;
     }
+
+    @Override
+    public String toString() {
+        if (path == null) {
+            return "";
+        } else {
+            return path.stream().map(i -> i.toString()).collect(Collectors.joining("."));
+        }
+    }
+
 }
