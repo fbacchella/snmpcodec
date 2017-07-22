@@ -147,6 +147,8 @@ assignementType :
      | valueAssignment
      | typeAssignment
      | textualConventionAssignement
+     | objectTypeAssignement
+     | trapTypeAssignement
      | macroAssignement
      ;
 
@@ -189,8 +191,6 @@ versionNumber :
 
 sequenceOfType  : 'SEQUENCE' (L_PARAN (constraint | sizeConstraint) R_PARAN)? OF_LITERAL (type | namedType )
 ;
-sizeConstraint : 'SIZE' constraint
-    ;
 
 parameterizedAssignment :
  parameterList
@@ -292,18 +292,6 @@ fieldName :('&' IDENTIFIER)(AMPERSAND IDENTIFIER DOT)*
 ;
 
 
-unionMark :
-    PIPE
-    | UNION_LITERAL
-    ;
-
-elements :
-    ((value | MIN_LITERAL) LESS_THAN?  DOUBLE_DOT LESS_THAN?  (value | MAX_LITERAL) )
-    | sizeConstraint
-    | (PATTERN_LITERAL value)
-    | value
-    ;
-
 objectSetElements :
     object | definedObject /*| objectSetFromObjects | parameterizedObjectSet      */
 ;
@@ -325,19 +313,17 @@ typeAssignment :
 application_details:
     APPLICATION_LITERAL NUMBER;
 
-complexAssignement : 
+complexAssignement :
     macroName
      (complexAttribut COMMA*)+
       ASSIGN_OP
       value
-;
+    ;
 
 macroName :
-    'OBJECT-TYPE'
     | 'MODULE-COMPLIANCE'
     | 'OBJECT-GROUP'
     | 'MODULE-IDENTITY'
-    | 'TRAP-TYPE'
     | 'OBJECT-IDENTITY'
     | 'NOTIFICATION-TYPE'
     | 'NOTIFICATION-GROUP'
@@ -345,15 +331,13 @@ macroName :
     ;
 
 complexAttribut:
-    name='MAX-ACCESS' IDENTIFIER
+    access
+    | status
     | name='ENTERPRISE' ( IDENTIFIER | objectIdentifierValue)
     | name='GROUP' IDENTIFIER
     | name='OBJECT' IDENTIFIER
-    | name='STATUS' IDENTIFIER
     | name='SUPPORTS' IDENTIFIER
     | name='VARIATION' IDENTIFIER
-    | name='ACCESS' IDENTIFIER
-    | name='MIN-ACCESS' IDENTIFIER
     | name='SYNTAX' type
     | name='REVISION' stringValue
     | name='CONTACT-INFO' stringValue
@@ -378,6 +362,14 @@ complexAttribut:
     | name='DISPLAY-HINT' stringValue
     | name='REFERENCE' stringValue
 ;
+
+access:
+    ( name='MAX-ACCESS' | name='ACCESS' | name='MIN-ACCESS') IDENTIFIER
+    ;
+
+status:
+    name='STATUS' IDENTIFIER
+    ;
 
 groups:
     '{' IDENTIFIER (','? IDENTIFIER)* ','? '}'
@@ -411,6 +403,20 @@ textualConventionAssignement :
     ASSIGN_OP 'TEXTUAL-CONVENTION' (complexAttribut COMMA*)+
     ;
 
+trapTypeAssignement :
+    'TRAP-TYPE'
+     (complexAttribut COMMA*)+
+      ASSIGN_OP
+      integerValue
+    ;
+
+objectTypeAssignement :
+    'OBJECT-TYPE'
+     (complexAttribut COMMA*)+
+      ASSIGN_OP
+      value
+    ;
+
 macroAssignement : 
     'MACRO' ASSIGN_OP 'BEGIN' macroContent+ 'END'
     ;
@@ -432,7 +438,7 @@ valueAssignment :
 ;
 
 type :
-    (builtinType | referencedType) constraint? (L_BRACE namedNumberList R_BRACE)?
+    (builtinType | referencedType) ( constraint | sizeConstraint )? (L_BRACE namedNumberList R_BRACE)?
     ;
 
 builtinType :
@@ -481,8 +487,20 @@ referencedType :
     IDENTIFIER (DOT IDENTIFIER)? ( '{' namedNumberList '}' )?
     ;
 
+elements :
+    ( value '..' value )
+    | value
+    ;
+
+constraintElements :
+    elements ( '|' elements)*
+    ;
+    
 constraint :
-    '(' elements (unionMark elements)* ')'
+    '(' constraintElements ')'
+    ;
+
+sizeConstraint : '(' 'SIZE' '(' constraintElements ')' ')'
     ;
 
 value
@@ -800,10 +818,6 @@ PIPE
     :   '|'
     ;
 
-UNION_LITERAL
-    :   'UNION'
-    ;
-
 INTERSECTION_LITERAL
     :   'INTERSECTION'
     ;
@@ -838,10 +852,6 @@ PRESENT_LITERAL
 
 ABSENT_LITERAL
     :   'ABSENT'
-    ;
-
-PATTERN_LITERAL
-    :   'PATTERN'
     ;
 
 TYPE_IDENTIFIER_LITERAL

@@ -1,104 +1,98 @@
 package fr.jrds.snmpcodec.smi;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import fr.jrds.snmpcodec.log.LogAdapter;
+import fr.jrds.snmpcodec.smi.Index.Parsed;
 
 public class Constraint {
 
     LogAdapter logger = LogAdapter.getLogger(Constraint.class);
 
-    private static class Range {
-        final int from;
-        final int to;
-        Range(int from, int to) {
+    public static class ConstraintElement {
+        public final Number value;
+        public final Number from;
+        public final Number to;
+
+        public ConstraintElement(Number value) {
+            this.value = value;
+            this.from = null;
+            this.to = null;
+        }
+        public ConstraintElement(Number from, Number to) {
+            this.value = null;
             this.from = from;
-            this.to= to;
+            this.to = to;
         }
         @Override
         public String toString() {
-            return "(" + from + ".." + to + ")";
+            if (value != null) {
+                return value.toString();
+            } else {
+                return from.toString() + ".." + to.toString();
+            }
         }
-
     }
 
-    private final static Pattern p;
-    static {
-        String range = String.format("(?<from>\\d+)\\.\\.(?<to>\\d+)");
-        String size = String.format("(?<value>\\d+)");
-        p = Pattern.compile(String.format("^(?:(?:(?<range>%s)|(?<size>%s))(?: *\\| *(?<choice>.*))?)|(?<noise>.*)$", range, size));
+    private final List<ConstraintElement> ranges = new ArrayList<>();
+    private final boolean size;
+    private boolean variableSize;
+
+    public Constraint(boolean size) {
+        this.size = size;
     }
 
-    private final List<Range> ranges = new ArrayList<>();
-
-    public Constraint(String sizes) {
-        Matcher m = p.matcher(sizes);
-        if (! parse(m)) {
-            logger.error("invalid size line" , m.group("noise"));
-        };
+    public void add(ConstraintElement newElement) {
+        this.ranges.add(newElement);
     }
 
-    private boolean parse(Matcher m) {
-        if(m.matches()) {
-            if(m.group("noise") != null) {
-                return false;
+    Parsed extract(int[] oidElements) {
+        Parsed tryExtract = new Parsed();
+        for(ConstraintElement i: ranges) {
+            if(variableSize) {
+                int size = oidElements[0];
+                if(size == 0) {
+                    tryExtract.content = new int[0];
+                    tryExtract.next = oidElements;
+                } if(oidElements.length >= size) {
+                    tryExtract.content = Arrays.copyOfRange(oidElements, 1, size + 1);
+                    if(size + 1 <= oidElements.length) {
+                        tryExtract.next = Arrays.copyOfRange(oidElements, size + 1, oidElements.length);
+                    } else {
+                        tryExtract.next = null;
+                    }
+                }
+            } else if (oidElements.length == i.value.intValue()) {
+                tryExtract.content = oidElements;
+                tryExtract.next = null;
+                return tryExtract;
+            } else if (oidElements.length > i.value.intValue()) {
+                tryExtract.content = Arrays.copyOf(oidElements, i.to.intValue());
+                if(i.to.intValue() + 1 <= oidElements.length) {
+                    tryExtract.next = Arrays.copyOfRange(oidElements, i.to.intValue(), oidElements.length);
+                } else {
+                    tryExtract.next = null;
+                }
             }
-            if(m.group("range") != null) {
-                int from = Integer.parseInt(m.group("from"));
-                int to = Integer.parseInt(m.group("to"));
-                ranges.add(new Range(from, to));
-            } else if(m.group("size") != null) {
-                int from = Integer.parseInt(m.group("value"));
-                int to = Integer.parseInt(m.group("value"));
-                ranges.add(new Range(from, to));
-            }
-            if(m.group("choice") != null) {
-                m.region(m.start("choice"), m.end());
-                parse(m);
-            }
-            return true;
         }
-        return false;
+        return tryExtract;
     }
-
-    //    Parsed extract(int[] oidElements) {
-    //        Parsed tryExtract = new Parsed();
-    //        for(Range i: ranges) {
-    //            if(variableSize) {
-    //                int size = oidElements[0];
-    //                if(size == 0) {
-    //                    tryExtract.content = new int[0];
-    //                    tryExtract.next = oidElements;
-    //                } if(oidElements.length >= size) {
-    //                    tryExtract.content = Arrays.copyOfRange(oidElements, 1, size + 1);
-    //                    if(size + 1 <= oidElements.length) {
-    //                        tryExtract.next = Arrays.copyOfRange(oidElements, size + 1, oidElements.length);
-    //                    } else {
-    //                        tryExtract.next = null;
-    //                    }
-    //                }
-    //            } else if (oidElements.length >= i.from && oidElements.length <= i.to) {
-    //                tryExtract.content = oidElements;
-    //                tryExtract.next = null;
-    //                return tryExtract;
-    //            } else if (oidElements.length >= i.from) {
-    //                tryExtract.content = Arrays.copyOf(oidElements, i.to);
-    //                if(i.to + 1 <= oidElements.length) {
-    //                    tryExtract.next = Arrays.copyOfRange(oidElements, i.to, oidElements.length);
-    //                } else {
-    //                    tryExtract.next = null;
-    //                }
-    //            }
-    //        }
-    //        return tryExtract;
-    //    }
 
     @Override
     public String toString() {
         return ranges.toString();
+    }
+
+    public void finish() {
+        if (ranges.size() > 1) {
+            this.variableSize = true;
+        } else if (ranges.get(0).value == null) {
+            this.variableSize = true;
+        } else {
+            this.variableSize = false;
+        }
     }
 
 }

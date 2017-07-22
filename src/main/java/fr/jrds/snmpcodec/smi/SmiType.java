@@ -468,6 +468,10 @@ public enum SmiType implements Codec {
         OID oid = new OID(in);
         v.fromSubIndex(oid, true);
         return convert(v);
+    }
+    @Override
+    public Constraint getConstrains() {
+        return null;
     };
 
 }

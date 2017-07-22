@@ -31,9 +31,10 @@ public class Symbol {
 
     public final String module;
     public final String name;
+
     public Symbol(String module, String name) {
-        this.module = module;
-        this.name = name;
+        this.module = module.intern();
+        this.name = name.intern();
     }
     public Symbol(String name) {
         int separator = name.indexOf('.');

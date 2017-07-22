@@ -22,6 +22,8 @@ import org.snmp4j.smi.Variable;
 import fr.jrds.snmpcodec.log.LogAdapter;
 import fr.jrds.snmpcodec.smi.Codec;
 import fr.jrds.snmpcodec.smi.DeclaredType;
+import fr.jrds.snmpcodec.smi.Index;
+import fr.jrds.snmpcodec.smi.ObjectTypeMacro;
 import fr.jrds.snmpcodec.smi.TextualConvention;
 import fr.jrds.snmpcodec.smi.Oid;
 import fr.jrds.snmpcodec.smi.Symbol;
@@ -35,8 +37,9 @@ public class MibStore {
 
     private final Set<Symbol> badsymbols = new HashSet<>();
     public final Map<Symbol, Oid> oids = new Symbol.SymbolMap<>();
-    public final Map<String, int[]> somes = new HashMap<>();
+    public final Map<String, int[]> names = new HashMap<>();
     public final Map<Symbol, Codec> codecs = new Symbol.SymbolMap<>();
+    public final Map<Symbol, DeclaredType<?>> types = new Symbol.SymbolMap<>();
     public final Map<Symbol, Map<Integer, Map<String, Object>>> traps = new Symbol.SymbolMap<>();
     public final OidTreeNode top = new OidTreeNode();
     private final Set<String> modules = new HashSet<>();
@@ -51,17 +54,16 @@ public class MibStore {
             top.add(new int[]{1}, iso);
         } catch (MibException e) {
         }
-
-        //        // iso oid is not defined in any mibs, and may be called in different modules
-        //        OidComponent isocomponent = new OidComponent();
-        //        isocomponent.value = 1;
-        //        OidPath isopath = OidPath.getRoot(1);
-        //        Oid iso = new Oid(isopath, oids);
-        //        oids.put(new Symbol("ISO", "iso"), iso);
-        //        top.add(new int[]{1}, iso);
-        //        oids.put(new Symbol("CCITT", "ccitt"), new Oid(OidPath.getRoot(0), oids));
         codecs.put(new Symbol("SNMPv2-TC", "DateAndTime"), new TextualConvention.DateAndTime());
         codecs.put(new Symbol("SNMPv2-TC", "DisplayString"), new TextualConvention.DisplayString());
+    }
+
+    public void addValue(Symbol s, DeclaredType<?> type, Object value) throws MibException {
+        if (value instanceof OidPath) {
+            addOid(s, (OidPath)value);
+        } else {
+            throw new MibException("Unsupported value assignement " + value);
+        }
     }
 
     public void addType(Symbol s, DeclaredType<?> type) {
@@ -69,6 +71,7 @@ public class MibStore {
             logger.debug("Duplicating symbol %s", s);
             return;
         }
+        types.put(s, type);
         switch (type.getType()) {
         case Native: {
             SmiType st = (SmiType) type.getContent();
@@ -81,10 +84,20 @@ public class MibStore {
             break;
         }
         case ObjectType: {
-            System.out.println(type.getContent());
+            ObjectTypeMacro ot = (ObjectTypeMacro) type.getContent();
+            codecs.put(s, ot);
+            break;
+        }
+        case Sequence: {
+            // Ignored type
+            break;
+        }
+        case Choice: {
+            // Ignored type
             break;
         }
         default: {
+            System.out.format("unmanaged type %s: %s\n", s, type.getType());
             break;
         }
         }
@@ -95,7 +108,7 @@ public class MibStore {
         String hint = (String) attributes.get("DISPLAY-HINT");
         TextualConvention tc;
         if (hint != null) {
-            tc = new PatternDisplayHint(hint);
+            tc = new PatternDisplayHint(hint, ((DeclaredType<?>) type).constraints);
         } else if (type instanceof DeclaredType.Native) {
             tc = new TextualConvention.Native((DeclaredType.Native) type);
         } else if (type instanceof DeclaredType.Referenced) {
@@ -114,30 +127,22 @@ public class MibStore {
         }
     }
 
-    public void addValue(Symbol s, DeclaredType<?> type, Object value) throws MibException {
-        if (value instanceof OidPath) {
-            addOid(s, (OidPath)value);
-        } else {
-            System.out.format("%s %s %s\n", s, type, value.getClass());
-        }
+    public void addObjectType(Symbol s, String name, Map<String, Object> attributes, OidPath value) throws MibException {
+        ObjectTypeMacro newtype = new ObjectTypeMacro(attributes, codecs);
+        addType(s, new DeclaredType.ObjectType(newtype));
+        addOid(s, (OidPath)value);
     }
 
-    public void addMacroValue(Symbol s, String name, Map<String, Object> attributes, Object value) throws MibException {
-        if (attributes.containsKey("SYNTAX")) {
-            addType(s, (DeclaredType<?>)attributes.get("SYNTAX"));
-        }
+    public void addTrapType(Symbol s, String name, Map<String, Object> attributes, Number trapIndex) throws MibException {
+        Symbol enterprise = (Symbol) attributes.get("ENTERPRISE");
+        attributes.put("SYMBOL", s);
+        traps.computeIfAbsent(enterprise, k -> new HashMap<>()).put(trapIndex.intValue(), attributes);
+    }
+    
+    public void addMacroValue(Symbol s, String name, Map<String, Object> attributes, OidPath value) throws MibException {
         switch (name) {
-        case "TRAP-TYPE":
-            Symbol enterprise = (Symbol) attributes.get("ENTERPRISE");
-            Number trapIndex = (Number) value;
-            attributes.put("SYMBOL".intern(), s);
-            traps.computeIfAbsent(enterprise, k -> new HashMap<>()).put(trapIndex.intValue(), attributes);
-        case "OBJECT-TYPE":
-            System.out.format("%s %s\n" ,s, name);
-
         case "NOTIFICATION-TYPE":
         case "OBJECT-IDENTITY":
-            break;
         case "MODULE-COMPLIANCE":
         case "NOTIFICATION-GROUP":
         case "OBJECT-GROUP":
@@ -146,11 +151,9 @@ public class MibStore {
             //System.out.println("dropping " +  s);
             break;
         default:
-            //System.out.format("%s %s %s(%s)\n", s, name, attributes, value, value.getClass().getName());
+            System.out.format("%s %s %s(%s)\n", s, name, attributes, value, value.getClass().getName());
         }
-        if (value instanceof OidPath) {
-            addOid(s, (OidPath)value);
-        }
+        addOid(s, value);
     }
 
     private void addOid(Symbol s, OidPath p) throws MibException {
@@ -213,7 +216,7 @@ public class MibStore {
                 Oid oid = oids.get(s);
                 int[] content = oid.getPath().stream().mapToInt(Integer::intValue).toArray();
                 top.add(content, s);
-                somes.put(s.name, content);
+                names.put(s.name, content);
             } catch (MibException e) {
                 System.out.println(e.getMessage());
             }
@@ -264,8 +267,9 @@ public class MibStore {
             if (parent != null) {
                 Codec parentCodec = codecs.get(parent);
                 if(parentCodec.isIndex()) {
+                    Index idx = parentCodec.getIndex();
                     int[] index = Arrays.copyOfRange(oid, foundOID.length, oid.length);
-                    //Arrays.stream(parent.resolve(index)).forEach(i -> parts.add(i));
+                    Arrays.stream(idx.resolve(index, this)).forEach(i -> parts.add(i));
                 }
             }
         }
@@ -273,11 +277,11 @@ public class MibStore {
     }
 
     public boolean containsKey(String text) {
-        return somes.containsKey(text);
+        return names.containsKey(text);
     }
 
     public int[] getFromName(String s) throws MibException {
-        return somes.get(s);
+        return names.get(s);
     }
 
     public String format(OID instanceOID, Variable variable) {
@@ -293,6 +297,7 @@ public class MibStore {
                 trap.get("SYMBOL").toString();
             }
         } else if (codecs.containsKey(s)) {
+            ObjectTypeMacro ot = (ObjectTypeMacro) codecs.get(s);
             return codecs.get(s).format(variable);
         }
         return null;
@@ -323,4 +328,5 @@ public class MibStore {
         }
 
     }
+
 }

@@ -19,8 +19,9 @@ import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.Variable;
 
-public abstract class TextualConvention implements Codec {
+import fr.jrds.snmpcodec.smi.Constraint.ConstraintElement;
 
+public abstract class TextualConvention implements Codec {
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.TYPE)
     public @interface SymbolDef {
@@ -67,6 +68,11 @@ public abstract class TextualConvention implements Codec {
             }
         }
 
+        @Override
+        public Constraint getConstrains() {
+            return type.constraints;
+        }
+
     }
 
     public static class Bits extends TextualConvention {
@@ -99,6 +105,11 @@ public abstract class TextualConvention implements Codec {
             return null;
         }
 
+        @Override
+        public Constraint getConstrains() {
+            return type.constraints;
+        }
+
     }
 
     public static class Referenced extends TextualConvention {
@@ -118,8 +129,16 @@ public abstract class TextualConvention implements Codec {
             return referenced.parse(text);
         }
 
+        @Override
+        public Constraint getConstrains() {
+            return referenced.getConstrains();
+        }
     }
 
+    /**
+     * @author fa4
+     *
+     */
     @SymbolDef(module="SNMPv2-TC", name="StorageType")
     public static class StorageType extends TextualConvention {
 
@@ -162,6 +181,11 @@ public abstract class TextualConvention implements Codec {
             } else {
                 return null;
             }
+        }
+
+        @Override
+        public Constraint getConstrains() {
+            return null;
         }
 
     };
@@ -233,6 +257,11 @@ public abstract class TextualConvention implements Codec {
             return OctetString.fromByteArray(buffer.array());
         }
 
+        @Override
+        public Constraint getConstrains() {
+            return null;
+        }
+
     };
 
     public static class PatternDisplayHint extends AbstractPatternDisplayHint {
@@ -245,9 +274,11 @@ public abstract class TextualConvention implements Codec {
         private final Character[] formats;
         private final Character[] separators;
         private final Integer[] decimals;
+        private final Constraint constraint;
 
-        public PatternDisplayHint(String hint) {
+        public PatternDisplayHint(String hint, Constraint constraint) {
             super(hint);
+            this.constraint = constraint;
             Matcher m = element.matcher(hint);
             List<String> paddings = new ArrayList<>();
             List<Character> stars = new ArrayList<>();
@@ -350,14 +381,22 @@ public abstract class TextualConvention implements Codec {
         public String toString() {
             return "DisplayHint[" + getHint() + "]";
         }
+
+        @Override
+        public Constraint getConstrains() {
+            return constraint;
+        }
     }
 
     @SymbolDef(module="SNMPv2-TC", name="DisplayString")
     public static class DisplayString extends AbstractPatternDisplayHint {
         static private final Charset USASCII = Charset.forName("US-ASCII");
+        private final Constraint constraint;
 
         public DisplayString() {
             super("255a");
+            constraint = new Constraint(true);
+            constraint.add(new ConstraintElement(255));
         }
 
         @Override
@@ -372,6 +411,12 @@ public abstract class TextualConvention implements Codec {
         public Variable parse(String text) {
             return new OctetString(text.getBytes(USASCII));
         }
+
+        @Override
+        public Constraint getConstrains() {
+            return constraint;
+        }
+
     }
 
     public abstract String format(Variable v);
@@ -392,8 +437,19 @@ public abstract class TextualConvention implements Codec {
         }
     }
 
-    public static void addAnnotation(Symbol name, String displayHint, Map<Symbol, TextualConvention> annotations) {
-        annotations.put(name, new PatternDisplayHint(displayHint));
+    public static void addAnnotation(Symbol name, String displayHint, Map<Symbol, TextualConvention> annotations, Constraint constraint) {
+        annotations.put(name, new PatternDisplayHint(displayHint, constraint));
+    }
+
+    @Override
+    public Variable getVariable() {
+        return SmiType.OctetString.getVariable();
+    }
+
+
+    @Override
+    public Object convert(Variable v) {
+        return format(v);
     }
 
 }

@@ -49,12 +49,21 @@ public class ModuleException extends RuntimeException {
     }
 
     public static class DuplicatedMibException extends ModuleException {
+        
+        private final String module;
 
         DuplicatedMibException(String module, String fileName) {
             super("Duplicated module " + module, fileName);
+            this.module = module;
+        }
+
+        /**
+         * @return the module
+         */
+        public String getModule() {
+            return module;
         }
 
     }
-
 
 }

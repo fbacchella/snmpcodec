@@ -66,7 +66,7 @@ public class MibLoader {
             try {
                 ParseTreeWalker.DEFAULT.walk(modulelistener, i);
             } catch (ModuleException.DuplicatedMibException e) {
-                logger.debug("%s at %s" , e.getMessage(), e.getLocation());
+                logger.debug("Duplicated module '%s' at '%s'" , e.getModule(), e.getLocation());
             } catch (ModuleException e) {
                 logger.error("%s at %s" , e.getMessage(), e.getLocation());
             }
