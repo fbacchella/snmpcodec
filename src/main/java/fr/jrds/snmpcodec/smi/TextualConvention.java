@@ -8,6 +8,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -15,8 +16,10 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.snmp4j.smi.Counter64;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OctetString;
+import org.snmp4j.smi.UnsignedInteger32;
 import org.snmp4j.smi.Variable;
 
 import fr.jrds.snmpcodec.smi.Constraint.ConstraintElement;
@@ -112,85 +115,7 @@ public abstract class TextualConvention implements Codec {
 
     }
 
-    public static class Referenced extends TextualConvention {
-        private final Codec.Referenced referenced;
-
-        public Referenced(DeclaredType.Referenced type, Map<Symbol, Codec> codecs) {
-            referenced = new Codec.Referenced(type.content, codecs);
-        }
-
-        @Override
-        public String format(Variable v) {
-            return referenced.format(v);
-        }
-
-        @Override
-        public Variable parse(String text) {
-            return referenced.parse(text);
-        }
-
-        @Override
-        public Constraint getConstrains() {
-            return referenced.getConstrains();
-        }
-    }
-
-    /**
-     * @author fa4
-     *
-     */
-    @SymbolDef(module="SNMPv2-TC", name="StorageType")
-    public static class StorageType extends TextualConvention {
-
-        @Override
-        public String format(Variable v) {
-            Integer32 st = (Integer32) v;
-            switch(st.getValue()) {
-            case 1:
-                return "other";
-            case 2:
-                return "volatile";
-            case 3:
-                return "nonVolatile";
-            case 4:
-                return "permanent";
-            case 5:
-                return "readOnly";
-            default:
-                return null;
-            }
-        }
-
-        @Override
-        public Variable parse(String text) {
-            int val = -1;
-            switch(text.toLowerCase()) {
-            case "other":
-                val = 1; break;
-            case "volatile":
-                val = 2; break;
-            case "nonvolatile":
-                val = 3; break;
-            case "permanent":
-                val = 4; break;
-            case "readonly":
-                val = 5; break;
-            }
-            if (val > 0) {
-                return new Integer32(val);
-            } else {
-                return null;
-            }
-        }
-
-        @Override
-        public Constraint getConstrains() {
-            return null;
-        }
-
-    };
-
-    public static abstract class AbstractPatternDisplayHint extends TextualConvention {
+    public static abstract class AbstractPatternDisplayHint<V extends Variable> extends TextualConvention {
         private final String hint;
         protected AbstractPatternDisplayHint(String hint) {
             this.hint = hint;
@@ -198,19 +123,17 @@ public abstract class TextualConvention implements Codec {
         public String getHint() {
             return hint;
         }
+        @SuppressWarnings("unchecked")
         @Override
         public final String format(Variable v) {
-            if (! (v instanceof OctetString) ) {
-                throw new IllegalArgumentException("Given a variable of type " + v.getSyntaxString() + " instead of type OCTET STRING");
-            }
-            return patternformat((OctetString) v);
+            return patternformat((V) v);
         }
-        protected abstract String patternformat(OctetString v);
+        protected abstract String patternformat(V v);
 
     }
 
     @SymbolDef(module="SNMPv2-TC", name="DateAndTime")
-    public static class DateAndTime extends AbstractPatternDisplayHint {
+    public static class DateAndTime extends AbstractPatternDisplayHint<OctetString> {
 
         public DateAndTime() {
             super("2d-1d-1d,1d:1d:1d.1d,1a1d:1d");
@@ -264,7 +187,134 @@ public abstract class TextualConvention implements Codec {
 
     };
 
-    public static class PatternDisplayHint extends AbstractPatternDisplayHint {
+    private static final Pattern floatPattern = Pattern.compile("(?<radix>d|x|o|b)(?:-(?<float>\\d+))?");
+    private static abstract class NumberDisplayHint<V extends Variable> extends AbstractPatternDisplayHint<V> {
+        private final SmiType type;
+        protected final int fixedfloat;
+        protected final char radix;
+        protected NumberDisplayHint(String hint, SmiType type) {
+            super(hint);
+            this.type = type;
+            Matcher m = floatPattern.matcher(hint);
+            if (m.matches()) {
+                radix = m.group("radix").charAt(0);
+                String floatSuffix = m.group("float");
+                if (floatSuffix == null) {
+                    fixedfloat = 0;
+                } else {
+                    fixedfloat = Integer.parseInt(floatSuffix);
+                }
+            } else {
+                throw new RuntimeException("Invalid display hint " + hint);
+            }
+        }
+        @Override
+        public Constraint getConstrains() {
+            return null;
+        }
+        protected abstract void setVal(V var, String text);
+        @Override
+        public Variable parse(String text) {
+            V val = (V) type.getVariable();
+            setVal(val, text);
+            return val;
+        }
+
+        protected String patternformat(long l) {
+            if (fixedfloat == 0) {
+                switch(radix) {
+                case 'd':
+                    return Long.toString(l);
+                case 'x':
+                    return Long.toHexString(l);
+                case 'o':
+                    return Long.toOctalString(l);
+                case 'b':
+                    return Long.toBinaryString(l);
+                }
+            } else {
+                char[] formatted = Long.toString(l).toCharArray();
+                if (formatted.length > fixedfloat) {
+                    char[] newformatted = new char[formatted.length + 1];
+                    int limit = formatted.length - fixedfloat;
+                    System.arraycopy(formatted, 0, newformatted, 0, limit);
+                    newformatted[limit] = '.';
+                    System.arraycopy(formatted, limit, newformatted, limit + 1, fixedfloat);
+                    return new String(newformatted);
+                } else {
+                    char[] newformatted = new char[fixedfloat + 1];
+                    Arrays.fill(newformatted, '0');
+                    newformatted[0] = '.';
+                    for (int i = formatted.length - 1 ; i >= 0 ; i--) {
+                        newformatted[fixedfloat - formatted.length + i + 1] = formatted[i];
+                    }
+                    return new String(newformatted);
+
+                }
+            }
+            return null;
+        }
+    }
+
+    public static class Unsigned32DisplayHint<V extends UnsignedInteger32> extends NumberDisplayHint<V> {
+
+        protected Unsigned32DisplayHint(String hint, SmiType source) {
+            super(hint, source);
+        }
+
+        @Override
+        protected String patternformat(V v) {
+            return patternformat(v.getValue());
+        }
+
+        @Override
+        protected void setVal(UnsignedInteger32 var, String text) {
+            var.setValue(text);
+        }
+    }
+
+    public static class Signed32DisplayHint<V extends Integer32> extends NumberDisplayHint<V> {
+        protected Signed32DisplayHint(String hint, SmiType source) {
+            super(hint, source);
+        }
+
+        @Override
+        public Constraint getConstrains() {
+            return null;
+        }
+
+        @Override
+        protected String patternformat(Integer32 v) {
+            return patternformat(v.getValue());
+        }
+
+        @Override
+        protected void setVal(Integer32 var, String text) {
+            var.setValue(text);
+        }
+
+    }
+
+    public static class Counter64DisplayHint extends NumberDisplayHint<Counter64> {
+
+        protected Counter64DisplayHint(String hint, SmiType source) {
+            super(hint, source);
+        }
+
+        @Override
+        protected void setVal(Counter64 var, String text) {
+            var.setValue(text);
+        }
+
+        @Override
+        protected String patternformat(Counter64 v) {
+            return patternformat(v.getValue());
+        }
+
+    }
+
+
+    public static class PatternDisplayHint extends AbstractPatternDisplayHint<OctetString> {
         private static final Pattern element = Pattern.compile("(.*?)(\\*?)(\\d*)([dxatobh])([^\\d\\*-]?)(-\\d+)?");
         private static final Charset ASCII = Charset.forName("US-ASCII");
         private static final Charset UTF8 = Charset.forName("UTF-8");
@@ -323,6 +373,7 @@ public abstract class TextualConvention implements Codec {
 
         @Override
         public String patternformat(OctetString os) {
+            System.out.format("%s %s\n", getHint(), os.length());
             ByteBuffer buffer = ByteBuffer.wrap(os.toByteArray());
             buffer.order(ByteOrder.BIG_ENDIAN);
             StringBuilder formatted = new StringBuilder();
@@ -389,7 +440,7 @@ public abstract class TextualConvention implements Codec {
     }
 
     @SymbolDef(module="SNMPv2-TC", name="DisplayString")
-    public static class DisplayString extends AbstractPatternDisplayHint {
+    public static class DisplayString extends AbstractPatternDisplayHint<OctetString> {
         static private final Charset USASCII = Charset.forName("US-ASCII");
         private final Constraint constraint;
 
