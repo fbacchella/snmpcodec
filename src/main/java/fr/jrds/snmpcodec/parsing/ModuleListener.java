@@ -563,17 +563,8 @@ public class ModuleListener extends ASNBaseListener {
             case ASNParser.RULE_sequenceOfType:
                 td.type = BuiltinType.sequenceOfType;
                 break;
-            case ASNParser.RULE_setType:
-                td.type = BuiltinType.setType;
-                break;
-            case ASNParser.RULE_setOfType:
-                td.type = BuiltinType.setOfType;
-                break;
             case ASNParser.RULE_objectidentifiertype:
                 td.type = BuiltinType.objectidentifiertype;
-                break;
-            case ASNParser.RULE_objectClassFieldType:
-                td.type = BuiltinType.objectClassFieldType;
                 break;
             case ASNParser.RULE_nullType:
                 td.type = BuiltinType.nullType;

@@ -46,35 +46,20 @@ If you have some comments/improvements, send me an e-mail.
 grammar ASN;
 
 moduleDefinition :
-    IDENTIFIER ( L_BRACE modulePath? R_BRACE)?
-    DEFINITIONS_LITERAL
-    tagDefault
-    extensionDefault
+    IDENTIFIER
+    'DEFINITIONS'
     ASSIGN_OP
-    BEGIN_LITERAL
+    'BEGIN'
     moduleBody
-    END_LITERAL
+    'END'
     ;
-
-modulePath :
-    (IDENTIFIER (L_PARAN NUMBER R_PARAN)? NUMBER? )+
-    ;
-
-tagDefault :
-    ( (EXPLICIT_LITERAL|IMPLICIT_LITERAL|AUTOMATIC_LITERAL) TAGS_LITERAL )?
-    ;
-
-extensionDefault :
-   (EXTENSIBILITY_LITERAL IMPLIED_LITERAL)?
-;
 
 moduleBody :
     (exports imports assignmentList)?
     ;
 
 exports :
-    (EXPORTS_LITERAL symbolsExported SEMI_COLON
-    | EXPORTS_LITERAL ALL_LITERAL SEMI_COLON )?
+    ('EXPORTS' symbolsExported SEMI_COLON)?
     ;
 
 symbolsExported :
@@ -82,7 +67,7 @@ symbolsExported :
     ;
 
 imports :
-    (IMPORTS_LITERAL symbolsImported SEMI_COLON? )?
+    ('IMPORTS' symbolsImported SEMI_COLON? )?
     ;
 
 symbolsImported
@@ -94,7 +79,7 @@ symbolsFromModuleList
     ;
 
 symbolsFromModule :
-    symbolList FROM_LITERAL globalModuleReference
+    symbolList 'FROM' globalModuleReference
     ;
 
 globalModuleReference :
@@ -123,9 +108,8 @@ symbol :
 
 
 assignmentList :
-    assignment*
+    assignment+
     ;
-
 
 assignment :
     (identifier=IDENTIFIER
@@ -157,151 +141,8 @@ sequenceType :
     'SEQUENCE' '{' (namedType ','* )+ '}'
     ;
 
-extensionAndException :  ELLIPSIS
-;
-optionalExtensionMarker :  ( COMMA  ELLIPSIS )?
-;
-
-componentTypeLists :
-   rootComponentTypeList (COMMA  extensionAndException  extensionAdditions   (optionalExtensionMarker|(EXTENSTIONENDMARKER  COMMA  rootComponentTypeList)))?
-  |  extensionAndException  extensionAdditions  (optionalExtensionMarker | (EXTENSTIONENDMARKER  COMMA    rootComponentTypeList))
-;
-rootComponentTypeList  : componentTypeList
-;
-componentTypeList  :
-    (componentType COMMA*)+
-    ;
-
-componentType  :
-  namedType (OPTIONAL_LITERAL | DEFAULT_LITERAL value )?
- |  COMPONENTS_LITERAL OF_LITERAL  type
-;
-
-extensionAdditions  :  (COMMA  extensionAdditionList)?
-;
-extensionAdditionList  :  (extensionAddition) (COMMA  extensionAddition)*
-;
-extensionAddition  : componentType  |  extensionAdditionGroup
-;
-extensionAdditionGroup  :  DOUBLE_L_BRACKET  versionNumber  componentTypeList  DOUBLE_R_BRACKET
-;
-versionNumber :
-    (NUMBER  COLON )?
-    ;
-
 sequenceOfType  : 'SEQUENCE' (L_PARAN (constraint | sizeConstraint) R_PARAN)? OF_LITERAL (type | namedType )
 ;
-
-parameterizedAssignment :
- parameterList
-(ASSIGN_OP
-    (type
-        |   value
-    )
-)
-|( definedObjectClass ASSIGN_OP
-    ( object
-        |   objectClass
-    )
-
-)
-    ;
-
-parameterList : L_BRACE parameter (COMMA parameter)* R_BRACE
-;
-parameter : (paramGovernor COLON)? IDENTIFIER
-;
-paramGovernor : governor | IDENTIFIER
-;
-
-governor : type | definedObjectClass
-;
-
-
-objectClassAssignment : ASSIGN_OP objectClass
-;
-
-objectClass : definedObjectClass | objectClassDefn /*| parameterizedObjectClass */
-;
-definedObjectClass :
-    (IDENTIFIER DOT)? IDENTIFIER
-    | TYPE_IDENTIFIER_LITERAL
-    |  ABSTRACT_SYNTAX_LITERAL
-;
-usefulObjectClassReference :
-   TYPE_IDENTIFIER_LITERAL
- |  ABSTRACT_SYNTAX_LITERAL
-;
-
-externalObjectClassReference : IDENTIFIER '.' IDENTIFIER
-;
-
-objectClassDefn : CLASS_LITERAL L_BRACE  fieldSpec (COMMA fieldSpec  )*  R_BRACE  withSyntaxSpec?
-;
-withSyntaxSpec : WITH_LITERAL SYNTAX_LITERAL syntaxList
-;
-syntaxList : L_BRACE tokenOrGroupSpec+ R_BRACE
-;
-
-tokenOrGroupSpec : requiredToken | optionalGroup
-;
-
-optionalGroup : L_BRACKET (tokenOrGroupSpec)+ R_BRACKET
-;
-
-requiredToken : literal | primitiveFieldName
-;
-literal : IDENTIFIER | ','
-;
-primitiveFieldName :
-    AMPERSAND IDENTIFIER;
-
-
-fieldSpec :
-    '&' IDENTIFIER
-    (
-      typeOptionalitySpec?
-    )
-    ;
-
-typeFieldSpec : '&' IDENTIFIER typeOptionalitySpec?
-;
-typeOptionalitySpec : OPTIONAL_LITERAL | (DEFAULT_LITERAL type)
-;
-fixedTypeValueFieldSpec : '&' IDENTIFIER type UNIQUE_LITERAL? valueOptionalitySpec ?
-;
-valueOptionalitySpec : OPTIONAL_LITERAL | (DEFAULT_LITERAL value)
-;
-
-variableTypeValueFieldSpec : '&' IDENTIFIER  fieldName valueOptionalitySpec ?
-;
-
-
-object : definedObject /*| objectDefn | objectFromObject */|  parameterizedObject
-;
-parameterizedObject : definedObject actualParameterList
-;
-
-
-definedObject
-    :   IDENTIFIER ('.')?
-    ;
-
-
-fieldName :('&' IDENTIFIER)(AMPERSAND IDENTIFIER DOT)*
-;
-
-
-objectSetElements :
-    object | definedObject /*| objectSetFromObjects | parameterizedObjectSet      */
-;
-
-
-objectFieldSpec : AMPERSAND IDENTIFIER definedObjectClass objectOptionalitySpec?
-;
-objectOptionalitySpec : OPTIONAL_LITERAL | DEFAULT_LITERAL object
-;
-
 
 typeAssignment :
       ASSIGN_OP
@@ -449,23 +290,10 @@ builtinType :
  | integerType
  | sequenceType
  | sequenceOfType
- | setType
- | setOfType
  | objectidentifiertype
- | objectClassFieldType
  | nullType
  | bitsType
     ;
-
-objectClassFieldType : definedObjectClass DOT fieldName
-;
-
-
-setType :  SET_LITERAL  L_BRACE  (extensionAndException  optionalExtensionMarker  | componentTypeLists)? R_BRACE
-    ;
-
-setOfType    : SET_LITERAL (constraint | sizeConstraint)? OF_LITERAL (type | namedType)
-;
 
 bitsType:
     'BITS' '{' bitsEnumeration '}'
@@ -495,7 +323,7 @@ elements :
 constraintElements :
     elements ( '|' elements)*
     ;
-    
+
 constraint :
     '(' constraintElements ')'
     ;
@@ -516,7 +344,7 @@ referenceValue
     : IDENTIFIER
     ;
 
-objectIdentifierValue : L_BRACE /*(definedValue)?*/ objIdComponentsList R_BRACE
+objectIdentifierValue : L_BRACE objIdComponentsList R_BRACE
 ;
 objIdComponentsList
     :   (objIdComponents ','? ) +
@@ -542,7 +370,6 @@ stringValue
     ;
 
 signedNumber:
-    //'-'? NUMBER
     NUMBER
     ;
 
@@ -554,35 +381,29 @@ hexaNumber
     : HEXANUMBER
     ;
 
-
 choiceType    : CHOICE_LITERAL L_BRACE (namedType ','*)+ R_BRACE
-;
-alternativeTypeLists :   rootAlternativeTypeList (COMMA
-   extensionAndException  extensionAdditionAlternatives  optionalExtensionMarker )?
-    ;
-extensionAdditionAlternatives  : (COMMA  extensionAdditionAlternativesList )?
-;
-extensionAdditionAlternativesList  : (extensionAdditionAlternative) (COMMA  extensionAdditionAlternative)*
-;
-extensionAdditionAlternative  :  extensionAdditionAlternativesGroup | namedType
-;
-extensionAdditionAlternativesGroup  :  DOUBLE_L_BRACKET  versionNumber  alternativeTypeList  DOUBLE_R_BRACKET
 ;
 
 rootAlternativeTypeList  : alternativeTypeList
 ;
 alternativeTypeList : (namedType) (COMMA namedType)*
 ;
+
 namedType :
     IDENTIFIER type
     ;
 
-enumeratedType : ENUMERATED_LITERAL L_BRACE enumerations R_BRACE
-;
-enumerations :rootEnumeration (COMMA   ELLIPSIS (COMMA   additionalEnumeration )?)?
+enumeratedType :
+    ENUMERATED_LITERAL L_BRACE enumerations R_BRACE
     ;
+
+enumerations :
+    rootEnumeration
+    ;
+
 rootEnumeration : enumeration
-;
+    ;
+
 enumeration : enumerationItem ( COMMA enumerationItem)*
 ;
 enumerationItem : IDENTIFIER | namedNumber | value
@@ -591,47 +412,18 @@ namedNumber :
     (name=IDENTIFIER | name=TRUE_LITERAL | name=FALSE_LITERAL | name=TRUE_SMALL_LITERAL | name=FALSE_SMALL_LITERAL ) '(' signedNumber ')'
     ;
 
-definedValue :
- // externalValueReference
- //| valuereference
-  parameterizedValue
-;
-parameterizedValue : simpleDefinedValue (actualParameterList)?
-;
-simpleDefinedValue : IDENTIFIER (DOT IDENTIFIER)?
-;
-
-actualParameterList : L_BRACE actualParameter (COMMA actualParameter)* R_BRACE
-;
-actualParameter : type | value /*| valueSet | definedObjectClass | object | objectSet*/
-;
-
-exceptionIdentification : signedNumber
- |     definedValue
- |     type COLON value
-;
-additionalEnumeration : enumeration
-;
 integerType :
     INTEGER_LITERAL  (L_BRACE namedNumberList R_BRACE)?
     ;
 
-namedNumberList : (namedNumber) (COMMA? namedNumber)* COMMA?
-;
+namedNumberList :
+    (namedNumber) (COMMA? namedNumber)* COMMA?
+    ;
+
 objectidentifiertype:
     OBJECT_LITERAL IDENTIFIER_LITERAL
     ;
 
-componentRelationConstraint : L_BRACE (IDENTIFIER (DOT IDENTIFIER)?) R_BRACE
-                 (L_BRACE atNotation (COMMA atNotation)* R_BRACE)?
-;
-atNotation :  (A_ROND | (A_ROND_DOT level)) componentIdList
-;
-level : (DOT level)?
-;
-
-componentIdList : IDENTIFIER (DOT IDENTIFIER)*  //?????
-;
 octetStringType :
     'OCTET' 'STRING'
     ;
@@ -640,7 +432,7 @@ bitStringType    : (BIT_LITERAL STRING_LITERAL) (L_BRACE namedBitList R_BRACE)?
 ;
 namedBitList: (namedBit) (COMMA namedBit)*
 ;
-namedBit      : IDENTIFIER L_PARAN (NUMBER | definedValue) R_PARAN
+namedBit      : IDENTIFIER L_PARAN NUMBER R_PARAN
     ;
 
 booleanValue:  TRUE_LITERAL | FALSE_LITERAL | TRUE_SMALL_LITERAL | FALSE_SMALL_LITERAL
