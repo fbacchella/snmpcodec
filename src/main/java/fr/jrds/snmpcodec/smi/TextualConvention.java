@@ -73,7 +73,12 @@ public abstract class TextualConvention implements Codec {
 
         @Override
         public Constraint getConstrains() {
-            return type.constraints;
+            return type.getConstraints();
+        }
+
+        @Override
+        public Variable getVariable() {
+            return type.getContent().getVariable();
         }
 
     }
@@ -110,7 +115,12 @@ public abstract class TextualConvention implements Codec {
 
         @Override
         public Constraint getConstrains() {
-            return type.constraints;
+            return type.getConstraints();
+        }
+
+        @Override
+        public Variable getVariable() {
+            return null;
         }
 
     }
@@ -185,6 +195,11 @@ public abstract class TextualConvention implements Codec {
             return null;
         }
 
+        @Override
+        public Variable getVariable() {
+            return SmiType.OctetString.getVariable();
+        }
+
     };
 
     private static final Pattern floatPattern = Pattern.compile("(?<radix>d|x|o|b)(?:-(?<float>\\d+))?");
@@ -254,7 +269,12 @@ public abstract class TextualConvention implements Codec {
             }
             return null;
         }
-    }
+
+        @Override
+        public Variable getVariable() {
+            return type.getVariable();
+        }
+   }
 
     public static class Unsigned32DisplayHint<V extends UnsignedInteger32> extends NumberDisplayHint<V> {
 
@@ -292,7 +312,6 @@ public abstract class TextualConvention implements Codec {
         protected void setVal(Integer32 var, String text) {
             var.setValue(text);
         }
-
     }
 
     public static class Counter64DisplayHint extends NumberDisplayHint<Counter64> {
@@ -310,7 +329,6 @@ public abstract class TextualConvention implements Codec {
         protected String patternformat(Counter64 v) {
             return patternformat(v.getValue());
         }
-
     }
 
 
@@ -437,6 +455,12 @@ public abstract class TextualConvention implements Codec {
         public Constraint getConstrains() {
             return constraint;
         }
+
+        @Override
+        public Variable getVariable() {
+            // TODO Auto-generated method stub
+            return null;
+        }
     }
 
     @SymbolDef(module="SNMPv2-TC", name="DisplayString")
@@ -468,6 +492,12 @@ public abstract class TextualConvention implements Codec {
             return constraint;
         }
 
+        @Override
+        public Variable getVariable() {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
     }
 
     public abstract String format(Variable v);
@@ -493,9 +523,7 @@ public abstract class TextualConvention implements Codec {
     }
 
     @Override
-    public Variable getVariable() {
-        return SmiType.OctetString.getVariable();
-    }
+    public abstract Variable getVariable();
 
 
     @Override

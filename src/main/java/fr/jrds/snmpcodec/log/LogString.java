@@ -13,6 +13,7 @@ class LogString implements CharSequence, Serializable {
         this.format = format;
         this.objects = objects;
     }
+
     @Override
     public int length() {
         if(formatted == null) {

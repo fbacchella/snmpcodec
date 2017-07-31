@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -229,6 +230,35 @@ public class ModuleListener extends ASNBaseListener {
             return new Symbol(currentModule, name);
         }
     }
+    
+    private Number fitNumber(BigInteger v) {
+        Number finalV = null;
+        switch(v.bitCount()) {
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+        case 7:
+            finalV = new Byte((byte) v.intValue());
+            break;
+        case 8:
+        case 15:
+            finalV = new Short((short)v.intValue());
+            break;
+        case 16:
+        case 31:
+            finalV = new Integer(v.intValue());
+            break;
+        case 32:
+        case 63:
+            finalV = new Long(v.longValue());
+            break;
+        case 64:
+        default:
+            finalV = v;
+        }
+        return finalV;
+    }
 
     @Override
     public void enterModuleDefinition(ModuleDefinitionContext ctx) {
@@ -317,7 +347,7 @@ public class ModuleListener extends ASNBaseListener {
         StructuredObject<OidPath> macro = (StructuredObject<OidPath>) stack.pop();
         Symbol s = (Symbol) stack.pop();
         try {
-            store.addObjectType(s, macro.name, macro.values, vt.value);
+            store.addObjectType(s, macro.values, vt.value);
         } catch (MibException e) {
             throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
         }
@@ -422,32 +452,7 @@ public class ModuleListener extends ASNBaseListener {
         } catch (Exception e) {
             throw new ModuleException("Invalid number " + ctx.getText(), parser.getInputStream().getSourceName(), ctx.start);
         }
-        Number finalV = null;
-        switch(v.bitCount()) {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-        case 7:
-            finalV = new Byte((byte) v.intValue());
-            break;
-        case 8:
-        case 15:
-            finalV = new Short((short)v.intValue());
-            break;
-        case 16:
-        case 31:
-            finalV = new Integer(v.intValue());
-            break;
-        case 32:
-        case 63:
-            finalV = new Long(v.longValue());
-            break;
-        case 64:
-        default:
-            finalV = v;
-        }
-        stack.push(new IntegerValue(v));
+        stack.push(new IntegerValue(fitNumber(v)));
 
     }
 
@@ -493,14 +498,14 @@ public class ModuleListener extends ASNBaseListener {
             value = ctx.augments().IDENTIFIER().stream().map( i -> i.getText()).collect(ArrayList::new, ArrayList::add,
                     ArrayList::addAll);
         } else if (ctx.index() != null) {
-            List<Symbol> types = new ArrayList<>();
+            LinkedList<Symbol> types = new LinkedList<>();
             while (stack.peek() instanceof TypeDescription) {
                 TypeDescription td = (TypeDescription) stack.pop();
                 if (td.typeDescription != null) {
-                    types.add(resolveSymbol(td.typeDescription.toString()));
+                    types.addFirst(resolveSymbol(td.typeDescription.toString()));
                 }
             }
-            value = types;
+            value = new ArrayList<Symbol>(types);
         } else if (stack.peek() instanceof ValueType) {
             ValueType<?> vt = (ValueType<?>)stack.pop();
             value = vt.value;
@@ -700,9 +705,9 @@ public class ModuleListener extends ASNBaseListener {
         if (ctx.namedNumberList() != null) {
             Map<Number, String> names = new HashMap<>();
             ctx.namedNumberList().namedNumber().forEach( i -> {
-                Number value = new Integer(i.signedNumber().getText());
+                BigInteger value = new BigInteger(i.signedNumber().getText());
                 String name = i.name.getText();
-                names.put(value, name);
+                names.put(fitNumber(value), name);
             });
             td.names = names;
         }

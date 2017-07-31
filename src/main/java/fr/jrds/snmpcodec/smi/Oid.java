@@ -47,13 +47,15 @@ public class Oid {
     final Map<Symbol, Oid> oids;
     private List<Integer> path = null;
     private OidPath components;
+    private final boolean tableEntry;
 
-    public Oid(OidPath components, Map<Symbol, Oid> oids) throws MibException {
+    public Oid(OidPath components, Map<Symbol, Oid> oids, boolean tableEntry) throws MibException {
         if (components.size() == 0) {
             throw new MibException("Creating empty OID");
         }
         this.oids = oids;
         this.components = components;
+        this.tableEntry = tableEntry;
     }
 
     public Oid(int[] components, Map<Symbol, Oid> oids) throws MibException {
@@ -62,6 +64,7 @@ public class Oid {
         }
         this.oids = oids;
         this.path = Arrays.stream(components).mapToObj(Integer::valueOf).collect(Collectors.toList());
+        this.tableEntry = false;
     }
 
     public List<Integer> getPath() throws MibException {
@@ -105,6 +108,13 @@ public class Oid {
         } else {
             return path.stream().map(i -> i.toString()).collect(Collectors.joining("."));
         }
+    }
+
+    /**
+     * @return the tableEntry
+     */
+    public boolean isTableEntry() {
+        return tableEntry;
     }
 
 }

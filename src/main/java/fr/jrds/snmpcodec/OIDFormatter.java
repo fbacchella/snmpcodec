@@ -1,6 +1,8 @@
 package fr.jrds.snmpcodec;
 
 import java.text.ParseException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
 import org.snmp4j.SNMP4JSettings;
@@ -71,18 +73,32 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
         return format(value);
     }
 
+    Pattern OIDWITSUFFIX = Pattern.compile("(?<prefix>\\p{L}(?:\\p{L}|\\d)+)(?:\\.(?<oids>\\d+(?:\\.\\d*)*))?");
+
     @Override
     public int[] parse(String text) throws ParseException {
-        try {
-            if(resolver.containsKey(text)) {
-                return resolver.getFromName(text);
-            } else {
-                return previous.parse(text);
+        Matcher m = OIDWITSUFFIX.matcher(text);
+        if (m.matches()) {
+            String prefixString = m.group("prefix");
+            System.out.println(prefixString);
+            System.out.println(m.group("oids"));
+            int[] prefix = resolver.getFromName(m.group("prefix"));
+            if (prefix != null) {
+                int[] parsed;
+                if (m.group("oids") != null) {
+                    String oids[] = m.group("oids").split("\\.");
+                    parsed = new int[prefix.length + oids.length];
+                    System.arraycopy(prefix, 0, parsed, 0, prefix.length);
+                    for(int i = prefix.length , j=0; i < parsed.length ; i++, j++) {
+                        parsed[i] = Integer.parseInt(oids[j]);
+                    }
+                } else {
+                    parsed = prefix;
+                }
+                return parsed;
             }
-        } catch (MibException e) {
-            throw new ParseException(e.getMessage(), 0);
         }
-
+        return previous.parse(text);
     }
 
     @Override

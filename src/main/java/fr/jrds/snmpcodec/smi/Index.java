@@ -3,6 +3,7 @@ package fr.jrds.snmpcodec.smi;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.Variable;
@@ -45,10 +46,10 @@ public class Index {
                 break;
             }
             Codec codec = oi.getCodec(store);
-            logger.debug("found %s from %s", oi, i);
+            logger.debug("given %s, found %s %s", i, oi.getConstraints(), codec);
             Parsed parsed;
-            if(oi.constraints != null) {
-                parsed = oi.constraints.extract(oidParsed);
+            if(oi.getConstraints() != null) {
+                parsed = oi.getConstraints().extract(oidParsed);
             } else {
                 parsed = new Parsed();
                 parsed.content = Arrays.copyOf(oidParsed, 1);
@@ -73,6 +74,10 @@ public class Index {
             if (oidParsed == null) {
                 break;
             }
+        }
+        if (oidParsed != null) {
+            String traillings = Arrays.stream(oidParsed).mapToObj(i -> Integer.toString(i)).collect(Collectors.joining("."));
+            throw new RuntimeException("Trailing elements in index: " + traillings);
         }
         logger.debug("will resolve %s to %s", oid, indexesValues);
         return indexesValues.toArray(new Object[indexesValues.size()]);

@@ -17,27 +17,34 @@ public class OidTreeNode {
     private int[] oidElements;
     private final NavigableMap<Integer, OidTreeNode> childs = new TreeMap<Integer, OidTreeNode>();
     private final OidTreeNode root;
+    private final boolean isTableEntry;
+    private final OidTreeNode parent;
 
     public OidTreeNode() {
         symbol = null;
         root = this;
         oidElements = new int[] {};
+        isTableEntry = false;
+        parent = null;
     }
 
-    private OidTreeNode(OidTreeNode parent, int id, Symbol object) {
+    private OidTreeNode(OidTreeNode parent, int id, Symbol object, boolean isTableEntry) {
+        this.parent = parent;
         this.symbol = object;
         this.root = parent.root;
         parent.childs.put(id, this);
         this.oidElements = Arrays.copyOf(parent.oidElements, parent.oidElements.length + 1);
         this.oidElements[this.oidElements.length - 1] = id;
+        this.isTableEntry = isTableEntry;
     }
 
     /**
      * Added a new node at the right place in the tree
      * @param object
+     * @param isTableEntry 
      * @throws MibException 
      */
-    public OidTreeNode add(int[] oidElements, Symbol object) throws MibException {
+    public OidTreeNode add(int[] oidElements, Symbol object, boolean isTableEntry) throws MibException {
         OidTreeNode found = find(oidElements);
         if ( found != null) {
             //already exists, don't add
@@ -47,11 +54,11 @@ public class OidTreeNode {
         int[] oidParent = Arrays.copyOf(elements, elements.length - 1);
         //Adding a first level child
         if(oidParent.length == 0) {
-            return new OidTreeNode(root, elements[0], object);
+            return new OidTreeNode(root, elements[0], object, isTableEntry);
         } else {
             OidTreeNode parent = root.find(oidParent);
             if(parent != null) {
-                return new OidTreeNode(parent, elements[elements.length - 1], object);
+                return new OidTreeNode(parent, elements[elements.length - 1], object, isTableEntry);
             } else {
                 String dottedOid = Arrays.stream(oidElements)
                         .mapToObj(i -> Integer.toString(i))
@@ -118,9 +125,21 @@ public class OidTreeNode {
     public boolean oidEquals(int[] other) {
         return other != null && Arrays.equals(oidElements, other);
     }
-    
+
     public Collection<OidTreeNode> childs() {
         return Collections.unmodifiableCollection(childs.values());
+    }
+
+    public Symbol getTableEntry() {
+        OidTreeNode curs = this;
+        while( curs != null && ! curs.isTableEntry) {
+            curs = curs.parent;
+        }
+        if (curs != null && curs.isTableEntry) {
+            return curs.symbol;
+        } else {
+            return null;
+        }
     }
 
 }

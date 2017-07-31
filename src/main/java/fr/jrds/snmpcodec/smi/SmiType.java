@@ -17,6 +17,7 @@ import org.snmp4j.smi.Variable;
 
 import fr.jrds.snmpcodec.Utils;
 import fr.jrds.snmpcodec.log.LogAdapter;
+import fr.jrds.snmpcodec.smi.TextualConvention.PatternDisplayHint;
 
 /**
  * A enumeration of Snmp types to help conversion and parsing.
@@ -71,6 +72,11 @@ public enum SmiType implements Codec {
         public Variable parse(String text) {
             return new org.snmp4j.smi.Opaque(text.getBytes());
         }
+        @Override
+        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
+            // TODO Auto-generated method stub
+            return null;
+        }
     },
     OctetString {
         @Override
@@ -108,6 +114,10 @@ public enum SmiType implements Codec {
         public Variable parse(String text) {
             return org.snmp4j.smi.OctetString.fromByteArray(text.getBytes());
         }
+        @Override
+        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
+            return new PatternDisplayHint(hint, type.getConstraints());
+        }
     },
     /**
      * From SNMPv2-SMI, defined as [APPLICATION 2]<p>
@@ -133,6 +143,11 @@ public enum SmiType implements Codec {
         public Object convert(Variable v) {
             return v.toLong();
         }
+        @Override
+        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
+            // TODO Auto-generated method stub
+            return null;
+        }
     },
     /**
      * @deprecated
@@ -152,6 +167,11 @@ public enum SmiType implements Codec {
         @Override
         public Object convert(Variable v) {
             return v.toString();
+        }
+        @Override
+        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
+            // TODO Auto-generated method stub
+            return null;
         }
     },
     /**
@@ -195,6 +215,11 @@ public enum SmiType implements Codec {
         public Variable parse(String text) {
             return new org.snmp4j.smi.IpAddress(text);
         }
+        @Override
+        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
+            // TODO Auto-generated method stub
+            return null;
+        }
     },
     ObjID {
         @Override
@@ -224,6 +249,11 @@ public enum SmiType implements Codec {
         public Variable parse(String text) {
             return new OID(text);
         }
+        @Override
+        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
+            // TODO Auto-generated method stub
+            return null;
+        }
     },
     INTEGER {
         @Override
@@ -249,6 +279,10 @@ public enum SmiType implements Codec {
         @Override
         public Variable parse(String text) {
             return new org.snmp4j.smi.Integer32(Integer.parseInt(text));
+        }
+        @Override
+        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
+            return new TextualConvention.Signed32DisplayHint(hint, ((DeclaredType.Native) type).content);
         }
     },
     /**
@@ -287,6 +321,11 @@ public enum SmiType implements Codec {
         public Variable parse(String text) {
             return new org.snmp4j.smi.Counter32(Long.parseLong(text));
         }
+        @Override
+        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
+            // TODO Auto-generated method stub
+            return null;
+        }
     },
     /**
      * From SNMPv2-SMI, defined as [APPLICATION 6]<p>
@@ -324,6 +363,11 @@ public enum SmiType implements Codec {
         public Variable parse(String text) {
             return new org.snmp4j.smi.Counter64(Long.parseLong(text));
         }
+        @Override
+        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
+            // TODO Auto-generated method stub
+            return null;
+        }
     },
     /**
      * From SNMPv-2SMI, defined as [APPLICATION 2]<p>
@@ -360,6 +404,11 @@ public enum SmiType implements Codec {
         @Override
         public Variable parse(String text) {
             return new org.snmp4j.smi.Gauge32(Long.parseLong(text));
+        }
+        @Override
+        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
+            // TODO Auto-generated method stub
+            return null;
         }
     },
     /**
@@ -417,6 +466,11 @@ public enum SmiType implements Codec {
                 }
             }
         }
+        @Override
+        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
+            // TODO Auto-generated method stub
+            return null;
+        }
     },
     Null {
         @Override
@@ -439,6 +493,11 @@ public enum SmiType implements Codec {
         public Variable parse(String text) {
             return new org.snmp4j.smi.Null();
         }
+        @Override
+        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
+            // TODO Auto-generated method stub
+            return null;
+        }
     },
     ;
 
@@ -456,6 +515,7 @@ public enum SmiType implements Codec {
      */
     public abstract Variable getVariable();
     public abstract Variable getVariable(Object source);
+    public abstract TextualConvention getTextualConvention(String hint, DeclaredType<?> type);
     public String format(Variable v) {
         return v.toString();
     };

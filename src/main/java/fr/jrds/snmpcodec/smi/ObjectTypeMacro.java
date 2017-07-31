@@ -43,19 +43,29 @@ public class ObjectTypeMacro implements Codec {
 
     @Override
     public Variable parse(String text) {
+        Codec codec = null;
         switch (syntax.getType()) {
         case Native: {
-            SmiType st = (SmiType) syntax.getContent();
-            return st.parse(text);
+            codec = (SmiType) syntax.getContent();
         }
         case Referenced: {
             Symbol ref = (Symbol) syntax.getContent();
-            return codecs.get(ref).parse(text);
+            codec = codecs.get(ref);
         }
-        default: {
+        }
+        if ( codec != null) {
+            return codec.parse(text);
+        } else {
             return null;
         }
-        }
+    }
+    
+    public DeclaredType<?> getSyntax() {
+        return syntax;
+    }
+
+    public boolean isTable() {
+        return syntax.getType() == DeclaredType.AsnType.Sequenceof;
     }
 
     @Override
@@ -77,7 +87,12 @@ public class ObjectTypeMacro implements Codec {
         }
         case Referenced: {
             Symbol ref = (Symbol) syntax.getContent();
-            return codecs.get(ref).getVariable();
+            Codec cdc = codecs.get(ref);
+            if (cdc != null) {
+                return cdc.getVariable();
+            } else {
+                return null;
+            }
         }
         default: {
             return null;
