@@ -9,10 +9,13 @@ import java.util.regex.Pattern;
 
 import org.snmp4j.asn1.BER;
 import org.snmp4j.asn1.BERInputStream;
+import org.snmp4j.smi.AbstractVariable;
+import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.IpAddress;
 import org.snmp4j.smi.OID;
-import org.snmp4j.smi.Opaque;
+import org.snmp4j.smi.SMIConstants;
 import org.snmp4j.smi.TimeTicks;
+import org.snmp4j.smi.UnsignedInteger32;
 import org.snmp4j.smi.Variable;
 
 import fr.jrds.snmpcodec.Utils;
@@ -24,7 +27,11 @@ import fr.jrds.snmpcodec.smi.TextualConvention.PatternDisplayHint;
  * @author Fabrice Bacchella
  *
  */
-public enum SmiType implements Codec {
+public abstract class SmiType extends Syntax {
+
+    private abstract static class SmiTypeTextual extends SmiType implements WithTextualConvention {
+
+    };
 
     /**
      * From SNMPv2-SMI, defined as [APPLICATION 4]<p>
@@ -32,7 +39,7 @@ public enum SmiType implements Codec {
      * This can also manage the special float type as defined by Net-SNMP. But it don't parse float.<p>
      * @author Fabrice Bacchella
      */
-    Opaque {
+    public static final SmiType Opaque = new SmiType() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Opaque();
@@ -47,7 +54,7 @@ public enum SmiType implements Codec {
         }
         @Override
         public Object convert(Variable v) {
-            Opaque var = (Opaque) v;
+            org.snmp4j.smi.Opaque var = (org.snmp4j.smi.Opaque) v;
             //If not resolved, we will return the data as an array of bytes
             Object value = var.getValue();
             try {
@@ -73,12 +80,12 @@ public enum SmiType implements Codec {
             return new org.snmp4j.smi.Opaque(text.getBytes());
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
-            // TODO Auto-generated method stub
-            return null;
+        public int getSyntaxString() {
+            return BER.OPAQUE;
         }
-    },
-    OctetString {
+    };
+
+    public static final SmiType OctetString = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.OctetString();
@@ -115,10 +122,15 @@ public enum SmiType implements Codec {
             return org.snmp4j.smi.OctetString.fromByteArray(text.getBytes());
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
-            return new PatternDisplayHint(hint, type.getConstraints());
+        public TextualConvention getTextualConvention(String hint, Syntax type) {
+            return new PatternDisplayHint(type, hint, type.getConstrains());
         }
-    },
+        @Override
+        public int getSyntaxString() {
+            return BER.OCTETSTRING;
+        }
+    };
+
     /**
      * From SNMPv2-SMI, defined as [APPLICATION 2]<p>
      * -- an unsigned 32-bit quantity<p/>
@@ -126,10 +138,10 @@ public enum SmiType implements Codec {
      * @author Fabrice Bacchella
      *
      */
-    Unsigned32 {
+    public static final SmiType Unsigned32 = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
-            return new org.snmp4j.smi.UnsignedInteger32();
+            return new UnsignedInteger32();
         }
         @Override
         public Variable getVariable(Object source) {
@@ -144,18 +156,28 @@ public enum SmiType implements Codec {
             return v.toLong();
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
-            // TODO Auto-generated method stub
-            return null;
+        public TextualConvention getTextualConvention(String hint, Syntax type) {
+            return new TextualConvention.Unsigned32DisplayHint<UnsignedInteger32>(type, hint);
         }
-    },
+        @Override
+        public int getSyntaxString() {
+            return SMIConstants.SYNTAX_UNSIGNED_INTEGER32;
+        }
+        @Override
+        public String toString() {
+            return "Unsigned32";
+        }
+
+    };
+
     /**
      * @deprecated
      *    The BIT STRING type has been temporarily defined in RFC 1442
      *    and obsoleted by RFC 2578. Use OctetString (i.e. BITS syntax)
      *    instead.
      */
-    BitString {
+    @Deprecated
+    public static final SmiType BitString = new SmiType() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.BitString();
@@ -169,11 +191,11 @@ public enum SmiType implements Codec {
             return v.toString();
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
-            // TODO Auto-generated method stub
-            return null;
+        public int getSyntaxString() {
+            return BER.BITSTRING;
         }
-    },
+    };
+
     /**
      * From SNMPv-2SMI, defined as [APPLICATION 0]<p>
      * -- (this is a tagged type for historical reasons)
@@ -186,7 +208,7 @@ public enum SmiType implements Codec {
      * @author Fabrice Bacchella
      *
      */
-    IpAddr {
+    public static final SmiType IpAddr = new SmiType() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.IpAddress();
@@ -216,12 +238,12 @@ public enum SmiType implements Codec {
             return new org.snmp4j.smi.IpAddress(text);
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
-            // TODO Auto-generated method stub
-            return null;
+        public int getSyntaxString() {
+            return BER.IPADDRESS;
         }
-    },
-    ObjID {
+    };
+
+    public static final SmiType ObjID = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.OID();
@@ -250,12 +272,16 @@ public enum SmiType implements Codec {
             return new OID(text);
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
-            // TODO Auto-generated method stub
-            return null;
+        public int getSyntaxString() {
+            return BER.OID;
         }
-    },
-    INTEGER {
+        @Override
+        public TextualConvention getTextualConvention(String hint, Syntax type) {
+            return new TextualConvention.OidTextualConvention(type);
+        }
+    };
+
+    public static final SmiType INTEGER = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Integer32();
@@ -281,10 +307,19 @@ public enum SmiType implements Codec {
             return new org.snmp4j.smi.Integer32(Integer.parseInt(text));
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
-            return new TextualConvention.Signed32DisplayHint(hint, ((DeclaredType.Native) type).content);
+        public TextualConvention getTextualConvention(String hint, Syntax type) {
+            return new TextualConvention.Signed32DisplayHint<Integer32>(type, hint);
         }
-    },
+        @Override
+        public int getSyntaxString() {
+            return BER.INTEGER;
+        }
+        @Override
+        public String toString() {
+            return "INTEGER";
+        }
+    };
+
     /**
      * From SNMPv2-SMI, defined as [APPLICATION 1]<p>
      * -- this wraps <p>
@@ -296,7 +331,7 @@ public enum SmiType implements Codec {
      * @author Fabrice Bacchella
      *
      */
-    Counter32 {
+    public static final SmiType Counter32 = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Counter32();
@@ -322,11 +357,19 @@ public enum SmiType implements Codec {
             return new org.snmp4j.smi.Counter32(Long.parseLong(text));
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
-            // TODO Auto-generated method stub
-            return null;
+        public TextualConvention getTextualConvention(String hint, Syntax type) {
+            return new TextualConvention.Unsigned32DisplayHint<UnsignedInteger32>(type, hint);
         }
-    },
+        @Override
+        public int getSyntaxString() {
+            return BER.COUNTER32;
+        }
+        @Override
+        public String toString() {
+            return "Counter32";
+        }
+    };
+
     /**
      * From SNMPv2-SMI, defined as [APPLICATION 6]<p>
      * -- for counters that wrap in less than one hour with only 32 bits</p>
@@ -338,7 +381,7 @@ public enum SmiType implements Codec {
      * @author Fabrice Bacchella
      *
      */
-    Counter64 {
+    public static final SmiType Counter64 = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Counter64();
@@ -364,11 +407,15 @@ public enum SmiType implements Codec {
             return new org.snmp4j.smi.Counter64(Long.parseLong(text));
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
-            // TODO Auto-generated method stub
-            return null;
+        public TextualConvention getTextualConvention(String hint, Syntax type) {
+            return new TextualConvention.Counter64DisplayHint(type, hint);
         }
-    },
+        @Override
+        public int getSyntaxString() {
+            return BER.COUNTER64;
+        }
+    };
+
     /**
      * From SNMPv-2SMI, defined as [APPLICATION 2]<p>
      * -- this doesn't wrap</p>
@@ -380,7 +427,7 @@ public enum SmiType implements Codec {
      * @author Fabrice Bacchella
      *
      */
-    Gauge32 {
+    public static final SmiType Gauge32 = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Gauge32();
@@ -406,11 +453,19 @@ public enum SmiType implements Codec {
             return new org.snmp4j.smi.Gauge32(Long.parseLong(text));
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
-            // TODO Auto-generated method stub
-            return null;
+        public TextualConvention getTextualConvention(String hint, Syntax type) {
+            return new TextualConvention.Unsigned32DisplayHint<org.snmp4j.smi.Gauge32>(type, hint);
         }
-    },
+        @Override
+        public int getSyntaxString() {
+            return BER.COUNTER32;
+        }
+        @Override
+        public String toString() {
+            return "Gauge32";
+        }
+    };
+
     /**
      * From SNMPv-2SMI, defined as [APPLICATION 3]<p>
      * -- hundredths of seconds since an epoch</p>
@@ -423,7 +478,7 @@ public enum SmiType implements Codec {
      * @author Fabrice Bacchella
      *
      */
-    TimeTicks {
+    public static final SmiType TimeTicks = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.TimeTicks();
@@ -467,12 +522,16 @@ public enum SmiType implements Codec {
             }
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
-            // TODO Auto-generated method stub
-            return null;
+        public TextualConvention getTextualConvention(String hint, Syntax type) {
+            return new TextualConvention.Unsigned32DisplayHint<org.snmp4j.smi.Gauge32>(type, hint);
         }
-    },
-    Null {
+        @Override
+        public int getSyntaxString() {
+            return BER.TIMETICKS;
+        }
+    };
+
+    public static final SmiType Null = new SmiType() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Null();
@@ -494,12 +553,10 @@ public enum SmiType implements Codec {
             return new org.snmp4j.smi.Null();
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, DeclaredType<?> type) {
-            // TODO Auto-generated method stub
-            return null;
+        public int getSyntaxString() {
+            return BER.NULL;
         }
-    },
-    ;
+    };
 
     // Used to parse time ticks
     static final private Pattern TimeTicksPattern = Pattern.compile("(?:(?<days>\\d+) days?, )?(?<hours>\\d+):(?<minutes>\\d+):(?<seconds>\\d+)(?:\\.(?<fraction>\\d+))?");
@@ -510,12 +567,10 @@ public enum SmiType implements Codec {
     static final private byte TAG_FLOAT = (byte) 0x78;
     static final private byte TAG_DOUBLE = (byte) 0x79;
 
-    /**
-     * @return a empty instance of the associated Variable type
-     */
-    public abstract Variable getVariable();
-    public abstract Variable getVariable(Object source);
-    public abstract TextualConvention getTextualConvention(String hint, DeclaredType<?> type);
+    public SmiType() {
+        super(null, null);
+    }
+
     public String format(Variable v) {
         return v.toString();
     };
@@ -523,6 +578,7 @@ public enum SmiType implements Codec {
         return null;
     };
     public abstract Object convert(Variable v);
+    public abstract int getSyntaxString();
     public Object make(int[] in){
         Variable v = getVariable();
         OID oid = new OID(in);
@@ -532,6 +588,10 @@ public enum SmiType implements Codec {
     @Override
     public Constraint getConstrains() {
         return null;
-    };
+    }
+    @Override
+    public String toString() {
+        return AbstractVariable.getSyntaxString(getSyntaxString());
+    }
 
 }

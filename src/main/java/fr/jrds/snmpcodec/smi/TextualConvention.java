@@ -1,16 +1,10 @@
 package fr.jrds.snmpcodec.smi;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -24,110 +18,45 @@ import org.snmp4j.smi.Variable;
 
 import fr.jrds.snmpcodec.smi.Constraint.ConstraintElement;
 
-public abstract class TextualConvention implements Codec {
-    @Retention(RetentionPolicy.RUNTIME)
-    @Target(ElementType.TYPE)
-    public @interface SymbolDef {
-        String module();
-        String name();
-    }
+public abstract class TextualConvention extends IndirectSyntax {
+    
+    public static class OidTextualConvention extends TextualConvention {
 
-    public static class Native extends TextualConvention {
-        private final Map<String, Number> fromname;
-        private final Map<Number, String> toname;
-        private final DeclaredType.Native type;
-
-        public Native(DeclaredType.Native type) {
-            if (type.names != null) {
-                fromname = new HashMap<>(type.names.size());
-                toname = new HashMap<>(type.names.size());
-                for(Map.Entry<Number, String> e: type.names.entrySet()) {
-                    fromname.put(e.getValue(), e.getKey());
-                    toname.put(e.getKey(), e.getValue());
-                }
-            } else {
-                fromname = Collections.emptyMap();
-                toname = Collections.emptyMap();
-            }
-            this.type = type;
+        public OidTextualConvention(Syntax syntax) {
+            super(syntax, null, null);
         }
 
         @Override
         public String format(Variable v) {
-            if (toname.size() > 0) {
-                return toname.get(v.toLong());
-            } else {
-                return v.toString();
-            }
+            return SmiType.ObjID.format(v);
+        }
+
+        @Override
+        public Object convert(Variable v) {
+            return SmiType.ObjID.convert(v);
         }
 
         @Override
         public Variable parse(String text) {
-            if (fromname.containsKey(text)) {
-                Number val =  fromname.get(text);
-                return type.content.getVariable(val);
-            } else {
-                return type.content.parse(text);
-            }
-        }
-
-        @Override
-        public Constraint getConstrains() {
-            return type.getConstraints();
+            return SmiType.ObjID.parse(text);
         }
 
         @Override
         public Variable getVariable() {
-            return type.getContent().getVariable();
-        }
-
-    }
-
-    public static class Bits extends TextualConvention {
-        private final Map<String, Number> fromname;
-        private final Map<Number, String> toname;
-        private final DeclaredType.Bits type;
-
-        public Bits(DeclaredType.Bits type) {
-            if (type.names != null) {
-                fromname = new HashMap<>(type.names.size());
-                toname = new HashMap<>(type.names.size());
-                for(Map.Entry<Number, String> e: type.names.entrySet()) {
-                    fromname.put(e.getValue(), e.getKey());
-                    toname.put(e.getKey(), e.getValue());
-                }
-            } else {
-                fromname = Collections.emptyMap();
-                toname = Collections.emptyMap();
-            }
-            this.type = type;
+            return SmiType.ObjID.getVariable();
         }
 
         @Override
-        public String format(Variable v) {
-            return null;
+        public Variable getVariable(Object source) {
+            return SmiType.ObjID.getVariable(source);
         }
-
-        @Override
-        public Variable parse(String text) {
-            return null;
-        }
-
-        @Override
-        public Constraint getConstrains() {
-            return type.getConstraints();
-        }
-
-        @Override
-        public Variable getVariable() {
-            return null;
-        }
-
+        
     }
 
     public static abstract class AbstractPatternDisplayHint<V extends Variable> extends TextualConvention {
-        private final String hint;
-        protected AbstractPatternDisplayHint(String hint) {
+        protected final String hint;
+        protected AbstractPatternDisplayHint(Syntax syntax, String hint, Map<Number, String> names, Constraint constraints) {
+            super(syntax, names, constraints);
             this.hint = hint;
         }
         public String getHint() {
@@ -139,17 +68,22 @@ public abstract class TextualConvention implements Codec {
             return patternformat((V) v);
         }
         protected abstract String patternformat(V v);
-
     }
 
-    @SymbolDef(module="SNMPv2-TC", name="DateAndTime")
     public static class DateAndTime extends AbstractPatternDisplayHint<OctetString> {
-
-        public DateAndTime() {
-            super("2d-1d-1d,1d:1d:1d.1d,1a1d:1d");
+        private final static Constraint Constraint8or11 = new Constraint(true);
+        static {
+            Constraint8or11.add(new ConstraintElement(8));
+            Constraint8or11.add(new ConstraintElement(11));
         }
+        private final static IndirectSyntax localsyntax = new IndirectSyntax(SmiType.OctetString, null, Constraint8or11);
+        static private final Charset USASCII = Charset.forName("US-ASCII");
 
         private static final Pattern HINTREGEX = Pattern.compile("(\\d+)-(\\d+)-(\\d+),(\\d+):(\\d+):(\\d+).(\\d+),(\\+|-)(\\d+):(\\d+)");
+
+        public DateAndTime() {
+            super(localsyntax, "2d-1d-1d,1d:1d:1d.1d,1a1d:1d", null, null);
+        }
 
         @Override
         public String patternformat(OctetString os) {
@@ -196,31 +130,47 @@ public abstract class TextualConvention implements Codec {
         }
 
         @Override
+        public Object convert(Variable v) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
         public Variable getVariable() {
-            return SmiType.OctetString.getVariable();
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public Variable getVariable(Object source) {
+            // TODO Auto-generated method stub
+            return null;
         }
 
     };
 
     private static final Pattern floatPattern = Pattern.compile("(?<radix>d|x|o|b)(?:-(?<float>\\d+))?");
     private static abstract class NumberDisplayHint<V extends Variable> extends AbstractPatternDisplayHint<V> {
-        private final SmiType type;
         protected final int fixedfloat;
         protected final char radix;
-        protected NumberDisplayHint(String hint, SmiType type) {
-            super(hint);
-            this.type = type;
-            Matcher m = floatPattern.matcher(hint);
-            if (m.matches()) {
-                radix = m.group("radix").charAt(0);
-                String floatSuffix = m.group("float");
-                if (floatSuffix == null) {
-                    fixedfloat = 0;
+        protected NumberDisplayHint(Syntax syntax, String hint) {
+            super(syntax, hint, null, null);
+            if (hint != null) {
+                Matcher m = floatPattern.matcher(hint);
+                if (m.matches()) {
+                    radix = m.group("radix").charAt(0);
+                    String floatSuffix = m.group("float");
+                    if (floatSuffix == null) {
+                        fixedfloat = 0;
+                    } else {
+                        fixedfloat = Integer.parseInt(floatSuffix);
+                    }
                 } else {
-                    fixedfloat = Integer.parseInt(floatSuffix);
+                    throw new RuntimeException("Invalid display hint " + hint);
                 }
             } else {
-                throw new RuntimeException("Invalid display hint " + hint);
+                fixedfloat = 0;
+                radix = ' ';
             }
         }
         @Override
@@ -230,7 +180,7 @@ public abstract class TextualConvention implements Codec {
         protected abstract void setVal(V var, String text);
         @Override
         public Variable parse(String text) {
-            V val = (V) type.getVariable();
+            V val = (V) getSyntax().getVariable();
             setVal(val, text);
             return val;
         }
@@ -272,14 +222,14 @@ public abstract class TextualConvention implements Codec {
 
         @Override
         public Variable getVariable() {
-            return type.getVariable();
+            return getSyntax().getVariable();
         }
-   }
+    }
 
     public static class Unsigned32DisplayHint<V extends UnsignedInteger32> extends NumberDisplayHint<V> {
 
-        protected Unsigned32DisplayHint(String hint, SmiType source) {
-            super(hint, source);
+        protected Unsigned32DisplayHint(Syntax syntax, String hint) {
+            super(syntax, hint);
         }
 
         @Override
@@ -291,11 +241,23 @@ public abstract class TextualConvention implements Codec {
         protected void setVal(UnsignedInteger32 var, String text) {
             var.setValue(text);
         }
+
+        @Override
+        public Object convert(Variable v) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public Variable getVariable(Object source) {
+            // TODO Auto-generated method stub
+            return null;
+        }
     }
 
     public static class Signed32DisplayHint<V extends Integer32> extends NumberDisplayHint<V> {
-        protected Signed32DisplayHint(String hint, SmiType source) {
-            super(hint, source);
+        protected Signed32DisplayHint(Syntax syntax, String hint) {
+            super(syntax, hint);
         }
 
         @Override
@@ -312,12 +274,24 @@ public abstract class TextualConvention implements Codec {
         protected void setVal(Integer32 var, String text) {
             var.setValue(text);
         }
+
+        @Override
+        public Object convert(Variable v) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public Variable getVariable(Object source) {
+            // TODO Auto-generated method stub
+            return null;
+        }
     }
 
     public static class Counter64DisplayHint extends NumberDisplayHint<Counter64> {
 
-        protected Counter64DisplayHint(String hint, SmiType source) {
-            super(hint, source);
+        protected Counter64DisplayHint(Syntax syntax, String hint) {
+            super(syntax, hint);
         }
 
         @Override
@@ -328,6 +302,18 @@ public abstract class TextualConvention implements Codec {
         @Override
         protected String patternformat(Counter64 v) {
             return patternformat(v.getValue());
+        }
+
+        @Override
+        public Variable getVariable(Object source) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public Object convert(Variable v) {
+            // TODO Auto-generated method stub
+            return null;
         }
     }
 
@@ -344,101 +330,113 @@ public abstract class TextualConvention implements Codec {
         private final Integer[] decimals;
         private final Constraint constraint;
 
-        public PatternDisplayHint(String hint, Constraint constraint) {
-            super(hint);
+        public PatternDisplayHint(Syntax syntax, String hint, Constraint constraint) {
+            super(syntax, hint, null, constraint);
             this.constraint = constraint;
-            Matcher m = element.matcher(hint);
-            List<String> paddings = new ArrayList<>();
-            List<Character> stars = new ArrayList<>();
-            List<Integer> sizes = new ArrayList<>();
-            List<Character> formats = new ArrayList<>();
-            List<Character> separators = new ArrayList<>();
-            List<Integer> decimals = new ArrayList<>();
-            int end = -1;
-            while (m.find()){
-                paddings.add(m.group(1));
-                if ( !m.group(2).isEmpty()) {
-                    stars.add(m.group(2).charAt(0));
+            if (hint != null) {
+                Matcher m = element.matcher(hint);
+                List<String> paddings = new ArrayList<>();
+                List<Character> stars = new ArrayList<>();
+                List<Integer> sizes = new ArrayList<>();
+                List<Character> formats = new ArrayList<>();
+                List<Character> separators = new ArrayList<>();
+                List<Integer> decimals = new ArrayList<>();
+                int end = -1;
+                while (m.find()) {
+                    paddings.add(m.group(1));
+                    if(!m.group(2).isEmpty()) {
+                        stars.add(m.group(2).charAt(0));
+                    }
+                    if(!m.group(3).isEmpty()) {
+                        sizes.add(Integer.parseInt(m.group(3)));
+                    } else {
+                        sizes.add(1);
+                    }
+                    formats.add(m.group(4).charAt(0));
+                    if(!m.group(5).isEmpty()) {
+                        separators.add(m.group(5).charAt(0));
+                    } else {
+                        separators.add(Character.MIN_VALUE);
+                    }
+                    if(m.group(6) != null) {
+                        decimals.add(Integer.parseInt(m.group(6).substring(1)));
+                    } else {
+                        decimals.add(0);
+                    }
+                    end = m.end();
                 }
-                if (! m.group(3).isEmpty()) {
-                    sizes.add(Integer.parseInt(m.group(3)));
-                } else {
-                    sizes.add(1);
+                if(end >= 0) {
+                    paddings.add(hint.substring(end));
                 }
-                formats.add(m.group(4).charAt(0));
-                if ( !m.group(5).isEmpty()) {
-                    separators.add(m.group(5).charAt(0));
-                } else {
-                    separators.add(Character.MIN_VALUE);
-                }
-                if (m.group(6) != null) {
-                    decimals.add(Integer.parseInt(m.group(6).substring(1)));
-                } else {
-                    decimals.add(0);
-                }
-                end = m.end();
+                this.paddings = paddings.toArray(new String[paddings.size()]);
+                this.stars = stars.toArray(new Character[stars.size()]);
+                this.sizes = sizes.toArray(new Integer[sizes.size()]);
+                this.formats = formats.toArray(new Character[formats.size()]);
+                this.separators = separators.toArray(new Character[separators.size()]);
+                this.decimals = decimals.toArray(new Integer[decimals.size()]);
+            } else {
+                this.paddings = null;
+                this.stars = null;
+                this.sizes = null;
+                this.formats = null;
+                this.separators = null;
+                this.decimals = null;
             }
-            if (end >= 0) {
-                paddings.add(hint.substring(end));
-            }
-            this.paddings = paddings.toArray(new String[paddings.size()]);
-            this.stars = stars.toArray(new Character[stars.size()]);
-            this.sizes = sizes.toArray(new Integer[sizes.size()]);
-            this.formats = formats.toArray(new Character[formats.size()]);
-            this.separators = separators.toArray(new Character[separators.size()]);
-            this.decimals = decimals.toArray(new Integer[decimals.size()]);
         }
 
         @Override
         public String patternformat(OctetString os) {
-            System.out.format("%s %s\n", getHint(), os.length());
-            ByteBuffer buffer = ByteBuffer.wrap(os.toByteArray());
-            buffer.order(ByteOrder.BIG_ENDIAN);
-            StringBuilder formatted = new StringBuilder();
-            for (int i = 0 ; i < sizes.length; i++) {
-                formatted.append(paddings[i]);
-                int size = sizes[i];
-                switch (formats[i]) {
-                case 'd':
-                    switch (size) {
-                    case 1:
-                        formatted.append(buffer.get());
+            if (hint == null) {
+                return SmiType.OctetString.format(os);
+            } else {
+                ByteBuffer buffer = ByteBuffer.wrap(os.toByteArray());
+                buffer.order(ByteOrder.BIG_ENDIAN);
+                StringBuilder formatted = new StringBuilder();
+                for (int i = 0 ; i < sizes.length; i++) {
+                    formatted.append(paddings[i]);
+                    int size = sizes[i];
+                    switch (formats[i]) {
+                    case 'd':
+                        switch (size) {
+                        case 1:
+                            formatted.append(buffer.get());
+                            break;
+                        case 2:
+                            formatted.append(buffer.getShort());
+                            break;
+                        case 4:
+                            formatted.append(buffer.getInt());
+                            break;
+                        }
                         break;
-                    case 2:
-                        formatted.append(buffer.getShort());
+                    case 'x':
+                        switch (size) {
+                        case 1:
+                            formatted.append(String.format("%x", buffer.get()));
+                            break;
+                        case 2:
+                            formatted.append(String.format("%x", buffer.getShort()));
+                            break;
+                        case 4:
+                            formatted.append(String.format("%x", buffer.getInt()));
+                            break;
+                        }
                         break;
-                    case 4:
-                        formatted.append(buffer.getInt());
+                    case 'a':
+                    case 't':
+                        byte[] sub =new byte[sizes[i]];
+                        buffer.get(sub);
+                        formatted.append(new String(sub, formats[i] == 'a' ? ASCII : UTF8));
                         break;
+                    case 'h':
                     }
-                    break;
-                case 'x':
-                    switch (size) {
-                    case 1:
-                        formatted.append(String.format("%x", buffer.get()));
-                        break;
-                    case 2:
-                        formatted.append(String.format("%x", buffer.getShort()));
-                        break;
-                    case 4:
-                        formatted.append(String.format("%x", buffer.getInt()));
-                        break;
+                    if (separators[i] != Character.MIN_VALUE) {
+                        formatted.append(separators[i]);
                     }
-                    break;
-                case 'a':
-                case 't':
-                    byte[] sub =new byte[sizes[i]];
-                    buffer.get(sub);
-                    formatted.append(new String(sub, formats[i] == 'a' ? ASCII : UTF8));
-                    break;
-                case 'h':
                 }
-                if (separators[i] != Character.MIN_VALUE) {
-                    formatted.append(separators[i]);
-                }
+                formatted.append(paddings[paddings.length - 1]);
+                return formatted.toString();
             }
-            formatted.append(paddings[paddings.length - 1]);
-            return formatted.toString();
         }
 
         @Override
@@ -461,25 +459,40 @@ public abstract class TextualConvention implements Codec {
             // TODO Auto-generated method stub
             return null;
         }
+
+        @Override
+        public Object convert(Variable v) {
+            // TODO Auto-generated method stub
+            return null;
+        }
+
+        @Override
+        public Variable getVariable(Object source) {
+            // TODO Auto-generated method stub
+            return null;
+        }
     }
 
-    @SymbolDef(module="SNMPv2-TC", name="DisplayString")
+
     public static class DisplayString extends AbstractPatternDisplayHint<OctetString> {
+        private final static Constraint Constraint255a = new Constraint(true);
+        static {
+            Constraint255a.add(new ConstraintElement(255));
+        }
+        private final static IndirectSyntax localsyntax = new IndirectSyntax(SmiType.OctetString, null, Constraint255a);
         static private final Charset USASCII = Charset.forName("US-ASCII");
-        private final Constraint constraint;
 
         public DisplayString() {
-            super("255a");
-            constraint = new Constraint(true);
-            constraint.add(new ConstraintElement(255));
+            super(localsyntax, "255a", null, null);
         }
 
         @Override
         public String patternformat(OctetString v) {
             if (v.isPrintable()) {
                 return new String(v.getValue(), USASCII);
+            } else {
+                return v.toHexString();
             }
-            return v.toHexString();
         }
 
         @Override
@@ -488,47 +501,25 @@ public abstract class TextualConvention implements Codec {
         }
 
         @Override
-        public Constraint getConstrains() {
-            return constraint;
+        public Variable getVariable() {
+            return SmiType.OctetString.getVariable();
         }
 
         @Override
-        public Variable getVariable() {
+        public Object convert(Variable v) {
+            return patternformat((OctetString) v);
+        }
+
+        @Override
+        public Variable getVariable(Object source) {
             // TODO Auto-generated method stub
             return null;
         }
 
     }
 
-    public abstract String format(Variable v);
-    public abstract Variable parse(String text);
-
-    public static void addAnnotation(Class<? extends TextualConvention> clazz, Map<Symbol, TextualConvention> annotations) {
-        SymbolDef annotation = clazz.getAnnotation(SymbolDef.class);
-        if (annotation != null) {
-            try {
-                annotations.put(new Symbol(annotation.module(), annotation.name()), clazz.newInstance());
-            } catch (InstantiationException e) {
-                throw new IllegalArgumentException("bad class " + clazz.getCanonicalName() + ": "+ e.getMessage(), e.getCause());
-            } catch (IllegalAccessException e) {
-                throw new IllegalArgumentException("bad class " + clazz.getCanonicalName() + ": "+ e.getMessage(), e);
-            }
-        } else {
-            throw new IllegalArgumentException("Missing name annotation for TextualConvention");
-        }
-    }
-
-    public static void addAnnotation(Symbol name, String displayHint, Map<Symbol, TextualConvention> annotations, Constraint constraint) {
-        annotations.put(name, new PatternDisplayHint(displayHint, constraint));
-    }
-
-    @Override
-    public abstract Variable getVariable();
-
-
-    @Override
-    public Object convert(Variable v) {
-        return format(v);
+    public TextualConvention(Syntax syntax, Map<Number, String> names, Constraint constraints) {
+        super(syntax, names, constraints);
     }
 
 }

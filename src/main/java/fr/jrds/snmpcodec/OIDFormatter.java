@@ -17,11 +17,11 @@ import fr.jrds.snmpcodec.smi.SmiType;
 
 public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
 
-    private final MibStore resolver;
+    private final Mib resolver;
     private OIDTextFormat previous;
     private VariableTextFormat previousVar;
 
-    public OIDFormatter(MibStore resolver) {
+    public OIDFormatter(Mib resolver) {
         this.resolver = resolver;
         previous = SNMP4JSettings.getOIDTextFormat();
         previousVar = SNMP4JSettings.getVariableTextFormat();
@@ -32,7 +32,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
      * @return the new OIDFormatter
      */
     public static OIDFormatter register() {
-        MibStore resolver = new MibStore();
+        Mib resolver = new Mib();
         return register(resolver);
     }
 
@@ -41,7 +41,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
      * @param resolver the new OIDFormatter
      * @return the new OIDFormatter
      */
-    public static OIDFormatter register(MibStore resolver) {
+    public static OIDFormatter register(Mib resolver) {
         OIDTextFormat previousTextFormat = SNMP4JSettings.getOIDTextFormat();
         VariableTextFormat previousVarFormat = SNMP4JSettings.getVariableTextFormat();
         OIDFormatter formatter = new OIDFormatter(resolver);

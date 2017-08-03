@@ -20,98 +20,66 @@ import org.snmp4j.smi.OID;
 import org.snmp4j.smi.Variable;
 
 import fr.jrds.snmpcodec.log.LogAdapter;
-import fr.jrds.snmpcodec.smi.Codec;
-import fr.jrds.snmpcodec.smi.DeclaredType;
-import fr.jrds.snmpcodec.smi.DeclaredType.Native;
-import fr.jrds.snmpcodec.smi.DeclaredType.Referenced;
 import fr.jrds.snmpcodec.smi.Index;
-import fr.jrds.snmpcodec.smi.ObjectTypeMacro;
-import fr.jrds.snmpcodec.smi.TextualConvention;
+import fr.jrds.snmpcodec.smi.IndirectSyntax;
+import fr.jrds.snmpcodec.smi.ObjectType;
 import fr.jrds.snmpcodec.smi.Oid;
-import fr.jrds.snmpcodec.smi.Symbol;
 import fr.jrds.snmpcodec.smi.Oid.OidPath;
-import fr.jrds.snmpcodec.smi.SmiType;
+import fr.jrds.snmpcodec.smi.Referenced;
+import fr.jrds.snmpcodec.smi.Symbol;
+import fr.jrds.snmpcodec.smi.Syntax;
+import fr.jrds.snmpcodec.smi.TextualConvention;
+import fr.jrds.snmpcodec.smi.WithTextualConvention;
 
-public class MibStore {
+public class Mib {
 
-    LogAdapter logger = LogAdapter.getLogger(MibStore.class);
+    LogAdapter logger = LogAdapter.getLogger(Mib.class);
 
     private final Set<Symbol> badsymbols = new HashSet<>();
     public final Map<Symbol, Oid> oids = new Symbol.SymbolMap<>();
     public final Map<String, int[]> names = new HashMap<>();
-    public final Map<Symbol, Codec> codecs = new Symbol.SymbolMap<>();
-    public final Map<Symbol, DeclaredType<?>> types = new Symbol.SymbolMap<>();
+    public final Map<Symbol, Syntax> codecs = new Symbol.SymbolMap<>();
     public final Map<Symbol, Map<Integer, Map<String, Object>>> traps = new Symbol.SymbolMap<>();
     public final OidTreeNode top = new OidTreeNode();
     private final Set<String> modules = new HashSet<>();
     public Map<Symbol, Map<String, Object>> textualConventions = new HashMap<>();
+    public final Map<Symbol, ObjectType> objects = new HashMap<>();
 
-    public MibStore() {
+    public Mib() {
         Symbol ccitt = new Symbol("CCITT", "ccitt");
         Symbol iso = new Symbol("ISO", "iso");
+        Symbol joint = new Symbol("JOINT", "joint-iso-ccitt");
         try {
             oids.put(ccitt, new Oid(new int[]{0}, oids));
             oids.put(iso, new Oid(new int[]{1}, oids));
+            oids.put(joint, new Oid(new int[]{2}, oids));
             top.add(new int[]{0}, ccitt, false);
             top.add(new int[]{1}, iso, false);
+            top.add(new int[]{2}, joint, false);
         } catch (MibException e) {
         }
         codecs.put(new Symbol("SNMPv2-TC", "DateAndTime"), new TextualConvention.DateAndTime());
         codecs.put(new Symbol("SNMPv2-TC", "DisplayString"), new TextualConvention.DisplayString());
     }
 
-    public void addValue(Symbol s, DeclaredType<?> type, Object value) throws MibException {
+    public void addValue(Symbol s, Syntax syntax, Object value) throws MibException {
         if (value instanceof OidPath) {
             addOid(s, (OidPath)value, false);
+
         } else {
             throw new MibException("Unsupported value assignement " + value);
         }
     }
 
-    public void addType(Symbol s, DeclaredType<?> type) {
+    public void addType(Symbol s, Syntax type) {
         if (codecs.containsKey(s) ) {
             logger.debug("Duplicating symbol %s", s);
             return;
         }
-        types.put(s, type);
-        switch (type.getType()) {
-        case Native: {
-            SmiType st = (SmiType) type.getContent();
-            codecs.put(s, st);
-            break;
-        }
-        case Referenced: {
-            Symbol ref = (Symbol) type.getContent();
-            codecs.put(s, new Codec.Referenced(ref, codecs));
-            break;
-        }
-        case ObjectType: {
-            ObjectTypeMacro ot = (ObjectTypeMacro) type.getContent();
-            if (! ot.isTable()) {
-                codecs.put(s, ot);
-            }
-            break;
-        }
-        case Sequenceof: {
-            // Ignored type
-            break;
-        }
-        case Sequence: {
-            // Ignored type
-            break;
-        }
-        case Choice: {
-            // Ignored type
-            break;
-        }
-        default: {
-            System.out.format("unmanaged type %s: %s\n", s, type.getType());
-            break;
-        }
-        }
+        codecs.put(s, type);
     }
 
-    
+
     //private static final Symbol Unsigned32 = new Symbol("SNMPv2-SMI","Unsigned32");
     public void addTextualConvention(Symbol s, Map<String, Object> attributes) {
         textualConventions.put(s, attributes);
@@ -119,49 +87,45 @@ public class MibStore {
 
     private void resolveTextualConventions() {
         textualConventions.forEach((s, attributes) -> {
-            DeclaredType<?> type = (DeclaredType<?>) attributes.get("SYNTAX");
+            Syntax type = (Syntax) attributes.get("SYNTAX");
             String hint = (String) attributes.get("DISPLAY-HINT");
             TextualConvention tc;
-            DeclaredType<?> finaltype = type;
-            while (finaltype instanceof Referenced) {
-                Referenced ref = (Referenced) type;
-                finaltype = this.types.get(ref.content);
+            Syntax finaltype = type;
+            while (! (finaltype instanceof WithTextualConvention) && finaltype != null) {
+                if (finaltype instanceof Referenced) {
+                    Referenced ref = (Referenced) finaltype;
+                    finaltype = codecs.get(ref.getSym());
+                } else if (finaltype instanceof TextualConvention) {
+                    TextualConvention temporary = (TextualConvention) finaltype;
+                    finaltype = temporary.getSyntax();
+                } else {
+                    finaltype = ((IndirectSyntax) finaltype).getSyntax();
+                }
             }
-            if (hint != null && finaltype instanceof DeclaredType.Native) {
+            if (finaltype != null) {
                 try {
-                    tc = ((DeclaredType.Native)finaltype).content.getTextualConvention(hint, finaltype);
+                    tc = ((WithTextualConvention)finaltype).getTextualConvention(hint, type);
+                    if (tc != null) {
+                        if (codecs.containsKey(s) ) {
+                            logger.debug("Duplicating textual convention %s", s);
+                            return;
+                        }
+                        codecs.put(s, tc);
+                    }
                 } catch (Exception e) {
-                    System.out.format("Bad hint: %s %s %s %s\n", s, hint, finaltype, finaltype.content);
-                    tc = null;
+                    System.out.println("Broken type " + s + " " + attributes);
                 }
-                if("LldpPortNumber".equals(s.name)) {
-                    System.out.format("%s %s %s %s\n", s, hint, finaltype, finaltype.content);
-                }
-            } else if (type instanceof DeclaredType.Native) {
-                tc = new TextualConvention.Native((DeclaredType.Native) type);
-            } else if (type instanceof DeclaredType.Bits) {
-                tc = new TextualConvention.Bits((DeclaredType.Bits) type);
-            } else if (type instanceof DeclaredType.Referenced && finaltype != null) {
-                tc = new TextualConvention.Native((Native) finaltype);
             } else {
-                tc = null;
-                System.out.format("%s %s\n", s, attributes);
-            }
-            if (tc != null) {
-                if (codecs.containsKey(s) ) {
-                    logger.debug("Duplicating textual convention %s", s);
-                    return;
-                }
-                codecs.put(s, tc);
+                System.out.println("Invalid type " + s + " " + attributes);
             }
         });
         textualConventions = null;
     }
 
     public void addObjectType(Symbol s, Map<String, Object> attributes, OidPath value) throws MibException {
-        ObjectTypeMacro newtype = new ObjectTypeMacro(attributes, codecs);
-        addType(s, new DeclaredType.ObjectType(newtype));
-        addOid(s, (OidPath)value, newtype.isIndex());
+        ObjectType newtype = new ObjectType(attributes, codecs);
+        addOid(s, (OidPath)value, newtype.isIndexed());
+        objects.put(s, newtype);
     }
 
     public void addTrapType(Symbol s, String name, Map<String, Object> attributes, Number trapIndex) throws MibException {
@@ -179,10 +143,8 @@ public class MibStore {
         case "OBJECT-GROUP":
         case "MODULE-IDENTITY":
         case "AGENT-CAPABILITIES":
-            //System.out.println("dropping " +  s);
             break;
         default:
-            System.out.format("%s %s %s(%s)\n", s, name, attributes, value, value.getClass().getName());
         }
         addOid(s, value, false);
     }
@@ -297,8 +259,8 @@ public class MibStore {
         if(foundOID.length < oid.length ) {
             Symbol parent = top.find(Arrays.copyOf(foundOID, foundOID.length -1 )).getSymbol();
             if (parent != null) {
-                Codec parentCodec = codecs.get(parent);
-                if(parentCodec.isIndex()) {
+                ObjectType parentCodec = objects.get(parent);
+                if(parentCodec.isIndexed()) {
                     Index idx = parentCodec.getIndex();
                     int[] index = Arrays.copyOfRange(oid, foundOID.length, oid.length);
                     Arrays.stream(idx.resolve(index, this)).forEach(i -> parts.add(i));
@@ -328,8 +290,8 @@ public class MibStore {
             } else {
                 trap.get("SYMBOL").toString();
             }
-        } else if (codecs.containsKey(s)) {
-            ObjectTypeMacro ot = (ObjectTypeMacro) codecs.get(s);
+        } else if (objects.containsKey(s)) {
+            ObjectType ot = objects.get(s);
             return ot.format(variable);
         }
         return null;

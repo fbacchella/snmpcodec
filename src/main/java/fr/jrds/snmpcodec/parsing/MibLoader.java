@@ -5,8 +5,6 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.stream.Stream;
 
 import org.antlr.v4.runtime.ANTLRErrorListener;
@@ -15,29 +13,19 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
-import fr.jrds.snmpcodec.MibStore;
+import fr.jrds.snmpcodec.Mib;
 import fr.jrds.snmpcodec.log.LogAdapter;
-import fr.jrds.snmpcodec.parsing.ModuleListener.StructuredObject;
-import fr.jrds.snmpcodec.smi.DeclaredType;
-import fr.jrds.snmpcodec.smi.Symbol;
-import fr.jrds.snmpcodec.smi.TextualConvention;
 
 
 public class MibLoader {
 
-    LogAdapter logger = LogAdapter.getLogger(MibLoader.class);
-
-    public final Map<String, String> displayHints = new HashMap<>();
-    public final Map<Symbol, TextualConvention> textualConventions = new HashMap<>();
-    public final Map<Number, StructuredObject<?>> trapstype = new HashMap<>();
-    public final Map<Symbol, DeclaredType<?>> types = new Symbol.SymbolMap<DeclaredType<?>>();
-    public final Map<Symbol, Object> assigned = new HashMap<>();
+    final LogAdapter logger = LogAdapter.getLogger(MibLoader.class);
 
     private final ModuleListener modulelistener;
     private final ANTLRErrorListener errorListener = new ModuleErrorListener();
 
 
-    public MibLoader(MibStore store) {
+    public MibLoader(Mib store) {
         super();
         modulelistener = new ModuleListener(store);
     }

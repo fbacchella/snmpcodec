@@ -17,8 +17,8 @@ import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 
+import fr.jrds.snmpcodec.Mib;
 import fr.jrds.snmpcodec.MibException;
-import fr.jrds.snmpcodec.MibStore;
 import fr.jrds.snmpcodec.parsing.ASNParser.AccessContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.AssignmentContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.BitDescriptionContext;
@@ -46,12 +46,15 @@ import fr.jrds.snmpcodec.parsing.ASNParser.TrapTypeAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.TypeAssignmentContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.TypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ValueAssignmentContext;
+import fr.jrds.snmpcodec.smi.IndirectSyntax;
+import fr.jrds.snmpcodec.smi.Bits;
 import fr.jrds.snmpcodec.smi.Constraint;
-import fr.jrds.snmpcodec.smi.DeclaredType;
 import fr.jrds.snmpcodec.smi.Oid.OidComponent;
 import fr.jrds.snmpcodec.smi.Oid.OidPath;
+import fr.jrds.snmpcodec.smi.Referenced;
 import fr.jrds.snmpcodec.smi.SmiType;
 import fr.jrds.snmpcodec.smi.Symbol;
+import fr.jrds.snmpcodec.smi.Syntax;
 
 public class ModuleListener extends ASNBaseListener {
 
@@ -170,38 +173,43 @@ public class ModuleListener extends ASNBaseListener {
         public String toString() {
             return "" + type + (typeDescription != null ? " " + typeDescription : "");
         }
-        @SuppressWarnings("unchecked")
-        public DeclaredType<?> resolve() {
+        public Syntax getSyntax() {
+            Syntax trySyntax;
             switch (type) {
             case referencedType:
-                return new DeclaredType.Referenced(resolveSymbol((String) typeDescription), names, constraints);
+                trySyntax = new Referenced(resolveSymbol((String) typeDescription), store, names, constraints);
+                break;
             case octetStringType:
-                return new DeclaredType.Native(SmiType.OctetString, names, constraints);
-            case bitStringType:
-                return new DeclaredType.Bits((Map<String, Integer>) typeDescription, names, constraints);
+                trySyntax =  SmiType.OctetString;
+                break;
             case integerType:
-                return new DeclaredType.Native(SmiType.INTEGER, names, constraints);
+                trySyntax =  SmiType.INTEGER;
+                break;
             case objectidentifiertype:
-                return new DeclaredType.Native(SmiType.ObjID, names, constraints);
+                trySyntax =  SmiType.ObjID;
+                break;
             case nullType:
-                return new DeclaredType.Native(SmiType.Null, names, constraints);
-            case sequenceType:
-                return new DeclaredType.Sequence((Map<String, DeclaredType<?>>)typeDescription, names);
-            case sequenceOfType:
-                return new DeclaredType.SequenceOf((DeclaredType<?>) typeDescription, names);
-            case choiceType:
-                return new DeclaredType.Choice((Map<String, DeclaredType<?>>)typeDescription, names);
+                trySyntax =  SmiType.Null;
+                break;
             case bitsType:
-                return new DeclaredType.Bits((Map<String, Integer>)typeDescription, names, constraints);
+                @SuppressWarnings("unchecked")
+                Map<String, Integer> bitsEnumeration = (Map<String, Integer>) typeDescription;
+                return new Bits(bitsEnumeration, constraints);
+            case bitStringType:
+            case sequenceType:
+            case sequenceOfType:
+            case choiceType:
             case enumeratedType:
             case objectClassFieldType:
             case setType:
             case setOfType:
-                System.out.format("unmanaged type: %s\n", this);
-                return new DeclaredType.Native(SmiType.Null, names, constraints);
             default:
-                System.out.format("unchecked type: %s\n", this);
-                return new DeclaredType.Native(SmiType.Null, names, constraints);
+                return null;
+            }
+            if (names != null || constraints != null) {
+                return new IndirectSyntax(trySyntax, names, constraints);
+            } else {
+                return trySyntax;
             }
         }
     }
@@ -212,14 +220,12 @@ public class ModuleListener extends ASNBaseListener {
 
     private final Map<String, Object> objects = new HashMap<>();
     private final Map<String, String> importedFrom = new HashMap<>();
-    private final Map<OidType, MibObject> symbols = new HashMap<>();
 
     private String currentModule = null;
 
-    private final MibStore store;
+    private final Mib store;
 
-    public ModuleListener(MibStore store) {
-        super();
+    public ModuleListener(Mib store) {
         this.store = store;
     }
 
@@ -230,7 +236,7 @@ public class ModuleListener extends ASNBaseListener {
             return new Symbol(currentModule, name);
         }
     }
-    
+
     private Number fitNumber(BigInteger v) {
         Number finalV = null;
         switch(v.bitCount()) {
@@ -362,18 +368,14 @@ public class ModuleListener extends ASNBaseListener {
     public void exitTextualConventionAssignement(TextualConventionAssignementContext ctx) {
         TextualConvention tc = (TextualConvention) stack.pop();
         Symbol s = (Symbol) stack.pop();
-        DeclaredType<?> dt = (DeclaredType<?>) tc.values.get("SYNTAX");
         store.addTextualConvention(s, tc.values);
     }
 
     @Override
     public void exitTypeAssignment(TypeAssignmentContext ctx) {
         TypeDescription td = (TypeDescription) stack.pop();
-        DeclaredType<?> type = td.resolve();
         Symbol s = (Symbol) stack.pop();
-        if (type != null) {
-            store.addType(s, type);
-        }
+        store.addType(s, td.getSyntax());
     }
 
     @Override
@@ -382,7 +384,7 @@ public class ModuleListener extends ASNBaseListener {
         TypeDescription td = (TypeDescription) stack.pop();
         Symbol s = (Symbol) stack.pop();
         try {
-            store.addValue(s, td.resolve(), vt.value);
+            store.addValue(s, td.getSyntax(), vt.value);
         } catch (MibException e) {
             throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
         }
@@ -510,7 +512,7 @@ public class ModuleListener extends ASNBaseListener {
             ValueType<?> vt = (ValueType<?>)stack.pop();
             value = vt.value;
         } else if (stack.peek() instanceof TypeDescription) {
-            value = ((TypeDescription)stack.pop()).resolve();
+            value = ((TypeDescription)stack.pop()).getSyntax();
         }
 
         MappedObject co = (MappedObject) stack.peek();
@@ -639,7 +641,7 @@ public class ModuleListener extends ASNBaseListener {
     @Override
     public void enterSequenceType(SequenceTypeContext ctx) {
         TypeDescription td = (TypeDescription) stack.peek();
-        Map<Symbol, DeclaredType<?>> content = new LinkedHashMap<>();
+        Map<Symbol, Syntax> content = new LinkedHashMap<>();
         td.type = BuiltinType.sequenceType;
         ctx.namedType().forEach( i -> {
             content.put(resolveSymbol(i.IDENTIFIER().getText()), null);
@@ -658,9 +660,9 @@ public class ModuleListener extends ASNBaseListener {
         TypeDescription td = (TypeDescription) stack.peek();
 
         @SuppressWarnings("unchecked")
-        Map<Symbol, DeclaredType<?>> content = (Map<Symbol, DeclaredType<?>>) td.typeDescription;
+        Map<Symbol, Syntax> content = (Map<Symbol, Syntax>) td.typeDescription;
         content.keySet().forEach( name -> {
-            content.put(name, nt.get(i.getAndDecrement()).resolve());
+            content.put(name, nt.get(i.getAndDecrement()).getSyntax());
         });
     }
 
@@ -668,13 +670,13 @@ public class ModuleListener extends ASNBaseListener {
     public void exitSequenceOfType(SequenceOfTypeContext ctx) {
         TypeDescription seqtd = (TypeDescription) stack.pop();
         TypeDescription td = (TypeDescription) stack.peek();
-        td.typeDescription = seqtd.resolve();
+        td.typeDescription = seqtd;
     }
 
     @Override
     public void enterChoiceType(ChoiceTypeContext ctx) {
         TypeDescription td = (TypeDescription) stack.peek();
-        Map<String, DeclaredType<?>> content = new LinkedHashMap<>();
+        Map<String, Syntax> content = new LinkedHashMap<>();
         td.type = BuiltinType.choiceType;
         ctx.namedType().forEach( i -> {
             content.put(i.IDENTIFIER().getText(), null);
@@ -693,9 +695,9 @@ public class ModuleListener extends ASNBaseListener {
         int i = nt.size() - 1;
         TypeDescription td = (TypeDescription) stack.peek();
         @SuppressWarnings("unchecked")
-        Map<String, DeclaredType<?>> content = (Map<String, DeclaredType<?>>) td.typeDescription;
+        Map<String, Syntax> content = (Map<String, Syntax>) td.typeDescription;
         content.keySet().forEach( name -> {
-            content.put(name, nt.get(i).resolve());
+            content.put(name, nt.get(i).getSyntax());
         });
     }
 

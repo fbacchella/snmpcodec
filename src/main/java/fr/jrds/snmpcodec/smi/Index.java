@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.Variable;
 
-import fr.jrds.snmpcodec.MibStore;
+import fr.jrds.snmpcodec.Mib;
 import fr.jrds.snmpcodec.Utils;
 import fr.jrds.snmpcodec.log.LogAdapter;
 
@@ -36,20 +36,19 @@ public class Index {
         return indexes.toString();
     }
 
-    public Object[] resolve(int[] oid, MibStore store) {
+    public Object[] resolve(int[] oid, Mib store) {
         List<Object> indexesValues = new ArrayList<>();
         int[] oidParsed = Arrays.copyOf(oid, oid.length);
         for(Symbol i: indexes) {
-            DeclaredType<?> oi = store.types.get(i);
-            if(oi == null) {
+            Syntax codec = store.codecs.get(i);
+            if(codec == null) {
                 logger.error("index not found: %s", i);
                 break;
             }
-            Codec codec = oi.getCodec(store);
-            logger.debug("given %s, found %s %s", i, oi.getConstraints(), codec);
+            logger.debug("given %s, found %s %s", i, codec.getConstrains(), codec);
             Parsed parsed;
-            if(oi.getConstraints() != null) {
-                parsed = oi.getConstraints().extract(oidParsed);
+            if(codec.getConstrains() != null) {
+                parsed = codec.getConstrains().extract(oidParsed);
             } else {
                 parsed = new Parsed();
                 parsed.content = Arrays.copyOf(oidParsed, 1);
