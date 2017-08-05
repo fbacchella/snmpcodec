@@ -13,7 +13,7 @@ public class Utils {
     public static final class UnsignedLong extends Number implements Comparable<Long>{
         private final long l;
 
-        public UnsignedLong(long l) {
+        private UnsignedLong(long l) {
             super();
             this.l = l;
         }

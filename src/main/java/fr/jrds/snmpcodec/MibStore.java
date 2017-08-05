@@ -135,17 +135,6 @@ public class MibStore {
     }
 
     public void addMacroValue(Symbol s, String name, Map<String, Object> attributes, OidPath value) throws MibException {
-        switch (name) {
-        case "NOTIFICATION-TYPE":
-        case "OBJECT-IDENTITY":
-        case "MODULE-COMPLIANCE":
-        case "NOTIFICATION-GROUP":
-        case "OBJECT-GROUP":
-        case "MODULE-IDENTITY":
-        case "AGENT-CAPABILITIES":
-            break;
-        default:
-        }
         addOid(s, value, false);
     }
 
