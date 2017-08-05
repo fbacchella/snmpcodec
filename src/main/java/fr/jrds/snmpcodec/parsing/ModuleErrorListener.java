@@ -18,7 +18,7 @@ public class ModuleErrorListener extends BaseErrorListener {
         } else {
             sourceFileName = "UNKNOWN FILE";
         }
-        //throw new ModuleException(msg, sourceFileName, line, charPositionInLine);
+        throw new ModuleException(msg, sourceFileName, line, charPositionInLine);
     }
 
 }

@@ -3,8 +3,11 @@ package fr.jrds.snmpcodec.parsing;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Properties;
 import java.util.stream.Stream;
 
 import org.antlr.v4.runtime.ANTLRErrorListener;
@@ -23,16 +26,36 @@ public class MibLoader {
 
     private final ModuleListener modulelistener;
     private final ANTLRErrorListener errorListener = new ModuleErrorListener();
+    private final Properties encodings;
 
 
     public MibLoader(MibStore store) {
         super();
         modulelistener = new ModuleListener(store);
+
+        encodings = new Properties();
+        try {
+            Collections.list(ClassLoader.getSystemResources("modulesencoding.txt")).forEach( i-> {
+                try {
+                    InputStream is = i.openStream();
+                    encodings.load(is);
+                } catch (IOException e) {
+                    throw new UncheckedIOException("Invalid modules encoding property file: " + e.getMessage(), e);
+                }
+            });
+        } catch (IOException e) {
+            throw new UncheckedIOException("Invalid modules encoding property file: " + e.getMessage(), e);
+        }
     }
 
     private void load(Stream<ANTLRInputStream> source) {
         source
-        .map(i -> new ASNLexer(i))
+        .map(i -> {
+            ASNLexer lexer = new ASNLexer(i);
+            lexer.removeErrorListeners();
+            lexer.addErrorListener(errorListener);
+            return lexer;
+        })
         .map(i -> new CommonTokenStream(i))
         .map(i -> {
             ASNParser parser = new ASNParser(i);
@@ -45,7 +68,7 @@ public class MibLoader {
             try {
                 return i.moduleDefinition();
             } catch (ModuleException e) {
-                System.err.println(e.getLocation());
+                System.err.println(e.getMessage() + " "+ e.getLocation());
                 return null;
             }
         })
@@ -80,12 +103,19 @@ public class MibLoader {
         load(antltrstream);
     }
 
-    public void load(Path... sources) {
+    public void load(String encoding, Path... sources) {
         Stream<ANTLRInputStream> antltrstream = Arrays.stream(sources)
-                .map(i -> i.toString())
                 .map(i -> {
                     try {
-                        return new ANTLRFileStream(i);
+                        String moduleencoding = encoding;
+                        if (moduleencoding == null) {
+                            String filename = i.getFileName().toString();
+                            moduleencoding = encodings.getProperty(filename, "ASCII");
+                        }
+                        if ("skip".equals(moduleencoding)) {
+                            return null;
+                        }
+                        return new ANTLRFileStream(i.toString(), moduleencoding);
                     } catch (IOException e) {
                         logger.error("Invalid MIB source %s: %s", i, e.getMessage());
                         return null;
@@ -95,4 +125,7 @@ public class MibLoader {
         load(antltrstream);
     }
 
+    public void load(Path... sources) {
+        load(null, sources);
+    }
 }

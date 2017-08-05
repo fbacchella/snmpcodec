@@ -46,7 +46,7 @@ If you have some comments/improvements, send me an e-mail.
 grammar ASN;
 
 moduleDefinition :
-    IDENTIFIER ( '{' modulePath? '}' )?
+    BOM? IDENTIFIER ( '{' modulePath? '}' )?
     'DEFINITIONS'
     ASSIGN_OP
     'BEGIN'
@@ -872,7 +872,14 @@ BINARYNUMBER:
     ;
 
 CSTRING
-    :  '"' ( EscapeSequence | ~('\\'|'"') )* '"'
+    :  QUOTATIONMARK ( EscapeSequence | ~('\\'|'"') )* QUOTATIONMARK
+    ;
+
+fragment
+QUOTATIONMARK:
+    '"'
+    | '“'
+    | '”'
     ;
 
 fragment
@@ -931,4 +938,8 @@ JavaIDDigit
     
 IDENTIFIER
     :   LETTER (LETTER|JavaIDDigit)*
+    ;
+
+BOM :
+    '\ufffd' -> skip
     ;

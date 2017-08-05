@@ -1,0 +1,7 @@
+802-1x-2001-mib.txt = Windows-1252
+IEEE8021-PAE-MIB-200101160000Z.txt = Windows-1252
+# raw IP address, line 426:14
+IBMIROCAUTH-MIB.mib = skip
+CIMWIN32-MIB.mib = skip # Invalid escape sequence, line 1205:34
+# A rfc with a lone \ before "
+IBM-WIN32-MIB.mib = skip
