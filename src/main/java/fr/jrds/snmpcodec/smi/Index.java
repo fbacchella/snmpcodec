@@ -19,7 +19,7 @@ public class Index {
         public int[] next = null;
         @Override
         public String toString() {
-            return (content != null ? Utils.dottedNotation(content) : "") + "/" + (next != null ? Utils.dottedNotation(next) : "");
+            return (content != null ? Utils.dottedNotation(content) : "_") + "/" + (next != null ? Utils.dottedNotation(next) : "_");
         }
     }
 
@@ -40,12 +40,13 @@ public class Index {
         List<Object> indexesValues = new ArrayList<>();
         int[] oidParsed = Arrays.copyOf(oid, oid.length);
         for(Symbol i: indexes) {
-            Syntax codec = store.codecs.get(i);
-            if(codec == null) {
+            ObjectType column = store.objects.get(i);
+            if(column == null) {
                 logger.error("index not found: %s", i);
                 break;
             }
-            logger.debug("given %s, found %s %s", i, codec.getConstrains(), codec);
+            Syntax codec = column.getSyntax();
+            logger.debug("given %s, found %s %s", i, codec.getConstrains(), column);
             Parsed parsed;
             if(codec.getConstrains() != null) {
                 parsed = codec.getConstrains().extract(oidParsed);
@@ -59,16 +60,15 @@ public class Index {
             if(parsed == null) {
                 break;
             }
-            logger.debug("parsed %s from %s", parsed, oidParsed);
+            logger.debug("parsed %s from %s with %s/%s", parsed, oidParsed, i, codec);
             Variable v =  codec.getVariable();
             OID subIndex = new OID(parsed.content);
-            v.fromSubIndex(subIndex, false);
+            v.fromSubIndex(subIndex, true);
             Object o = codec.convert(v);
-
             if (codec.isNamed()) {
                 o = codec.getNameFromNumer(v.toInt());
             }
-            indexesValues.add(v);
+            indexesValues.add(o);
             oidParsed = parsed.next;
             if (oidParsed == null) {
                 break;

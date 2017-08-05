@@ -50,30 +50,37 @@ public class Constraint {
 
     Parsed extract(int[] oidElements) {
         Parsed tryExtract = new Parsed();
-        for(ConstraintElement i: ranges) {
-            if(variableSize) {
-                int size = oidElements[0];
-                if(size == 0) {
-                    tryExtract.content = new int[0];
-                    tryExtract.next = oidElements;
-                } if(oidElements.length >= size) {
-                    tryExtract.content = Arrays.copyOfRange(oidElements, 1, size + 1);
-                    if(size + 1 <= oidElements.length) {
-                        tryExtract.next = Arrays.copyOfRange(oidElements, size + 1, oidElements.length);
+        if (! size) {
+            tryExtract.content = Arrays.copyOf(oidElements, 1);
+            if(oidElements.length > 1) {
+                tryExtract.next = Arrays.copyOfRange(oidElements, 1, oidElements.length);
+            }
+        } else {
+            for(ConstraintElement i: ranges) {
+                if(variableSize) {
+                    int size = oidElements[0];
+                    if(size == 0) {
+                        tryExtract.content = new int[0];
+                        tryExtract.next = oidElements;
+                    } if(oidElements.length >= size) {
+                        tryExtract.content = Arrays.copyOfRange(oidElements, 1, size + 1);
+                        if(size + 1 <= oidElements.length) {
+                            tryExtract.next = Arrays.copyOfRange(oidElements, size + 1, oidElements.length);
+                        } else {
+                            tryExtract.next = null;
+                        }
+                    }
+                } else if (oidElements.length == i.value.intValue()) {
+                    tryExtract.content = oidElements;
+                    tryExtract.next = null;
+                    return tryExtract;
+                } else if (oidElements.length > i.value.intValue()) {
+                    tryExtract.content = Arrays.copyOf(oidElements, i.value.intValue());
+                    if(i.value.intValue() + 1 <= oidElements.length) {
+                        tryExtract.next = Arrays.copyOfRange(oidElements, i.value.intValue(), oidElements.length);
                     } else {
                         tryExtract.next = null;
                     }
-                }
-            } else if (oidElements.length == i.value.intValue()) {
-                tryExtract.content = oidElements;
-                tryExtract.next = null;
-                return tryExtract;
-            } else if (oidElements.length > i.value.intValue()) {
-                tryExtract.content = Arrays.copyOf(oidElements, i.to.intValue());
-                if(i.to.intValue() + 1 <= oidElements.length) {
-                    tryExtract.next = Arrays.copyOfRange(oidElements, i.to.intValue(), oidElements.length);
-                } else {
-                    tryExtract.next = null;
                 }
             }
         }

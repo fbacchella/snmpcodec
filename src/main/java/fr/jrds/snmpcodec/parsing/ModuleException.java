@@ -2,8 +2,6 @@ package fr.jrds.snmpcodec.parsing;
 
 import org.antlr.v4.runtime.Token;
 
-import fr.jrds.snmpcodec.MibException;
-
 public class ModuleException extends RuntimeException {
     private final int startLine;
     private final int startChar;

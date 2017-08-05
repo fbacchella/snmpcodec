@@ -53,4 +53,9 @@ public class Referenced extends Syntax {
         return store.codecs.get(sym).getVariable();
     }
 
+    @Override
+    public Constraint getConstrains() {
+        return store.codecs.get(sym).getConstrains();
+    }
+
 };

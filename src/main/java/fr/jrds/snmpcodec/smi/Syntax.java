@@ -10,7 +10,7 @@ import org.snmp4j.smi.Variable;
 
 public abstract class Syntax {
 
-    private static final Pattern NAMEDINDEXFORMAT = Pattern.compile("(?<name>\\p{L}(?:\\p{L}|\\d)+)(?:\\s+\\((?<value>\\d+)?\\))?");
+    private static final Pattern NAMEDINDEXFORMAT = Pattern.compile("(?<name>\\p{L}(?:\\p{L}|\\d)+)(?:\\s*\\((?<value>\\d+)?\\))?");
 
     private final Constraint constraints;
     private final Map<String, Integer> fromname;
