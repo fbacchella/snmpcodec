@@ -46,12 +46,16 @@ If you have some comments/improvements, send me an e-mail.
 grammar ASN;
 
 moduleDefinition :
-    IDENTIFIER
+    IDENTIFIER ( '{' modulePath? '}' )?
     'DEFINITIONS'
     ASSIGN_OP
     'BEGIN'
     moduleBody
     'END'
+    ;
+
+modulePath :
+    (IDENTIFIER ('(' NUMBER ')')? NUMBER? )+
     ;
 
 moduleBody :
@@ -193,7 +197,7 @@ complexAttribut:
     | name='OBJECTS' objects
     | name='VARIABLES' variables
     | name='INDEX' index
-    | name='DEFVAL' '{' value '}'
+    | name='DEFVAL' '{' defValue '}'
     | name='DISPLAY-HINT' stringValue
     | name='NOTIFICATIONS' notifications
     | name='AUGMENTS' augments
@@ -296,7 +300,7 @@ builtinType :
     ;
 
 bitsType:
-    'BITS' '{' bitsEnumeration '}'
+    'BITS' ('{' bitsEnumeration '}')?
     ;
 
 bitsEnumeration:
@@ -331,6 +335,16 @@ constraint :
 sizeConstraint : '(' 'SIZE' '(' constraintElements ')' ')'
     ;
 
+defValue
+    : referenceValue
+    |   integerValue
+    |   choiceValue
+    |   booleanValue
+    |   stringValue
+    |   bitsValue
+    |   objectIdentifierValue
+    ;
+
 value
     : referenceValue
     |   integerValue
@@ -338,6 +352,10 @@ value
     |   objectIdentifierValue
     |   booleanValue
     |   stringValue
+    ;
+
+bitsValue:
+    '{' (IDENTIFIER ','?)* '}'
     ;
 
 referenceValue
