@@ -3,7 +3,7 @@ package fr.jrds.snmpcodec.parsing;
 import java.util.Collections;
 import java.util.Map;
 
-import fr.jrds.snmpcodec.Mib;
+import fr.jrds.snmpcodec.MibStore;
 import fr.jrds.snmpcodec.smi.Constraint;
 import fr.jrds.snmpcodec.smi.SmiType;
 import fr.jrds.snmpcodec.smi.Symbol;
@@ -57,7 +57,7 @@ abstract class SyntaxDeclaration<CONTENT> {
             return true;
         }
         @Override
-        public Syntax getSyntax(Mib store) {
+        public Syntax getSyntax(MibStore store) {
             return content;
         }
     };
@@ -70,7 +70,7 @@ abstract class SyntaxDeclaration<CONTENT> {
             return AsnType.Sequence;
         }
         @Override
-        public Syntax getSyntax(Mib store) {
+        public Syntax getSyntax(MibStore store) {
             return null;
         }
     };
@@ -86,7 +86,7 @@ abstract class SyntaxDeclaration<CONTENT> {
             return false;
         }
         @Override
-        public Syntax getSyntax(Mib store) {
+        public Syntax getSyntax(MibStore store) {
             return null;
         }
     };
@@ -99,7 +99,7 @@ abstract class SyntaxDeclaration<CONTENT> {
             return AsnType.Choice;
         }
         @Override
-        public Syntax getSyntax(Mib store) {
+        public Syntax getSyntax(MibStore store) {
             return null;
         }
     };
@@ -112,7 +112,7 @@ abstract class SyntaxDeclaration<CONTENT> {
             return AsnType.Bits;
         }
         @Override
-        public Syntax getSyntax(Mib store) {
+        public Syntax getSyntax(MibStore store) {
             return null;
         }
     };
@@ -128,7 +128,7 @@ abstract class SyntaxDeclaration<CONTENT> {
             return true;
         }
         @Override
-        public Syntax getSyntax(Mib store) {
+        public Syntax getSyntax(MibStore store) {
             return new fr.jrds.snmpcodec.smi.Referenced(content, store, names, constraints);
         }
 
@@ -140,6 +140,6 @@ abstract class SyntaxDeclaration<CONTENT> {
     public Constraint getConstraints() {
         return constraints;
     }
-    public abstract Syntax getSyntax(Mib store);
+    public abstract Syntax getSyntax(MibStore store);
 
 }

@@ -13,7 +13,7 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
-import fr.jrds.snmpcodec.Mib;
+import fr.jrds.snmpcodec.MibStore;
 import fr.jrds.snmpcodec.log.LogAdapter;
 
 
@@ -25,7 +25,7 @@ public class MibLoader {
     private final ANTLRErrorListener errorListener = new ModuleErrorListener();
 
 
-    public MibLoader(Mib store) {
+    public MibLoader(MibStore store) {
         super();
         modulelistener = new ModuleListener(store);
     }

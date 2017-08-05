@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.snmp4j.smi.AssignableFromString;
 import org.snmp4j.smi.Counter64;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OctetString;
@@ -19,42 +20,19 @@ import org.snmp4j.smi.Variable;
 import fr.jrds.snmpcodec.smi.Constraint.ConstraintElement;
 
 public abstract class TextualConvention extends IndirectSyntax {
-    
+
     public static class OidTextualConvention extends TextualConvention {
 
         public OidTextualConvention(Syntax syntax) {
             super(syntax, null, null);
         }
 
-        @Override
-        public String format(Variable v) {
-            return SmiType.ObjID.format(v);
-        }
-
-        @Override
-        public Object convert(Variable v) {
-            return SmiType.ObjID.convert(v);
-        }
-
-        @Override
-        public Variable parse(String text) {
-            return SmiType.ObjID.parse(text);
-        }
-
-        @Override
-        public Variable getVariable() {
-            return SmiType.ObjID.getVariable();
-        }
-
-        @Override
-        public Variable getVariable(Object source) {
-            return SmiType.ObjID.getVariable(source);
-        }
-        
     }
 
     public static abstract class AbstractPatternDisplayHint<V extends Variable> extends TextualConvention {
+
         protected final String hint;
+
         protected AbstractPatternDisplayHint(Syntax syntax, String hint, Map<Number, String> names, Constraint constraints) {
             super(syntax, names, constraints);
             this.hint = hint;
@@ -62,12 +40,25 @@ public abstract class TextualConvention extends IndirectSyntax {
         public String getHint() {
             return hint;
         }
+        @Override
+        public Variable parse(String text) {
+            if (hint == null) {
+                return super.parse(text);
+            } else {
+                return patternParse(text);
+            }
+        }
         @SuppressWarnings("unchecked")
         @Override
         public final String format(Variable v) {
-            return patternformat((V) v);
+            if (hint == null) {
+                return super.format(v);
+            } else {
+                return patternFormat((V) v);
+            }
         }
-        protected abstract String patternformat(V v);
+        protected abstract String patternFormat(V v);
+        protected abstract Variable patternParse(String text);
     }
 
     public static class DateAndTime extends AbstractPatternDisplayHint<OctetString> {
@@ -77,16 +68,15 @@ public abstract class TextualConvention extends IndirectSyntax {
             Constraint8or11.add(new ConstraintElement(11));
         }
         private final static IndirectSyntax localsyntax = new IndirectSyntax(SmiType.OctetString, null, Constraint8or11);
-        static private final Charset USASCII = Charset.forName("US-ASCII");
 
         private static final Pattern HINTREGEX = Pattern.compile("(\\d+)-(\\d+)-(\\d+),(\\d+):(\\d+):(\\d+).(\\d+),(\\+|-)(\\d+):(\\d+)");
 
         public DateAndTime() {
-            super(localsyntax, "2d-1d-1d,1d:1d:1d.1d,1a1d:1d", null, null);
+            super(localsyntax, "2d-1d-1d,1d:1d:1d.1d,1a1d:1d", null, Constraint8or11);
         }
 
         @Override
-        public String patternformat(OctetString os) {
+        public String patternFormat(OctetString os) {
             ByteBuffer buffer = ByteBuffer.wrap(os.toByteArray());
             buffer.order(ByteOrder.BIG_ENDIAN);
             int year = buffer.getShort();
@@ -104,7 +94,7 @@ public abstract class TextualConvention extends IndirectSyntax {
         }
 
         @Override
-        public Variable parse(String text) {
+        public Variable patternParse(String text) {
             Matcher match = HINTREGEX.matcher(text);
             if (!match.find()) {
                 return null;
@@ -124,35 +114,14 @@ public abstract class TextualConvention extends IndirectSyntax {
             return OctetString.fromByteArray(buffer.array());
         }
 
-        @Override
-        public Constraint getConstrains() {
-            return null;
-        }
-
-        @Override
-        public Object convert(Variable v) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Variable getVariable() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Variable getVariable(Object source) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
     };
 
-    private static final Pattern floatPattern = Pattern.compile("(?<radix>d|x|o|b)(?:-(?<float>\\d+))?");
     private static abstract class NumberDisplayHint<V extends Variable> extends AbstractPatternDisplayHint<V> {
+        private static final Pattern floatPattern = Pattern.compile("(?<radix>d|x|o|b)(?:-(?<float>\\d+))?");
+
         protected final int fixedfloat;
         protected final char radix;
+
         protected NumberDisplayHint(Syntax syntax, String hint) {
             super(syntax, hint, null, null);
             if (hint != null) {
@@ -169,23 +138,20 @@ public abstract class TextualConvention extends IndirectSyntax {
                     throw new RuntimeException("Invalid display hint " + hint);
                 }
             } else {
-                fixedfloat = 0;
-                radix = ' ';
+                fixedfloat = -1;
+                radix = '\0';
             }
         }
+
         @Override
-        public Constraint getConstrains() {
-            return null;
-        }
-        protected abstract void setVal(V var, String text);
-        @Override
-        public Variable parse(String text) {
-            V val = (V) getSyntax().getVariable();
-            setVal(val, text);
+        public Variable patternParse(String text) {
+            Variable val = getSyntax().getVariable();
+            ((AssignableFromString) val).setValue(text);
             return val;
         }
 
-        protected String patternformat(long l) {
+        protected String patternFormat(V val) {
+            long l = val.toLong();
             if (fixedfloat == 0) {
                 switch(radix) {
                 case 'd':
@@ -214,16 +180,11 @@ public abstract class TextualConvention extends IndirectSyntax {
                         newformatted[fixedfloat - formatted.length + i + 1] = formatted[i];
                     }
                     return new String(newformatted);
-
                 }
             }
             return null;
         }
 
-        @Override
-        public Variable getVariable() {
-            return getSyntax().getVariable();
-        }
     }
 
     public static class Unsigned32DisplayHint<V extends UnsignedInteger32> extends NumberDisplayHint<V> {
@@ -232,27 +193,6 @@ public abstract class TextualConvention extends IndirectSyntax {
             super(syntax, hint);
         }
 
-        @Override
-        protected String patternformat(V v) {
-            return patternformat(v.getValue());
-        }
-
-        @Override
-        protected void setVal(UnsignedInteger32 var, String text) {
-            var.setValue(text);
-        }
-
-        @Override
-        public Object convert(Variable v) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Variable getVariable(Object source) {
-            // TODO Auto-generated method stub
-            return null;
-        }
     }
 
     public static class Signed32DisplayHint<V extends Integer32> extends NumberDisplayHint<V> {
@@ -260,32 +200,6 @@ public abstract class TextualConvention extends IndirectSyntax {
             super(syntax, hint);
         }
 
-        @Override
-        public Constraint getConstrains() {
-            return null;
-        }
-
-        @Override
-        protected String patternformat(Integer32 v) {
-            return patternformat(v.getValue());
-        }
-
-        @Override
-        protected void setVal(Integer32 var, String text) {
-            var.setValue(text);
-        }
-
-        @Override
-        public Object convert(Variable v) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Variable getVariable(Object source) {
-            // TODO Auto-generated method stub
-            return null;
-        }
     }
 
     public static class Counter64DisplayHint extends NumberDisplayHint<Counter64> {
@@ -294,29 +208,7 @@ public abstract class TextualConvention extends IndirectSyntax {
             super(syntax, hint);
         }
 
-        @Override
-        protected void setVal(Counter64 var, String text) {
-            var.setValue(text);
-        }
-
-        @Override
-        protected String patternformat(Counter64 v) {
-            return patternformat(v.getValue());
-        }
-
-        @Override
-        public Variable getVariable(Object source) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Object convert(Variable v) {
-            // TODO Auto-generated method stub
-            return null;
-        }
     }
-
 
     public static class PatternDisplayHint extends AbstractPatternDisplayHint<OctetString> {
         private static final Pattern element = Pattern.compile("(.*?)(\\*?)(\\d*)([dxatobh])([^\\d\\*-]?)(-\\d+)?");
@@ -385,7 +277,7 @@ public abstract class TextualConvention extends IndirectSyntax {
         }
 
         @Override
-        public String patternformat(OctetString os) {
+        public String patternFormat(OctetString os) {
             if (hint == null) {
                 return SmiType.OctetString.format(os);
             } else {
@@ -440,7 +332,7 @@ public abstract class TextualConvention extends IndirectSyntax {
         }
 
         @Override
-        public Variable parse(String text) {
+        public Variable patternParse(String text) {
             throw new UnsupportedOperationException("Not implemented yet");
         }
 
@@ -449,28 +341,6 @@ public abstract class TextualConvention extends IndirectSyntax {
             return "DisplayHint[" + getHint() + "]";
         }
 
-        @Override
-        public Constraint getConstrains() {
-            return constraint;
-        }
-
-        @Override
-        public Variable getVariable() {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Object convert(Variable v) {
-            // TODO Auto-generated method stub
-            return null;
-        }
-
-        @Override
-        public Variable getVariable(Object source) {
-            // TODO Auto-generated method stub
-            return null;
-        }
     }
 
 
@@ -487,7 +357,7 @@ public abstract class TextualConvention extends IndirectSyntax {
         }
 
         @Override
-        public String patternformat(OctetString v) {
+        public String patternFormat(OctetString v) {
             if (v.isPrintable()) {
                 return new String(v.getValue(), USASCII);
             } else {
@@ -496,29 +366,18 @@ public abstract class TextualConvention extends IndirectSyntax {
         }
 
         @Override
-        public Variable parse(String text) {
+        public Variable patternParse(String text) {
             return new OctetString(text.getBytes(USASCII));
         }
 
         @Override
-        public Variable getVariable() {
-            return SmiType.OctetString.getVariable();
-        }
-
-        @Override
         public Object convert(Variable v) {
-            return patternformat((OctetString) v);
-        }
-
-        @Override
-        public Variable getVariable(Object source) {
-            // TODO Auto-generated method stub
-            return null;
+            return patternFormat((OctetString) v);
         }
 
     }
 
-    public TextualConvention(Syntax syntax, Map<Number, String> names, Constraint constraints) {
+    protected TextualConvention(Syntax syntax, Map<Number, String> names, Constraint constraints) {
         super(syntax, names, constraints);
     }
 

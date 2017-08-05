@@ -4,7 +4,7 @@ import java.util.Map;
 
 import org.snmp4j.smi.Variable;
 
-import fr.jrds.snmpcodec.Mib;
+import fr.jrds.snmpcodec.MibStore;
 
 public class Referenced extends Syntax {
     private final Symbol sym;
@@ -12,9 +12,9 @@ public class Referenced extends Syntax {
         return sym;
     }
 
-    private final Mib store;
+    private final MibStore store;
 
-    public Referenced(Symbol s, Mib store, Map<Number, String> names, Constraint constraints) {
+    public Referenced(Symbol s, MibStore store, Map<Number, String> names, Constraint constraints) {
         super(names, constraints);
         this.sym = s;
         this.store = store;
@@ -23,7 +23,7 @@ public class Referenced extends Syntax {
     @Override
     public String format(Variable v) {
         if (this.isNamed()) {
-            return this.getNameFromNumer(v.toInt());
+            return getNameFromNumer(v.toInt());
         } else {
             return store.codecs.get(sym).format(v);
         }
@@ -31,7 +31,7 @@ public class Referenced extends Syntax {
 
     @Override
     public Variable parse(String text) {
-        if (this.isNamed()) {
+        if (isNamed()) {
             return store.codecs.get(sym).getVariable(getNumberFromName(text));
         } else {
             return store.codecs.get(sym).parse(text);

@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.Variable;
 
-import fr.jrds.snmpcodec.Mib;
+import fr.jrds.snmpcodec.MibStore;
 import fr.jrds.snmpcodec.Utils;
 import fr.jrds.snmpcodec.log.LogAdapter;
 
@@ -36,7 +36,7 @@ public class Index {
         return indexes.toString();
     }
 
-    public Object[] resolve(int[] oid, Mib store) {
+    public Object[] resolve(int[] oid, MibStore store) {
         List<Object> indexesValues = new ArrayList<>();
         int[] oidParsed = Arrays.copyOf(oid, oid.length);
         for(Symbol i: indexes) {
@@ -64,9 +64,9 @@ public class Index {
             OID subIndex = new OID(parsed.content);
             v.fromSubIndex(subIndex, false);
             Object o = codec.convert(v);
-            if (oi.names != null && oi.names.size() > 0) {
-                Integer key = v.toInt();
-                o = String.format("%s(%d)", oi.names.get(key), key.intValue());
+
+            if (codec.isNamed()) {
+                o = codec.getNameFromNumer(v.toInt());
             }
             indexesValues.add(v);
             oidParsed = parsed.next;

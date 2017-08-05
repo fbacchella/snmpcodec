@@ -1,0 +1,31 @@
+CUSTOM DEFINITIONS ::= BEGIN
+
+IMPORTS
+        Integer32, enterprises
+            FROM SNMPv2-SMI
+        TRAP-TYPE
+            FROM RFC-1215;
+
+snmpcodec       OBJECT IDENTIFIER ::= { enterprises 1 }
+
+trapVar         ::= Integer32 { event1(1), event2(2) }
+
+customTrap      TRAP-TYPE
+        ENTERPRISE  snmpcodec
+        VARIABLES { trapVar }
+        ::= 1
+
+tableEntry ::= SEQUENCE {
+    indexEntry     INTEGER,
+    oidEntry       OBJECT IDENTIFIER,
+    descrEntry     DisplayString,
+    uptimeEntry    TimeStamp
+}
+
+table OBJECT-TYPE
+    SYNTAX     SEQUENCE OF tableEntry
+    MAX-ACCESS not-accessible
+    STATUS     current
+    ::= { snmpcodec 1 }
+
+END

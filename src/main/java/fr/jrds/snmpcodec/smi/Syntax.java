@@ -10,7 +10,7 @@ import org.snmp4j.smi.Variable;
 
 public abstract class Syntax {
 
-    private static final Pattern NAMEDINDEXFORMAT = Pattern.compile("(?<name>\\p{L}(?:\\p{L}|\\d)+)\\((?<value>\\d+)?\\)");
+    private static final Pattern NAMEDINDEXFORMAT = Pattern.compile("(?<name>\\p{L}(?:\\p{L}|\\d)+)(?:\\s+\\((?<value>\\d+)?\\))?");
 
     private final Constraint constraints;
     private final Map<String, Integer> fromname;
@@ -54,7 +54,11 @@ public abstract class Syntax {
     public Integer getNumberFromName(String name) {
         Matcher m = NAMEDINDEXFORMAT.matcher(name);
         if (! m.matches()) {
-            return null;
+            try {
+                return Integer.parseInt(name);
+            } catch (NumberFormatException e) {
+                return null;
+            }
         }
         if (m.group("value") != null) {
             return Integer.parseInt(m.group("value"));

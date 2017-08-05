@@ -29,11 +29,11 @@ import fr.jrds.snmpcodec.smi.Referenced;
 import fr.jrds.snmpcodec.smi.Symbol;
 import fr.jrds.snmpcodec.smi.Syntax;
 import fr.jrds.snmpcodec.smi.TextualConvention;
-import fr.jrds.snmpcodec.smi.WithTextualConvention;
+import fr.jrds.snmpcodec.smi.ProvidesTextualConvention;
 
-public class Mib {
+public class MibStore {
 
-    LogAdapter logger = LogAdapter.getLogger(Mib.class);
+    LogAdapter logger = LogAdapter.getLogger(MibStore.class);
 
     private final Set<Symbol> badsymbols = new HashSet<>();
     public final Map<Symbol, Oid> oids = new Symbol.SymbolMap<>();
@@ -45,7 +45,7 @@ public class Mib {
     public Map<Symbol, Map<String, Object>> textualConventions = new HashMap<>();
     public final Map<Symbol, ObjectType> objects = new HashMap<>();
 
-    public Mib() {
+    public MibStore() {
         Symbol ccitt = new Symbol("CCITT", "ccitt");
         Symbol iso = new Symbol("ISO", "iso");
         Symbol joint = new Symbol("JOINT", "joint-iso-ccitt");
@@ -91,7 +91,7 @@ public class Mib {
             String hint = (String) attributes.get("DISPLAY-HINT");
             TextualConvention tc;
             Syntax finaltype = type;
-            while (! (finaltype instanceof WithTextualConvention) && finaltype != null) {
+            while (! (finaltype instanceof ProvidesTextualConvention) && finaltype != null) {
                 if (finaltype instanceof Referenced) {
                     Referenced ref = (Referenced) finaltype;
                     finaltype = codecs.get(ref.getSym());
@@ -104,7 +104,7 @@ public class Mib {
             }
             if (finaltype != null) {
                 try {
-                    tc = ((WithTextualConvention)finaltype).getTextualConvention(hint, type);
+                    tc = ((ProvidesTextualConvention)finaltype).getTextualConvention(hint, type);
                     if (tc != null) {
                         if (codecs.containsKey(s) ) {
                             logger.debug("Duplicating textual convention %s", s);
@@ -123,7 +123,7 @@ public class Mib {
     }
 
     public void addObjectType(Symbol s, Map<String, Object> attributes, OidPath value) throws MibException {
-        ObjectType newtype = new ObjectType(attributes, codecs);
+        ObjectType newtype = new ObjectType(attributes);
         addOid(s, (OidPath)value, newtype.isIndexed());
         objects.put(s, newtype);
     }

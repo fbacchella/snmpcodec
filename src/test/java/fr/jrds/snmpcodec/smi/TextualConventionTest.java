@@ -21,11 +21,11 @@ public class TextualConventionTest {
     private void testhint(Symbol s, String displayHint, Variable v, String expected) {
         Map<Symbol, TextualConvention> annotations = new HashMap<>();
         if (v instanceof UnsignedInteger32) {
-            annotations.put(s, new Unsigned32DisplayHint(displayHint, SmiType.Unsigned32));
+            annotations.put(s, new Unsigned32DisplayHint(SmiType.Unsigned32, displayHint));
         } else if (v instanceof Integer32) {
-            annotations.put(s, new Signed32DisplayHint(displayHint, SmiType.INTEGER));
+            annotations.put(s, new Signed32DisplayHint(SmiType.INTEGER, displayHint));
         } else {
-            annotations.put(s, new PatternDisplayHint(displayHint, null));
+            annotations.put(s, new PatternDisplayHint(SmiType.OctetString, displayHint, null));
         }
         Assert.assertEquals(expected, annotations.get(s).format(v));
 
@@ -43,13 +43,6 @@ public class TextualConventionTest {
     }
 
     @Test
-    public void test2() {
-        Map<Symbol, TextualConvention> annotations = new HashMap<>();
-        TextualConvention.addAnnotation(TextualConvention.DateAndTime.class, annotations);
-        TextualConvention.addAnnotation(TextualConvention.DisplayString.class, annotations);
-    }
-
-    @Test
     public void test3() {
         Map<Number, String> names = new HashMap<>();
         names.put(1, "other");
@@ -57,17 +50,15 @@ public class TextualConventionTest {
         names.put(3, "nonVolatile");
         names.put(4, "permanent");
         names.put(5, "readOnly");
-        DeclaredType.Native nat = new DeclaredType.Native(SmiType.INTEGER, names, null);
-        TextualConvention tc = new TextualConvention.Native(nat);
+        Syntax syntax = new IndirectSyntax(SmiType.INTEGER, names, null);
+        TextualConvention tc = SmiType.INTEGER.getTextualConvention(null, syntax);
         Assert.assertEquals(new Integer32(3), tc.parse("nonVolatile"));
         Assert.assertEquals(new Integer32(2), tc.parse("2"));
     }
 
     @Test
     public void test4() {
-        Map<Number, String> names = new HashMap<>();
-        DeclaredType.Native nat = new DeclaredType.Native(SmiType.Counter64, names, null);
-        TextualConvention tc = new TextualConvention.Native(nat);
+        TextualConvention tc = SmiType.Counter64.getTextualConvention("d", SmiType.Counter64);
         Assert.assertEquals(new Counter64(2), tc.parse("2"));
     }
 

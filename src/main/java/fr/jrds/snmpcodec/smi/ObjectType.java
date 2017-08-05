@@ -8,19 +8,17 @@ import org.snmp4j.smi.Variable;
 public class ObjectType {
 
     private final Syntax syntax;
-    private final Map<Symbol, Syntax> codecs;
     private final boolean indexed;
     private final Index index;
 
     @SuppressWarnings("unchecked")
-    public ObjectType(Map<String, Object> attributes, Map<Symbol, Syntax> codecs) {
-        this.codecs = codecs;
+    public ObjectType(Map<String, Object> attributes) {
         syntax = (Syntax) attributes.remove("SYNTAX");
         this.indexed = attributes.containsKey("INDEX");
         this.index = new Index((List<Symbol>)attributes.remove("INDEX"));
     }
 
-    
+
     public String format(Variable v) {
         if (syntax.isNamed()) {
             return syntax.getNameFromNumer(v.toInt());
@@ -36,7 +34,7 @@ public class ObjectType {
             return syntax.parse(text);
         }
     }
-    
+
     public Syntax getSyntax() {
         return syntax;
     }
@@ -49,14 +47,12 @@ public class ObjectType {
         return null;
     }
 
-
     /**
      * @return the index
      */
     public Index getIndex() {
         return index;
     }
-
 
     /**
      * @return the indexed

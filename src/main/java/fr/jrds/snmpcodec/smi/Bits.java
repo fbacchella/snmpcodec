@@ -4,7 +4,7 @@ import java.util.Map;
 
 import org.snmp4j.smi.Variable;
 
-public class Bits extends Syntax implements WithTextualConvention {
+public class Bits extends Syntax implements ProvidesTextualConvention {
 
     public Bits(Map<String, Integer> map, Constraint constraints) {
         super(null, constraints);

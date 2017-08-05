@@ -29,7 +29,7 @@ import fr.jrds.snmpcodec.smi.TextualConvention.PatternDisplayHint;
  */
 public abstract class SmiType extends Syntax {
 
-    private abstract static class SmiTypeTextual extends SmiType implements WithTextualConvention {
+    public abstract static class SmiTypeTextual extends SmiType implements ProvidesTextualConvention {
 
     };
 
@@ -85,7 +85,7 @@ public abstract class SmiType extends Syntax {
         }
     };
 
-    public static final SmiType OctetString = new SmiTypeTextual() {
+    public static final SmiTypeTextual OctetString = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.OctetString();
@@ -93,7 +93,7 @@ public abstract class SmiType extends Syntax {
         @Override
         public Variable getVariable(Object source) {
             if (! (source instanceof byte[])) {
-                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+                throw new IllegalArgumentException("Given a variable of type " + source.getClass().getName() +" instead of byt[]");
             }
             byte[] a = (byte[]) source;
             return new org.snmp4j.smi.OctetString(a);
@@ -108,7 +108,7 @@ public abstract class SmiType extends Syntax {
                 org.snmp4j.smi.OctetString newVar = octetVar.substring(0, length - 1);
                 if(newVar.isPrintable()) {
                     v = newVar;
-                    logger.debug("Convertion an octet stream from %s to %s", octetVar, v);
+                    logger.debug("Converting an octet stream from %s to %s", octetVar, v);
                 }
             }
             return v.toString();
@@ -138,7 +138,7 @@ public abstract class SmiType extends Syntax {
      * @author Fabrice Bacchella
      *
      */
-    public static final SmiType Unsigned32 = new SmiTypeTextual() {
+    public static final SmiTypeTextual Unsigned32 = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new UnsignedInteger32();
@@ -243,7 +243,7 @@ public abstract class SmiType extends Syntax {
         }
     };
 
-    public static final SmiType ObjID = new SmiTypeTextual() {
+    public static final SmiTypeTextual ObjID = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.OID();
@@ -281,7 +281,7 @@ public abstract class SmiType extends Syntax {
         }
     };
 
-    public static final SmiType INTEGER = new SmiTypeTextual() {
+    public static final SmiTypeTextual INTEGER = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Integer32();
@@ -289,7 +289,7 @@ public abstract class SmiType extends Syntax {
         @Override
         public Variable getVariable(Object source) {
             if (! (source instanceof Number)) {
-                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+                throw new IllegalArgumentException("Given a variable of type  " + source.getClass().getName() + " instead of type Number");
             }
             Number n = (Number) source;
             return new org.snmp4j.smi.Integer32(n.intValue());
@@ -331,7 +331,7 @@ public abstract class SmiType extends Syntax {
      * @author Fabrice Bacchella
      *
      */
-    public static final SmiType Counter32 = new SmiTypeTextual() {
+    public static final SmiTypeTextual Counter32 = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Counter32();
@@ -381,7 +381,7 @@ public abstract class SmiType extends Syntax {
      * @author Fabrice Bacchella
      *
      */
-    public static final SmiType Counter64 = new SmiTypeTextual() {
+    public static final SmiTypeTextual Counter64 = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Counter64();
@@ -427,7 +427,7 @@ public abstract class SmiType extends Syntax {
      * @author Fabrice Bacchella
      *
      */
-    public static final SmiType Gauge32 = new SmiTypeTextual() {
+    public static final SmiTypeTextual Gauge32 = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Gauge32();
@@ -478,7 +478,7 @@ public abstract class SmiType extends Syntax {
      * @author Fabrice Bacchella
      *
      */
-    public static final SmiType TimeTicks = new SmiTypeTextual() {
+    public static final SmiTypeTextual TimeTicks = new SmiTypeTextual() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.TimeTicks();

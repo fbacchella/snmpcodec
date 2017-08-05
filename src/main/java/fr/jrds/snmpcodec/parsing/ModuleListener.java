@@ -17,8 +17,8 @@ import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ErrorNode;
 
-import fr.jrds.snmpcodec.Mib;
 import fr.jrds.snmpcodec.MibException;
+import fr.jrds.snmpcodec.MibStore;
 import fr.jrds.snmpcodec.parsing.ASNParser.AccessContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.AssignmentContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.BitDescriptionContext;
@@ -46,190 +46,36 @@ import fr.jrds.snmpcodec.parsing.ASNParser.TrapTypeAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.TypeAssignmentContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.TypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ValueAssignmentContext;
-import fr.jrds.snmpcodec.smi.IndirectSyntax;
-import fr.jrds.snmpcodec.smi.Bits;
+import fr.jrds.snmpcodec.parsing.MibObject.Import;
+import fr.jrds.snmpcodec.parsing.MibObject.MappedObject;
+import fr.jrds.snmpcodec.parsing.MibObject.TrapTypeObject;
+import fr.jrds.snmpcodec.parsing.MibObject.TextualConventionObject;
+import fr.jrds.snmpcodec.parsing.MibObject.ObjectTypeObject;
+import fr.jrds.snmpcodec.parsing.MibObject.OtherMacroObject;
+
 import fr.jrds.snmpcodec.smi.Constraint;
 import fr.jrds.snmpcodec.smi.Oid.OidComponent;
 import fr.jrds.snmpcodec.smi.Oid.OidPath;
-import fr.jrds.snmpcodec.smi.Referenced;
-import fr.jrds.snmpcodec.smi.SmiType;
 import fr.jrds.snmpcodec.smi.Symbol;
 import fr.jrds.snmpcodec.smi.Syntax;
 
 public class ModuleListener extends ASNBaseListener {
 
-    static abstract class MibObject {
-
-    };
-
-    static class Import extends MibObject {
-        public final String name;
-
-        Import(String name) {
-            this.name = name;
-        }
-
-        @Override
-        public String toString() {
-            return "Imported from " + name;
-        }
-
-    };
-
-    static class MappedObject extends MibObject {
-        String name;
-        Map <String, Object> values = new HashMap<>();
-        public MappedObject(String name) {
-            this.name = name;
-        }
-        @Override
-        public String toString() {
-            return name + " " + values;
-        }
-    }
-
-    static class StructuredObject<T> extends MappedObject {
-        ValueType<T> value;
-        public StructuredObject(String name) {
-            super(name);
-        }
-        @Override
-        public String toString() {
-            return name + "/" + value + values;
-        }
-    }
-
-    static class TextualConvention extends MappedObject {
-        OidType oid;
-        public TextualConvention() {
-            super("TEXTUAL-CONVENTION");
-        }
-    }
-
-    static abstract class ValueType<T> {
-        final T value;
-        ValueType(T value) {
-            this.value = value;
-        }
-        @Override
-        public String toString() {
-            return value.toString();
-        }
-    }
-
-    static class OidType extends ValueType<List<OidComponent>> {
-        OidType(List<OidComponent> value) {
-            super(value);
-        }
-    }
-
-    static class BooleanValue extends ValueType<Boolean> {
-        BooleanValue(Boolean value) {
-            super(value);
-        }
-    }
-
-    static class StringValue extends ValueType<String> {
-        StringValue(String value) {
-            super(value);
-        }
-
-        @Override
-        public String toString() {
-            return "\"" + value + "\"";
-        }
-    }
-
-    static class IntegerValue extends ValueType<Number> {
-        IntegerValue(Number value) {
-            super(value);
-        }
-    }
-
-    enum BuiltinType {
-        octetStringType,
-        bitStringType,
-        choiceType,
-        enumeratedType,
-        integerType,
-        sequenceType,
-        sequenceOfType,
-        setType,
-        setOfType,
-        objectidentifiertype,
-        objectClassFieldType,
-        nullType,
-        referencedType,
-        bitsType
-    }
-
-    class TypeDescription {
-        BuiltinType type;
-        Object typeDescription = null;
-        Map<Number, String> names;
-        Constraint constraints = null;
-
-        @Override
-        public String toString() {
-            return "" + type + (typeDescription != null ? " " + typeDescription : "");
-        }
-        public Syntax getSyntax() {
-            Syntax trySyntax;
-            switch (type) {
-            case referencedType:
-                trySyntax = new Referenced(resolveSymbol((String) typeDescription), store, names, constraints);
-                break;
-            case octetStringType:
-                trySyntax =  SmiType.OctetString;
-                break;
-            case integerType:
-                trySyntax =  SmiType.INTEGER;
-                break;
-            case objectidentifiertype:
-                trySyntax =  SmiType.ObjID;
-                break;
-            case nullType:
-                trySyntax =  SmiType.Null;
-                break;
-            case bitsType:
-                @SuppressWarnings("unchecked")
-                Map<String, Integer> bitsEnumeration = (Map<String, Integer>) typeDescription;
-                return new Bits(bitsEnumeration, constraints);
-            case bitStringType:
-            case sequenceType:
-            case sequenceOfType:
-            case choiceType:
-            case enumeratedType:
-            case objectClassFieldType:
-            case setType:
-            case setOfType:
-            default:
-                return null;
-            }
-            if (names != null || constraints != null) {
-                return new IndirectSyntax(trySyntax, names, constraints);
-            } else {
-                return trySyntax;
-            }
-        }
-    }
-
-    private final Deque<Object> stack = new ArrayDeque<>();
-
     Parser parser;
 
+    private final Deque<Object> stack = new ArrayDeque<>();
     private final Map<String, Object> objects = new HashMap<>();
     private final Map<String, String> importedFrom = new HashMap<>();
 
     private String currentModule = null;
 
-    private final Mib store;
+    final MibStore store;
 
-    public ModuleListener(Mib store) {
+    public ModuleListener(MibStore store) {
         this.store = store;
     }
 
-    private Symbol resolveSymbol(String name) {
+    Symbol resolveSymbol(String name) {
         if (importedFrom.containsKey(name)) {
             return new Symbol(importedFrom.get(name), name);
         } else {
@@ -303,15 +149,14 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterComplexAssignement(ComplexAssignementContext ctx) {
-        stack.push(new StructuredObject<OidPath>(ctx.macroName().getText()));
+        stack.push(new OtherMacroObject(ctx.macroName().getText()));
     }
 
     @Override
     public void exitComplexAssignement(ComplexAssignementContext ctx) {
         @SuppressWarnings("unchecked")
         ValueType<OidPath> value = (ValueType<OidPath>) stack.pop();
-        @SuppressWarnings("unchecked")
-        StructuredObject<OidPath> macro = (StructuredObject<OidPath>) stack.pop();
+        OtherMacroObject macro = (OtherMacroObject) stack.pop();
         Symbol s = (Symbol) stack.pop();
         macro.value = value;
         try {
@@ -323,15 +168,14 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterTrapTypeAssignement(TrapTypeAssignementContext ctx) {
-        stack.push(new StructuredObject<Number>("TRAP_TYPE"));
+        stack.push(new TrapTypeObject());
     }
 
     @Override
     public void exitTrapTypeAssignement(TrapTypeAssignementContext ctx) {
         @SuppressWarnings("unchecked")
         ValueType<Number> value = (ValueType<Number>) stack.pop();
-        @SuppressWarnings("unchecked")
-        StructuredObject<Number> macro = (StructuredObject<Number>) stack.pop();
+        TrapTypeObject macro = (TrapTypeObject) stack.pop();
         Symbol s = (Symbol) stack.pop();
         try {
             store.addTrapType(s, macro.name, macro.values, value.value);
@@ -342,15 +186,14 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterObjectTypeAssignement(ObjectTypeAssignementContext ctx) {
-        stack.push(new StructuredObject<OidPath>("OBJECT_TYPE"));
+        stack.push(new ObjectTypeObject());
     }
 
     @Override
     public void exitObjectTypeAssignement(ObjectTypeAssignementContext ctx) {
         @SuppressWarnings("unchecked")
         ValueType<OidPath> vt = (ValueType<OidPath>) stack.pop();
-        @SuppressWarnings("unchecked")
-        StructuredObject<OidPath> macro = (StructuredObject<OidPath>) stack.pop();
+        ObjectTypeObject macro = (ObjectTypeObject) stack.pop();
         Symbol s = (Symbol) stack.pop();
         try {
             store.addObjectType(s, macro.values, vt.value);
@@ -361,12 +204,12 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterTextualConventionAssignement(TextualConventionAssignementContext ctx) {
-        stack.push(new TextualConvention());
+        stack.push(new TextualConventionObject());
     }
 
     @Override
     public void exitTextualConventionAssignement(TextualConventionAssignementContext ctx) {
-        TextualConvention tc = (TextualConvention) stack.pop();
+        TextualConventionObject tc = (TextualConventionObject) stack.pop();
         Symbol s = (Symbol) stack.pop();
         store.addTextualConvention(s, tc.values);
     }
@@ -375,7 +218,7 @@ public class ModuleListener extends ASNBaseListener {
     public void exitTypeAssignment(TypeAssignmentContext ctx) {
         TypeDescription td = (TypeDescription) stack.pop();
         Symbol s = (Symbol) stack.pop();
-        store.addType(s, td.getSyntax());
+        store.addType(s, td.getSyntax(this));
     }
 
     @Override
@@ -384,7 +227,7 @@ public class ModuleListener extends ASNBaseListener {
         TypeDescription td = (TypeDescription) stack.pop();
         Symbol s = (Symbol) stack.pop();
         try {
-            store.addValue(s, td.getSyntax(), vt.value);
+            store.addValue(s, td.getSyntax(this), vt.value);
         } catch (MibException e) {
             throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
         }
@@ -413,7 +256,7 @@ public class ModuleListener extends ASNBaseListener {
         })
                 .collect(OidPath::new, OidPath::add,
                         OidPath::addAll);
-        stack.push(new OidType(oidParts));
+        stack.push(new ValueType.OidValue(oidParts));
     }
 
     @Override
@@ -424,7 +267,7 @@ public class ModuleListener extends ASNBaseListener {
         } else {
             value = false;
         }
-        BooleanValue v = new BooleanValue(value);
+        ValueType.BooleanValue v = new ValueType.BooleanValue(value);
         stack.push(v);
     }
 
@@ -454,7 +297,7 @@ public class ModuleListener extends ASNBaseListener {
         } catch (Exception e) {
             throw new ModuleException("Invalid number " + ctx.getText(), parser.getInputStream().getSourceName(), ctx.start);
         }
-        stack.push(new IntegerValue(fitNumber(v)));
+        stack.push(new ValueType.IntegerValue(fitNumber(v)));
 
     }
 
@@ -462,7 +305,7 @@ public class ModuleListener extends ASNBaseListener {
     public void enterStringValue(StringValueContext ctx) {
         String cstring = ctx.CSTRING().getText();
         cstring = cstring.substring(1, cstring.length() - 1);
-        StringValue v = new StringValue(cstring);
+        ValueType.StringValue v = new ValueType.StringValue(cstring);
         stack.push(v);
     }
 
@@ -512,15 +355,10 @@ public class ModuleListener extends ASNBaseListener {
             ValueType<?> vt = (ValueType<?>)stack.pop();
             value = vt.value;
         } else if (stack.peek() instanceof TypeDescription) {
-            value = ((TypeDescription)stack.pop()).getSyntax();
+            value = ((TypeDescription)stack.pop()).getSyntax(this);
         }
 
         MappedObject co = (MappedObject) stack.peek();
-        if ("DESCRIPTION".equals(name)) {
-            value = "Some description";
-        } else if ("CONTACT-INFO".equals(name)) {
-            value = "Some description";
-        }
         co.values.put(name.intern(), value);
     }
 
@@ -550,40 +388,40 @@ public class ModuleListener extends ASNBaseListener {
         if (ctx.builtinType() != null) {
             switch(ctx.builtinType().getChild(ParserRuleContext.class, 0).getRuleIndex()) {
             case ASNParser.RULE_integerType:
-                td.type = BuiltinType.integerType;
+                td.type = Asn1Type.integerType;
                 break;
             case ASNParser.RULE_octetStringType:
-                td.type = BuiltinType.octetStringType;
+                td.type = Asn1Type.octetStringType;
                 break;
             case ASNParser.RULE_bitStringType:
-                td.type = BuiltinType.bitStringType;
+                td.type = Asn1Type.bitStringType;
                 break;
             case ASNParser.RULE_choiceType:
-                td.type = BuiltinType.choiceType;
+                td.type = Asn1Type.choiceType;
                 break;
             case ASNParser.RULE_enumeratedType:
-                td.type = BuiltinType.enumeratedType;
+                td.type = Asn1Type.enumeratedType;
                 break;
             case ASNParser.RULE_sequenceType:
-                td.type = BuiltinType.sequenceType;
+                td.type = Asn1Type.sequenceType;
                 break;
             case ASNParser.RULE_sequenceOfType:
-                td.type = BuiltinType.sequenceOfType;
+                td.type = Asn1Type.sequenceOfType;
                 break;
             case ASNParser.RULE_objectidentifiertype:
-                td.type = BuiltinType.objectidentifiertype;
+                td.type = Asn1Type.objectidentifiertype;
                 break;
             case ASNParser.RULE_nullType:
-                td.type = BuiltinType.nullType;
+                td.type = Asn1Type.nullType;
                 break;
             case ASNParser.RULE_bitsType:
-                td.type = BuiltinType.bitsType;
+                td.type = Asn1Type.bitsType;
                 break;
             default:
-                throw new ModuleException("Unsupported type", parser.getInputStream().getSourceName(), ctx.start);
+                throw new ModuleException("Unsupported ASN.1 type", parser.getInputStream().getSourceName(), ctx.start);
             }
         } else if (ctx.referencedType() != null) {
-            td.type = BuiltinType.referencedType;
+            td.type = Asn1Type.referencedType;
             td.typeDescription = ctx.referencedType();
         }
         stack.push(td);
@@ -624,8 +462,8 @@ public class ModuleListener extends ASNBaseListener {
     @Override
     public void exitElements(ElementsContext ctx) {
         List<Number> values = new ArrayList<>(2);
-        while( stack.peek() instanceof IntegerValue) {
-            IntegerValue val = (IntegerValue) stack.pop();
+        while( stack.peek() instanceof ValueType.IntegerValue) {
+            ValueType.IntegerValue val = (ValueType.IntegerValue) stack.pop();
             values.add(val.value);
         }
         Constraint.ConstraintElement c;
@@ -642,7 +480,7 @@ public class ModuleListener extends ASNBaseListener {
     public void enterSequenceType(SequenceTypeContext ctx) {
         TypeDescription td = (TypeDescription) stack.peek();
         Map<Symbol, Syntax> content = new LinkedHashMap<>();
-        td.type = BuiltinType.sequenceType;
+        td.type = Asn1Type.sequenceType;
         ctx.namedType().forEach( i -> {
             content.put(resolveSymbol(i.IDENTIFIER().getText()), null);
         });
@@ -662,7 +500,7 @@ public class ModuleListener extends ASNBaseListener {
         @SuppressWarnings("unchecked")
         Map<Symbol, Syntax> content = (Map<Symbol, Syntax>) td.typeDescription;
         content.keySet().forEach( name -> {
-            content.put(name, nt.get(i.getAndDecrement()).getSyntax());
+            content.put(name, nt.get(i.getAndDecrement()).getSyntax(this));
         });
     }
 
@@ -677,7 +515,7 @@ public class ModuleListener extends ASNBaseListener {
     public void enterChoiceType(ChoiceTypeContext ctx) {
         TypeDescription td = (TypeDescription) stack.peek();
         Map<String, Syntax> content = new LinkedHashMap<>();
-        td.type = BuiltinType.choiceType;
+        td.type = Asn1Type.choiceType;
         ctx.namedType().forEach( i -> {
             content.put(i.IDENTIFIER().getText(), null);
         });
@@ -697,7 +535,7 @@ public class ModuleListener extends ASNBaseListener {
         @SuppressWarnings("unchecked")
         Map<String, Syntax> content = (Map<String, Syntax>) td.typeDescription;
         content.keySet().forEach( name -> {
-            content.put(name, nt.get(i).getSyntax());
+            content.put(name, nt.get(i).getSyntax(this));
         });
     }
 
