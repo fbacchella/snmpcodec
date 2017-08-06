@@ -136,6 +136,7 @@ assignementType :
      | textualConventionAssignement
      | objectTypeAssignement
      | trapTypeAssignement
+     | moduleIdentityAssignement
      | macroAssignement
      ;
 
@@ -167,7 +168,6 @@ complexAssignement :
 macroName :
     | 'MODULE-COMPLIANCE'
     | 'OBJECT-GROUP'
-    | 'MODULE-IDENTITY'
     | 'OBJECT-IDENTITY'
     | 'NOTIFICATION-TYPE'
     | 'NOTIFICATION-GROUP'
@@ -241,6 +241,27 @@ index:
 
 indexTypes:
     'IMPLIED'? type
+    ;
+
+moduleIdentityAssignement:
+    'MODULE-IDENTITY'
+    'LAST-UPDATED' stringValue
+    'ORGANIZATION' stringValue
+    'CONTACT-INFO' stringValue
+    'DESCRIPTION' stringValue
+    moduleRevisions
+    '::='
+    objectIdentifierValue
+    ;
+
+
+moduleRevisions:
+    moduleRevision*
+    ;
+
+moduleRevision:
+    'REVISION' stringValue
+    'DESCRIPTION' stringValue
     ;
 
 textualConventionAssignement :
