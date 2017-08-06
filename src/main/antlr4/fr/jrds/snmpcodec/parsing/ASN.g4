@@ -48,7 +48,7 @@ grammar ASN;
 moduleDefinition :
     BOM? IDENTIFIER ( '{' modulePath? '}' )?
     'DEFINITIONS'
-    ASSIGN_OP
+    '::='
     'BEGIN'
     moduleBody
     'END'
@@ -63,7 +63,7 @@ moduleBody :
     ;
 
 exports :
-    ('EXPORTS' symbolsExported SEMI_COLON)?
+    ('EXPORTS' symbolsExported ';')?
     ;
 
 symbolsExported :
@@ -71,7 +71,7 @@ symbolsExported :
     ;
 
 imports :
-    ('IMPORTS' symbolsImported SEMI_COLON? )?
+    ('IMPORTS' symbolsImported ';'? )?
     ;
 
 symbolsImported
@@ -91,7 +91,7 @@ globalModuleReference :
     ;
 
 symbolList :
-    symbol (','? symbol)* COMMA?
+    symbol (','? symbol)* ','?
     ;
 
 symbol :
@@ -106,7 +106,7 @@ symbol :
     | 'TEXTUAL-CONVENTION'
     | 'NOTIFICATION-GROUP'
     | 'AGENT-CAPABILITIES'
-    | INTEGER_LITERAL ((L_BRACE  R_BRACE))?
+    | 'INTEGER' (('{'  '}'))?
     | 'BITS'
     ;
 
@@ -145,23 +145,23 @@ sequenceType :
     'SEQUENCE' '{' (namedType ','* )+ '}'
     ;
 
-sequenceOfType  : 'SEQUENCE' (L_PARAN (constraint | sizeConstraint) R_PARAN)? OF_LITERAL (type | namedType )
+sequenceOfType  : 'SEQUENCE' ('(' (constraint | sizeConstraint) ')')? 'OF' (type | namedType )
 ;
 
 typeAssignment :
-      ASSIGN_OP
+      '::='
     ( '[' application_details ']' )?
-    (IMPLICIT_LITERAL)?
+    ('IMPLICIT')?
       type
 ;
 
 application_details:
-    APPLICATION_LITERAL NUMBER;
+    'APPLICATION' NUMBER;
 
 complexAssignement :
     macroName
-     (complexAttribut COMMA*)+
-      ASSIGN_OP
+     (complexAttribut ','*)+
+      '::='
       value
     ;
 
@@ -245,29 +245,29 @@ indexTypes:
     ;
 
 textualConventionAssignement :
-    ASSIGN_OP 'TEXTUAL-CONVENTION' (complexAttribut COMMA*)+
+    '::=' 'TEXTUAL-CONVENTION' (complexAttribut ','*)+
     ;
 
 trapTypeAssignement :
     'TRAP-TYPE'
-     (complexAttribut COMMA*)+
-      ASSIGN_OP
+     (complexAttribut ','*)+
+      '::='
       integerValue
     ;
 
 objectTypeAssignement :
     'OBJECT-TYPE'
-     (complexAttribut COMMA*)+
-      ASSIGN_OP
+     (complexAttribut ','*)+
+      '::='
       value
     ;
 
 macroAssignement : 
-    'MACRO' ASSIGN_OP 'BEGIN' macroContent+ 'END'
+    'MACRO' '::=' 'BEGIN' macroContent+ 'END'
     ;
 
 macroContent:
-    IDENTIFIER 'NOTATION'? ? ASSIGN_OP macroVal+ ( '|' macroVal+ )*
+    IDENTIFIER 'NOTATION'? ? '::=' macroVal+ ( '|' macroVal+ )*
     ;
     
 macroVal:
@@ -278,12 +278,12 @@ macroVal:
 
 valueAssignment :
       type
-      ASSIGN_OP
+      '::='
        value
 ;
 
 type :
-    (builtinType | referencedType) ( constraint | sizeConstraint )? (L_BRACE namedNumberList R_BRACE)?
+    (builtinType | referencedType) ( constraint | sizeConstraint )? ('{' namedNumberList '}')?
     ;
 
 builtinType :
@@ -316,7 +316,7 @@ nullType:
     ;
 
 referencedType :
-    IDENTIFIER (DOT IDENTIFIER)? ( '{' namedNumberList '}' )?
+    IDENTIFIER ('.' IDENTIFIER)? ( '{' namedNumberList '}' )?
     ;
 
 elements :
@@ -362,7 +362,7 @@ referenceValue
     : IDENTIFIER
     ;
 
-objectIdentifierValue : L_BRACE objIdComponentsList R_BRACE
+objectIdentifierValue : '{' objIdComponentsList '}'
 ;
 objIdComponentsList
     :   (objIdComponents ','? ) +
@@ -370,7 +370,7 @@ objIdComponentsList
 
 objIdComponents 
     : NUMBER
-    | IDENTIFIER (L_PARAN NUMBER R_PARAN)?
+    | IDENTIFIER ('(' NUMBER ')')?
     ;
 
 integerValue :
@@ -380,7 +380,7 @@ integerValue :
     ;
 
 choiceValue  :
-    IDENTIFIER COLON value
+    IDENTIFIER ':' value
     ;
 
 stringValue
@@ -399,12 +399,12 @@ hexaNumber
     : HEXANUMBER
     ;
 
-choiceType    : CHOICE_LITERAL L_BRACE (namedType ','*)+ R_BRACE
+choiceType    : 'CHOICE' '{' (namedType ','*)+ '}'
 ;
 
 rootAlternativeTypeList  : alternativeTypeList
 ;
-alternativeTypeList : (namedType) (COMMA namedType)*
+alternativeTypeList : (namedType) (',' namedType)*
 ;
 
 namedType :
@@ -412,7 +412,7 @@ namedType :
     ;
 
 enumeratedType :
-    ENUMERATED_LITERAL L_BRACE enumerations R_BRACE
+    'ENUMERATED' '{' enumerations '}'
     ;
 
 enumerations :
@@ -422,404 +422,39 @@ enumerations :
 rootEnumeration : enumeration
     ;
 
-enumeration : enumerationItem ( COMMA enumerationItem)*
+enumeration : enumerationItem ( ',' enumerationItem)*
 ;
 enumerationItem : IDENTIFIER | namedNumber | value
 ;
 namedNumber :
-    (name=IDENTIFIER | name=TRUE_LITERAL | name=FALSE_LITERAL | name=TRUE_SMALL_LITERAL | name=FALSE_SMALL_LITERAL ) '(' signedNumber ')'
+    (name=IDENTIFIER | name='TRUE' | name='FALSE' | name='true' | name='false' ) '(' signedNumber ')'
     ;
 
 integerType :
-    INTEGER_LITERAL  (L_BRACE namedNumberList R_BRACE)?
+    'INTEGER'  ('{' namedNumberList '}')?
     ;
 
 namedNumberList :
-    (namedNumber) (COMMA? namedNumber)* COMMA?
+    (namedNumber) (','? namedNumber)* ','?
     ;
 
 objectidentifiertype:
-    OBJECT_LITERAL IDENTIFIER_LITERAL
+    'OBJECT' 'IDENTIFIER'
     ;
 
 octetStringType :
     'OCTET' 'STRING'
     ;
 
-bitStringType    : (BIT_LITERAL STRING_LITERAL) (L_BRACE namedBitList R_BRACE)?
+bitStringType    : ('BIT' 'STRING') ('{' namedBitList '}')?
 ;
-namedBitList: (namedBit) (COMMA namedBit)*
+namedBitList: (namedBit) (',' namedBit)*
 ;
-namedBit      : IDENTIFIER L_PARAN NUMBER R_PARAN
+namedBit      : IDENTIFIER '(' NUMBER ')'
     ;
 
-booleanValue:  TRUE_LITERAL | FALSE_LITERAL | TRUE_SMALL_LITERAL | FALSE_SMALL_LITERAL
-;
-
-A_ROND
-    :   '@'
-    ;
-
-STAR :
-    '*'
-    ;
-
-ASSIGN_OP :
-    '::='
-    ;
-
-BOOLEAN_LITERAL
-    :   'BOOLEAN'
-    ;
-
-TRUE_LITERAL
-    :   'TRUE'
-    ;
-
-FALSE_LITERAL
-    :   'FALSE'
-    ;
-
-DOT
-    :   '.'
-    ;
-
-DOUBLE_DOT
-    :   '..'
-    ;
-ELLIPSIS
-    :   '...'
-    ;
-
-APOSTROPHE
-    :   '\''
-    ;
-
-AMPERSAND
-    :   '&'
-    ;
-
-LESS_THAN
-    :   '<'
-    ;
-
-GREATER_THAN
-    :   '>'
-    ;
-
-LESS_THAN_SLASH
-    :   '</'
-    ;
-
-SLASH_GREATER_THAN
-    :   '/>'
-    ;
-
-TRUE_SMALL_LITERAL
-    :   'true'
-    ;
-
-FALSE_SMALL_LITERAL
-    :   'false'
-    ;
-
-INTEGER_LITERAL
-    :   'INTEGER'
-    ;
-
-L_BRACE
-    :   '{'
-    ;
-
-R_BRACE
-    :   '}'
-    ;
-
-COMMA
-    :   ','
-    ;
-
-L_PARAN
-    :   '('
-    ;
-
-R_PARAN
-    :   ')'
-    ;
-
-MINUS
-    :   '-'
-    ;
-
-ENUMERATED_LITERAL
-    :   'ENUMERATED'
-    ;
-
-
-REAL_LITERAL
-    :   'REAL'
-    ;
-
-PLUS_INFINITY_LITERAL
-    :   'PLUS-INFINITY'
-    ;
-
-MINUS_INFINITY_LITERAL
-    :   'MINUS-INFINITY'
-    ;
-
-BIT_LITERAL
-    :   'BIT'
-    ;
-
-STRING_LITERAL
-    :   'STRING'
-    ;
-
-CONTAINING_LITERAL
-    :   'CONTAINING'
-    ;
-
-OCTET_LITERAL
-    :   'OCTET'
-    ;
-
-NULL_LITERAL
-    :   'NULL'
-    ;
-
-OPTIONAL_LITERAL
-    :   'OPTIONAL'
-    ;
-
-DEFAULT_LITERAL
-    :   'DEFAULT'
-    ;
-
-COMPONENTS_LITERAL
-    :   'COMPONENTS'
-    ;
-
-OF_LITERAL
-    :   'OF'
-    ;
-
-SET_LITERAL
-    :   'SET'
-    ;
-
-EXCLAM
-    :   '!'
-    ;
-
-ALL_LITERAL
-    :   'ALL'
-    ;
-
-EXCEPT_LITERAL
-    :   'EXCEPT'
-    ;
-
-POWER
-    :   '^'
-    ;
-
-PIPE
-    :   '|'
-    ;
-
-INTERSECTION_LITERAL
-    :   'INTERSECTION'
-    ;
-
-INCLUDES_LITERAL
-    :   'INCLUDES'
-    ;
-
-MIN_LITERAL
-    :   'MIN'
-    ;
-
-MAX_LITERAL
-    :   'MAX'
-    ;
-
-FROM_LITERAL
-    :   'FROM'
-    ;
-
-WITH_LITERAL
-    :   'WITH'
-    ;
-
-COMPONENT_LITERAL
-    :   'COMPONENT'
-    ;
-
-PRESENT_LITERAL
-    :   'PRESENT'
-    ;
-
-ABSENT_LITERAL
-    :   'ABSENT'
-    ;
-
-TYPE_IDENTIFIER_LITERAL
-    :   'TYPE-Identifier'
-    ;
-
-ABSTRACT_SYNTAX_LITERAL
-    :   'ABSTRACT-SYNTAX'
-    ;
-
-CLASS_LITERAL
-    :   'CLASS'
-    ;
-
-UNIQUE_LITERAL
-    :   'UNIQUE'
-    ;
-
-SYNTAX_LITERAL
-    :   'SYNTAX'
-    ;
-
-L_BRACKET
-    :   '['
-    ;
-
-R_BRACKET
-    :   ']'
-    ;
-
-INSTANCE_LITERAL
-    :   'INSTANCE'
-    ;
-
-SEMI_COLON
-    :   ';'
-    ;
-
-IMPORTS_LITERAL
-    :   'IMPORTS'
-    ;
-
-EXPORTS_LITERAL
-    :   'EXPORTS'
-    ;
-
-EXTENSIBILITY_LITERAL
-    :   'EXTENSIBILITY'
-    ;
-
-IMPLIED_LITERAL
-    :   'IMPLIED'
-    ;
-
-EXPLICIT_LITERAL
-    :   'EXPLICIT'
-    ;
-
-TAGS_LITERAL
-    :   'TAGS'
-    ;
-
-IMPLICIT_LITERAL
-    :   'IMPLICIT'
-    ;
-
-AUTOMATIC_LITERAL
-    :   'AUTOMATIC'
-    ;
-
-DEFINITIONS_LITERAL
-    :   'DEFINITIONS'
-    ;
-
-BEGIN_LITERAL
-    :   'BEGIN'
-    ;
-
-END_LITERAL
-    :   'END'
-    ;
-
-DOUBLE_L_BRACKET
-    :   '[['
-    ;
-
-DOUBLE_R_BRACKET
-    :   ']]'
-    ;
-
-COLON
-    :   ':'
-    ;
-
-CHOICE_LITERAL
-    :   'CHOICE'
-    ;
-
-UNIVERSAL_LITERAL
-    :   'UNIVERSAL'
-    ;
-
-APPLICATION_LITERAL
-    :   'APPLICATION'
-    ;
-
-PRIVATE_LITERAL
-    :   'PRIVATE'
-    ;
-
-EMBEDDED_LITERAL
-    :   'EMBEDDED'
-    ;
-
-PDV_LITERAL
-    :   'PDV'
-    ;
-
-EXTERNAL_LITERAL
-    :   'EXTERNAL'
-    ;
-
-OBJECT_LITERAL
-    :   'OBJECT'
-    ;
-IDENTIFIER_LITERAL
-    :   'IDENTIFIER'
-    ;
-RELATIVE_OID_LITERAL
-    :   'RELATIVE-OID'
-    ;
-
-CHARACTER_LITERAL
-    :   'CHARACTER'
-    ;
-
-CONSTRAINED_LITERAL
-    :   'CONSTRAINED'
-    ;
-
-BY_LITERAL
-    :   'BY'
-    ;
-
-A_ROND_DOT
-    :   '@.'
-    ;
-
-ENCODED_LITERAL
-    :   'ENCODED'
-    ;
-
-UNRESTRICTEDCHARACTERSTRINGTYPE
-    : CHARACTER_LITERAL STRING_LITERAL
-    ;
-
-EXTENSTIONENDMARKER
-    :  COMMA  ELLIPSIS
+booleanValue:
+    'TRUE' | 'FALSE' | 'true' | 'false'
     ;
 
 fragment DIGIT
@@ -872,7 +507,7 @@ BINARYNUMBER:
     ;
 
 CSTRING
-    :  QUOTATIONMARK ( EscapeSequence | ~('\\'|'"') )* QUOTATIONMARK
+    :  QUOTATIONMARK ( EscapeSequence | ~('\\'|'"' | '“' | '”') )* QUOTATIONMARK
     ;
 
 fragment
@@ -884,7 +519,7 @@ QUOTATIONMARK:
 
 fragment
 EscapeSequence
-    :   '\\' ('b'|'t'|'n'|'f'|'r'|'"'|APOSTROPHE|'\\' | . )
+    :   '\\' ('b'|'t'|'n'|'f'|'r'|'"'|'\''|'\\' | . )
     ;
 
 //fragment
