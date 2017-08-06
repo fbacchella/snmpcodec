@@ -399,16 +399,13 @@ public class ModuleListener extends ASNBaseListener {
             case ASNParser.RULE_choiceType:
                 td.type = Asn1Type.choiceType;
                 break;
-            case ASNParser.RULE_enumeratedType:
-                td.type = Asn1Type.enumeratedType;
-                break;
             case ASNParser.RULE_sequenceType:
                 td.type = Asn1Type.sequenceType;
                 break;
             case ASNParser.RULE_sequenceOfType:
                 td.type = Asn1Type.sequenceOfType;
                 break;
-            case ASNParser.RULE_objectidentifiertype:
+            case ASNParser.RULE_objectIdentifierType:
                 td.type = Asn1Type.objectidentifiertype;
                 break;
             case ASNParser.RULE_nullType:

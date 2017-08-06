@@ -110,7 +110,6 @@ symbol :
     | 'BITS'
     ;
 
-
 assignmentList :
     assignment+
     ;
@@ -145,7 +144,7 @@ sequenceType :
     'SEQUENCE' '{' (namedType ','* )+ '}'
     ;
 
-sequenceOfType  : 'SEQUENCE' ('(' (constraint | sizeConstraint) ')')? 'OF' (type | namedType )
+sequenceOfType  : 'SEQUENCE' ( '(' (constraint | sizeConstraint) ')' )? 'OF' (type | namedType )
 ;
 
 typeAssignment :
@@ -269,7 +268,7 @@ macroAssignement :
 macroContent:
     IDENTIFIER 'NOTATION'? ? '::=' macroVal+ ( '|' macroVal+ )*
     ;
-    
+
 macroVal:
     CSTRING 
     | IDENTIFIER
@@ -290,11 +289,10 @@ builtinType :
    octetStringType
  | bitStringType
  | choiceType
- | enumeratedType
  | integerType
  | sequenceType
  | sequenceOfType
- | objectidentifiertype
+ | objectIdentifierType
  | nullType
  | bitsType
     ;
@@ -362,15 +360,17 @@ referenceValue
     : IDENTIFIER
     ;
 
-objectIdentifierValue : '{' objIdComponentsList '}'
-;
-objIdComponentsList
-    :   (objIdComponents ','? ) +
-;
+objectIdentifierValue :
+    '{' objIdComponentsList '}'
+    ;
+
+objIdComponentsList :
+    (objIdComponents ','? )+
+    ;
 
 objIdComponents 
     : NUMBER
-    | IDENTIFIER ('(' NUMBER ')')?
+    | IDENTIFIER ( '(' NUMBER ')' )?
     ;
 
 integerValue :
@@ -418,7 +418,7 @@ namedNumberList :
     (namedNumber) (','? namedNumber)* ','?
     ;
 
-objectidentifiertype:
+objectIdentifierType:
     'OBJECT' 'IDENTIFIER'
     ;
 
@@ -487,7 +487,7 @@ BINARYNUMBER:
     ;
 
 CSTRING
-    :  QUOTATIONMARK ( EscapeSequence | ~('\\'|'"' | '“' | '”') )* QUOTATIONMARK
+    :  QUOTATIONMARK ( EscapeSequence | ~('\\'| '"') )* QUOTATIONMARK
     ;
 
 fragment
@@ -544,13 +544,6 @@ JavaIDDigit
        '\u1040'..'\u1049'
    ;
 
-//OBJECTCLASSREFERENCE
-//  : UPPER (UPPER | LOWER | '-')
-//  ;
-//IDENTIFIER
-//    :   ( ('a'..'z') | ('A'..'Z') )  LETTER (LETTER|JavaIDDigit)*
-//    ;
-    
 IDENTIFIER
     :   LETTER (LETTER|JavaIDDigit)*
     ;
