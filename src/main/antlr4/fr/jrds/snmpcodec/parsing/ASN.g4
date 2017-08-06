@@ -402,30 +402,10 @@ hexaNumber
 choiceType    : 'CHOICE' '{' (namedType ','*)+ '}'
 ;
 
-rootAlternativeTypeList  : alternativeTypeList
-;
-alternativeTypeList : (namedType) (',' namedType)*
-;
-
 namedType :
     IDENTIFIER type
     ;
 
-enumeratedType :
-    'ENUMERATED' '{' enumerations '}'
-    ;
-
-enumerations :
-    rootEnumeration
-    ;
-
-rootEnumeration : enumeration
-    ;
-
-enumeration : enumerationItem ( ',' enumerationItem)*
-;
-enumerationItem : IDENTIFIER | namedNumber | value
-;
 namedNumber :
     (name=IDENTIFIER | name='TRUE' | name='FALSE' | name='true' | name='false' ) '(' signedNumber ')'
     ;
