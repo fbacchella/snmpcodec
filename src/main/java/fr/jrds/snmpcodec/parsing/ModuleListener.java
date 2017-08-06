@@ -211,14 +211,22 @@ public class ModuleListener extends ASNBaseListener {
     public void exitTextualConventionAssignement(TextualConventionAssignementContext ctx) {
         TextualConventionObject tc = (TextualConventionObject) stack.pop();
         Symbol s = (Symbol) stack.pop();
-        store.addTextualConvention(s, tc.values);
+        try {
+            store.addTextualConvention(s, tc.values);
+        } catch (MibException e) {
+            throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
+        }
     }
 
     @Override
     public void exitTypeAssignment(TypeAssignmentContext ctx) {
         TypeDescription td = (TypeDescription) stack.pop();
         Symbol s = (Symbol) stack.pop();
-        store.addType(s, td.getSyntax(this));
+        try {
+            store.addType(s, td.getSyntax(this));
+        } catch (MibException e) {
+            throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
+        }
     }
 
     @Override
@@ -262,7 +270,7 @@ public class ModuleListener extends ASNBaseListener {
     @Override
     public void enterBooleanValue(BooleanValueContext ctx) {
         boolean value;
-        if (ctx.TRUE_LITERAL() != null || ctx.TRUE_SMALL_LITERAL() != null) {
+        if ("true".equalsIgnoreCase(ctx.getText())) {
             value = true;
         } else {
             value = false;

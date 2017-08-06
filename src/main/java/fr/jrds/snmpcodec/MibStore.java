@@ -44,6 +44,7 @@ public class MibStore {
     private final Set<String> modules = new HashSet<>();
     public Map<Symbol, Map<String, Object>> textualConventions = new HashMap<>();
     public final Map<Symbol, ObjectType> objects = new HashMap<>();
+    private final Set<Symbol> symbols = new HashSet<>();
 
     public MibStore() {
         Symbol ccitt = new Symbol("CCITT", "ccitt");
@@ -58,83 +59,57 @@ public class MibStore {
             top.add(new int[]{2}, joint, false);
         } catch (MibException e) {
         }
-        codecs.put(new Symbol("SNMPv2-TC", "DateAndTime"), new TextualConvention.DateAndTime());
-        codecs.put(new Symbol("SNMPv2-TC", "DisplayString"), new TextualConvention.DisplayString());
     }
 
     public void addValue(Symbol s, Syntax syntax, Object value) throws MibException {
+        if (symbols.contains(s)) {
+            throw new MibException("Duplicated symbol " +s);
+        }
         if (value instanceof OidPath) {
             addOid(s, (OidPath)value, false);
-
         } else {
             throw new MibException("Unsupported value assignement " + value);
         }
     }
 
-    public void addType(Symbol s, Syntax type) {
-        if (codecs.containsKey(s) ) {
-            logger.debug("Duplicating symbol %s", s);
-            return;
+    public void addType(Symbol s, Syntax type) throws MibException {
+        if (symbols.contains(s) ) {
+            throw new MibException("Duplicated symbol " + s);
         }
         codecs.put(s, type);
+        symbols.add(s);
     }
 
-
-    //private static final Symbol Unsigned32 = new Symbol("SNMPv2-SMI","Unsigned32");
-    public void addTextualConvention(Symbol s, Map<String, Object> attributes) {
+    public void addTextualConvention(Symbol s, Map<String, Object> attributes) throws MibException {
+        if (symbols.contains(s) ) {
+            throw new MibException("Duplicated symbol " + s);
+        }
         textualConventions.put(s, attributes);
-    }
-
-    private void resolveTextualConventions() {
-        textualConventions.forEach((s, attributes) -> {
-            Syntax type = (Syntax) attributes.get("SYNTAX");
-            String hint = (String) attributes.get("DISPLAY-HINT");
-            TextualConvention tc;
-            Syntax finaltype = type;
-            while (! (finaltype instanceof ProvidesTextualConvention) && finaltype != null) {
-                if (finaltype instanceof Referenced) {
-                    Referenced ref = (Referenced) finaltype;
-                    finaltype = codecs.get(ref.getSym());
-                } else if (finaltype instanceof TextualConvention) {
-                    TextualConvention temporary = (TextualConvention) finaltype;
-                    finaltype = temporary.getSyntax();
-                } else {
-                    finaltype = ((IndirectSyntax) finaltype).getSyntax();
-                }
-            }
-            if (finaltype != null) {
-                try {
-                    tc = ((ProvidesTextualConvention)finaltype).getTextualConvention(hint, type);
-                    if (tc != null) {
-                        if (codecs.containsKey(s) ) {
-                            logger.debug("Duplicating textual convention %s", s);
-                            return;
-                        }
-                        codecs.put(s, tc);
-                    }
-                } catch (Exception e) {
-                    System.out.println("Broken type " + s + " " + attributes);
-                }
-            } else {
-                System.out.println("Invalid type " + s + " " + attributes);
-            }
-        });
-        textualConventions = null;
+        symbols.add(s);
     }
 
     public void addObjectType(Symbol s, Map<String, Object> attributes, OidPath value) throws MibException {
+        if (symbols.contains(s) ) {
+            throw new MibException("Duplicated symbol " + s);
+        }
         ObjectType newtype = new ObjectType(attributes);
         addOid(s, (OidPath)value, newtype.isIndexed());
         objects.put(s, newtype);
     }
 
     public void addTrapType(Symbol s, String name, Map<String, Object> attributes, Number trapIndex) throws MibException {
+        if (symbols.contains(s) ) {
+            throw new MibException("Duplicated symbol " + s);
+        }
         Symbol enterprise = (Symbol) attributes.get("ENTERPRISE");
         attributes.put("SYMBOL", s);
         traps.computeIfAbsent(enterprise, k -> new HashMap<>()).put(trapIndex.intValue(), attributes);
     }
 
     public void addMacroValue(Symbol s, String name, Map<String, Object> attributes, OidPath value) throws MibException {
+        if (symbols.contains(s) ) {
+            throw new MibException("Duplicated symbol " + s);
+        }
         addOid(s, value, false);
     }
 
@@ -162,6 +137,7 @@ public class MibStore {
         } else {
             logger.debug("Duplicating OID %s -> %s", p, s);
         }
+        symbols.add(s);
     }
 
     public void buildTree() {
@@ -193,6 +169,16 @@ public class MibStore {
             }
         });
 
+        // Replace some eventually defined TextualConvention with the smarter version
+        Symbol dateAndTime = new Symbol("SNMPv2-TC", "DateAndTime");
+        if (codecs.containsKey(dateAndTime)) {
+            codecs.put(dateAndTime, new TextualConvention.DateAndTime());
+        }
+        Symbol displayString = new Symbol("SNMPv2-TC", "DisplayString");
+        if (codecs.containsKey(displayString)) {
+            codecs.put(displayString, new TextualConvention.DisplayString());
+        }
+
         for (Symbol s: getSortedOids()) {
             try {
                 Oid oid = oids.get(s);
@@ -204,6 +190,40 @@ public class MibStore {
             }
         }
         resolveTextualConventions();
+        symbols.clear();
+    }
+
+    private void resolveTextualConventions() {
+        textualConventions.forEach((s, attributes) -> {
+            Syntax type = (Syntax) attributes.get("SYNTAX");
+            String hint = (String) attributes.get("DISPLAY-HINT");
+            TextualConvention tc;
+            Syntax finaltype = type;
+            while (! (finaltype instanceof ProvidesTextualConvention) && finaltype != null) {
+                if (finaltype instanceof Referenced) {
+                    Referenced ref = (Referenced) finaltype;
+                    finaltype = codecs.get(ref.getSym());
+                } else if (finaltype instanceof TextualConvention) {
+                    TextualConvention temporary = (TextualConvention) finaltype;
+                    finaltype = temporary.getSyntax();
+                } else {
+                    finaltype = ((IndirectSyntax) finaltype).getSyntax();
+                }
+            }
+            if (finaltype != null) {
+                try {
+                    tc = ((ProvidesTextualConvention)finaltype).getTextualConvention(hint, type);
+                    if (tc != null) {
+                        codecs.put(s, tc);
+                    }
+                } catch (Exception e) {
+                    System.out.println("Broken hint for textual convention " + s + ": " + hint);
+                }
+            } else {
+                System.out.println("Invalid textual convention " + s + " " + attributes);
+            }
+        });
+        textualConventions = null;
     }
 
     private Collection<Symbol> getSortedOids() {
