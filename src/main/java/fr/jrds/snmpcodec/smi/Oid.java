@@ -27,7 +27,6 @@ public class Oid {
         public OidPath(List<OidComponent> components) {
             super(components);
         }
-        
 
         @Override
         public String toString() {
@@ -103,8 +102,8 @@ public class Oid {
 
     @Override
     public String toString() {
-        if (path == null) {
-            return "";
+        if (path == null || path.isEmpty()) {
+            return components.toString();
         } else {
             return path.stream().map(i -> i.toString()).collect(Collectors.joining("."));
         }
