@@ -83,19 +83,19 @@ public class Oid {
                                 if (! parentpath.isEmpty()) {
                                     path.addAll(oids.get(i.symbol).getPath());
                                 } else {
-                                    throw new RuntimeException("Invalid oid path for symbol " + i.symbol);
+                                    throw new MibException("Invalid OID path for symbol " + i.symbol);
                                 }
                             } else {
-                                throw new RuntimeException(String.format("missing symbol %s in %s\n",i.symbol, components));
+                                throw new MibException(String.format("missing symbol %s in %s",i.symbol, components));
                             }
                         }
                     } catch (MibException e) {
-                        throw new RuntimeException(e.getMessage());
+                        throw e.getNonChecked();
                     }
                 });
-            } catch (RuntimeException e) {
+            } catch (MibException.NonCheckedMibException e) {
                 path.clear();
-                throw new MibException(e.getMessage());
+                throw e.getWrapper();
             }
         }
         return path;

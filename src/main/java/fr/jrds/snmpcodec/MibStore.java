@@ -238,7 +238,7 @@ public class MibStore {
                     }
                     return sorted;
                 } catch (MibException e) {
-                    throw new RuntimeException(e.getMessage());
+                    throw e.getNonChecked();
                 }
             }
 
@@ -249,8 +249,8 @@ public class MibStore {
                 if (! i.getValue().getPath().isEmpty()) {
                     sortedoid.put(i.getValue(), i.getKey());
                 }
-            } catch (MibException e) {
-                logger.error("Can't add new symbol %s at %s: %s", i.getKey(), i.getValue(), e.getMessage());
+            } catch (MibException | MibException.NonCheckedMibException e) {
+                logger.error("Can't add new symbol OID %s at %s: %s", i.getKey(), i.getValue(), e.getMessage());
             }
         });
         return sortedoid.values();
