@@ -32,6 +32,9 @@ import fr.jrds.snmpcodec.parsing.ASNParser.ElementsContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.IntegerTypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.IntegerValueContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleDefinitionContext;
+import fr.jrds.snmpcodec.parsing.ASNParser.ModuleIdentityAssignementContext;
+import fr.jrds.snmpcodec.parsing.ASNParser.ModuleRevisionContext;
+import fr.jrds.snmpcodec.parsing.ASNParser.ModuleRevisionsContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ObjIdComponentsListContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ObjectTypeAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ReferencedTypeContext;
@@ -49,9 +52,12 @@ import fr.jrds.snmpcodec.parsing.ASNParser.ValueAssignmentContext;
 import fr.jrds.snmpcodec.parsing.MibObject.Import;
 import fr.jrds.snmpcodec.parsing.MibObject.MappedObject;
 import fr.jrds.snmpcodec.parsing.MibObject.TrapTypeObject;
+import fr.jrds.snmpcodec.parsing.ValueType.StringValue;
 import fr.jrds.snmpcodec.parsing.MibObject.TextualConventionObject;
 import fr.jrds.snmpcodec.parsing.MibObject.ObjectTypeObject;
 import fr.jrds.snmpcodec.parsing.MibObject.OtherMacroObject;
+import fr.jrds.snmpcodec.parsing.MibObject.ModuleIdentityObject;
+import fr.jrds.snmpcodec.parsing.MibObject.Revision;
 
 import fr.jrds.snmpcodec.smi.Constraint;
 import fr.jrds.snmpcodec.smi.Oid.OidComponent;
@@ -213,6 +219,34 @@ public class ModuleListener extends ASNBaseListener {
         Symbol s = (Symbol) stack.pop();
         try {
             store.addTextualConvention(s, tc.values);
+        } catch (MibException e) {
+            throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
+        }
+    }
+
+    @Override
+    public void enterModuleIdentityAssignement(ModuleIdentityAssignementContext ctx) {
+        stack.push(new ModuleIdentityObject());
+    }
+
+    @Override
+    public void exitModuleIdentityAssignement(ModuleIdentityAssignementContext ctx) {
+        @SuppressWarnings("unchecked")
+        ValueType<OidPath> vt = (ValueType<OidPath>) stack.pop();
+        Object revisions = stack.pop();
+        StringValue description = (StringValue)stack.pop();
+        StringValue contactInfo = (StringValue)stack.pop();
+        StringValue organization = (StringValue)stack.pop();
+        StringValue lastUpdate = (StringValue)stack.pop();
+        ModuleIdentityObject mi = (ModuleIdentityObject) stack.pop();;
+        Symbol s = (Symbol) stack.pop();
+        mi.values.put("LAST-UPDATED", lastUpdate);
+        mi.values.put("ORGANIZATION", organization);
+        mi.values.put("CONTACT-INFO", contactInfo);
+        mi.values.put("DESCRIPTION", description);
+        mi.values.put("revisions", revisions);
+        try {
+            store.addModuleIdentity(s, mi.values, vt.value);
         } catch (MibException e) {
             throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
         }
@@ -384,6 +418,20 @@ public class ModuleListener extends ASNBaseListener {
         String value = ctx.IDENTIFIER().getText().intern();
         MappedObject co = (MappedObject) stack.peek();
         co.values.put(name.intern(), value);
+    }
+
+    @Override
+    public void enterModuleRevisions(ModuleRevisionsContext ctx) {
+        stack.push(new ArrayList<Revision>());
+    }
+
+    @Override
+    public void exitModuleRevision(ModuleRevisionContext ctx) {
+        StringValue description = (StringValue)stack.pop();
+        StringValue revision = (StringValue)stack.pop();
+        @SuppressWarnings("unchecked")
+        List<Revision> revisions = (List<Revision>) stack.peek();
+        revisions.add(new Revision(description.value, revision.value));
     }
 
     /****************************************

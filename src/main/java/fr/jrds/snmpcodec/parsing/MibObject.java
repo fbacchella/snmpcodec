@@ -66,10 +66,26 @@ abstract class MibObject {
         }
     }
 
+    static class ModuleIdentityObject extends StructuredObject<Number> {
+        OidValue oid;
+        public ModuleIdentityObject() {
+            super("MODULE-IDENTITY");
+        }
+    }
+
     static class OtherMacroObject extends StructuredObject<OidPath> {
         OidValue oid;
         public OtherMacroObject(String name) {
             super(name);
+        }
+    }
+
+    static class Revision {
+        public final String description;
+        public final String revision;
+        public Revision(String description, String revision) {
+            this.description = description;
+            this.revision = revision;
         }
     }
 
