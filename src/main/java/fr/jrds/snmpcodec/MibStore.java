@@ -106,6 +106,14 @@ public class MibStore {
         traps.computeIfAbsent(enterprise, k -> new HashMap<>()).put(trapIndex.intValue(), attributes);
     }
 
+
+    public void addModuleIdentity(Symbol s, Map<String, Object> attributes, OidPath value) throws MibException {
+        if (symbols.contains(s) ) {
+            throw new MibException("Duplicated symbol " + s);
+        }
+        addOid(s, value, false);
+    }
+
     public void addMacroValue(Symbol s, String name, Map<String, Object> attributes, OidPath value) throws MibException {
         if (symbols.contains(s) ) {
             throw new MibException("Duplicated symbol " + s);
