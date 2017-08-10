@@ -16,6 +16,8 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
+import fr.jrds.snmpcodec.MibException.NonCheckedMibException;
+import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.MibStore;
 import fr.jrds.snmpcodec.log.LogAdapter;
 
@@ -67,7 +69,7 @@ public class MibLoader {
         .map(i -> {
             try {
                 return i.moduleDefinition();
-            } catch (ModuleException e) {
+            } catch (WrappedException e) {
                 System.err.println(e.getMessage() + " "+ e.getLocation());
                 return null;
             }
@@ -76,10 +78,13 @@ public class MibLoader {
         .forEach(i -> {
             try {
                 ParseTreeWalker.DEFAULT.walk(modulelistener, i);
-            } catch (ModuleException.DuplicatedMibException e) {
-                //logger.debug("Duplicated module '%s' at '%s'" , e.getModule(), e.getLocation());
-            } catch (ModuleException e) {
-                logger.error("%s at %s" , e.getMessage(), e.getLocation());
+            } catch (NonCheckedMibException e) {
+                try {
+                    throw e.getWrapper();
+                } catch (MibException.DuplicatedModuleException e2) {
+                } catch (MibException e2) {
+                    logger.error(e2.getMessage());
+                }
             }
         });
 

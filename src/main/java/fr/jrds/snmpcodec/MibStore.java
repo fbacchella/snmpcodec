@@ -19,6 +19,7 @@ import java.util.TreeMap;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.Variable;
 
+import fr.jrds.snmpcodec.MibException.DuplicatedSymbolOid;
 import fr.jrds.snmpcodec.log.LogAdapter;
 import fr.jrds.snmpcodec.smi.Index;
 import fr.jrds.snmpcodec.smi.IndirectSyntax;
@@ -61,9 +62,23 @@ public class MibStore {
         }
     }
 
+    /**
+     * Prepare a new module
+     * @param currentModule
+     * @return true if the module is indeed new.
+     * @throws MibException 
+     */
+    public void newModule(String currentModule) throws MibException {
+        if (modules.contains(currentModule)) {
+            throw new MibException.DuplicatedModuleException(currentModule);
+        } else {
+            modules.add(currentModule);
+        }
+    }
+
     public void addValue(Symbol s, Syntax syntax, Object value) throws MibException {
         if (symbols.contains(s)) {
-            throw new MibException("Duplicated symbol " +s);
+            throw new MibException.DuplicatedSymbolException(s);
         }
         if (value instanceof OidPath) {
             addOid(s, (OidPath)value, false);
@@ -74,7 +89,7 @@ public class MibStore {
 
     public void addType(Symbol s, Syntax type) throws MibException {
         if (symbols.contains(s) ) {
-            throw new MibException("Duplicated symbol " + s);
+            throw new MibException.DuplicatedSymbolException(s);
         }
         codecs.put(s, type);
         symbols.add(s);
@@ -82,7 +97,7 @@ public class MibStore {
 
     public void addTextualConvention(Symbol s, Map<String, Object> attributes) throws MibException {
         if (symbols.contains(s) ) {
-            throw new MibException("Duplicated symbol " + s);
+            throw new MibException.DuplicatedSymbolException(s);
         }
         textualConventions.put(s, attributes);
         symbols.add(s);
@@ -90,7 +105,7 @@ public class MibStore {
 
     public void addObjectType(Symbol s, Map<String, Object> attributes, OidPath value) throws MibException {
         if (symbols.contains(s) ) {
-            throw new MibException("Duplicated symbol " + s);
+            throw new MibException.DuplicatedSymbolException(s);
         }
         ObjectType newtype = new ObjectType(attributes);
         addOid(s, (OidPath)value, newtype.isIndexed());
@@ -99,24 +114,25 @@ public class MibStore {
 
     public void addTrapType(Symbol s, String name, Map<String, Object> attributes, Number trapIndex) throws MibException {
         if (symbols.contains(s) ) {
-            throw new MibException("Duplicated symbol " + s);
+            throw new MibException.DuplicatedSymbolException(s);
         }
-        Symbol enterprise = (Symbol) attributes.get("ENTERPRISE");
         attributes.put("SYMBOL", s);
-        traps.computeIfAbsent(enterprise, k -> new HashMap<>()).put(trapIndex.intValue(), attributes);
+        Object enterprise = attributes.get("ENTERPRISE");
+        if (enterprise instanceof Symbol) {
+            traps.computeIfAbsent((Symbol)enterprise, k -> new HashMap<>()).put(trapIndex.intValue(), attributes);
+        }
     }
-
 
     public void addModuleIdentity(Symbol s, Map<String, Object> attributes, OidPath value) throws MibException {
         if (symbols.contains(s) ) {
-            throw new MibException("Duplicated symbol " + s);
+            throw new MibException.DuplicatedSymbolException(s);
         }
         addOid(s, value, false);
     }
 
     public void addMacroValue(Symbol s, String name, Map<String, Object> attributes, OidPath value) throws MibException {
         if (symbols.contains(s) ) {
-            throw new MibException("Duplicated symbol " + s);
+            throw new MibException.DuplicatedSymbolException(s);
         }
         addOid(s, value, false);
     }
@@ -143,7 +159,7 @@ public class MibStore {
         if (!oids.containsKey(s)) {
             oids.put(s, oid);
         } else {
-            logger.debug("Duplicating OID %s -> %s", p, s);
+            throw new DuplicatedSymbolOid(oid.toString());
         }
         symbols.add(s);
     }
@@ -323,21 +339,6 @@ public class MibStore {
             return codecs.get(s).parse(text);
         }
         return null;
-    }
-
-    /**
-     * Prepare a new module
-     * @param currentModule
-     * @return true if the module is indeed new.
-     */
-    public boolean newModule(String currentModule) {
-        if (modules.contains(currentModule)) {
-            return false;
-        } else {
-            modules.add(currentModule);
-            return true;
-        }
-
     }
 
 }

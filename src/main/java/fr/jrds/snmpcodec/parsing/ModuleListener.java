@@ -15,7 +15,7 @@ import java.util.stream.IntStream;
 
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.tree.ErrorNode;
+import org.antlr.v4.runtime.misc.ParseCancellationException;
 
 import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.MibStore;
@@ -51,14 +51,13 @@ import fr.jrds.snmpcodec.parsing.ASNParser.TypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ValueAssignmentContext;
 import fr.jrds.snmpcodec.parsing.MibObject.Import;
 import fr.jrds.snmpcodec.parsing.MibObject.MappedObject;
-import fr.jrds.snmpcodec.parsing.MibObject.TrapTypeObject;
-import fr.jrds.snmpcodec.parsing.ValueType.StringValue;
-import fr.jrds.snmpcodec.parsing.MibObject.TextualConventionObject;
+import fr.jrds.snmpcodec.parsing.MibObject.ModuleIdentityObject;
 import fr.jrds.snmpcodec.parsing.MibObject.ObjectTypeObject;
 import fr.jrds.snmpcodec.parsing.MibObject.OtherMacroObject;
-import fr.jrds.snmpcodec.parsing.MibObject.ModuleIdentityObject;
 import fr.jrds.snmpcodec.parsing.MibObject.Revision;
-
+import fr.jrds.snmpcodec.parsing.MibObject.TextualConventionObject;
+import fr.jrds.snmpcodec.parsing.MibObject.TrapTypeObject;
+import fr.jrds.snmpcodec.parsing.ValueType.StringValue;
 import fr.jrds.snmpcodec.smi.Constraint;
 import fr.jrds.snmpcodec.smi.Oid.OidComponent;
 import fr.jrds.snmpcodec.smi.Oid.OidPath;
@@ -120,11 +119,16 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterModuleDefinition(ModuleDefinitionContext ctx) {
+        if (ctx.IDENTIFIER() == null) {
+            throw new ParseCancellationException("Empty module");
+        }
         currentModule = ctx.IDENTIFIER().getText();
         objects.clear();
         importedFrom.clear();
-        if ( ! store.newModule(currentModule)) {
-            throw new ModuleException.DuplicatedMibException(currentModule, parser.getInputStream().getSourceName());
+        try {
+            store.newModule(currentModule);
+        } catch (MibException e) {
+             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
     }
 
@@ -136,11 +140,6 @@ public class ModuleListener extends ASNBaseListener {
             objects.put(i.getText(), imported);
             importedFrom.put(i.getText(), ctx.globalModuleReference().getText());
         });
-    }
-
-    @Override
-    public void visitErrorNode(ErrorNode node) {
-        throw new ModuleException("Invalid assignement: " + node.getText(), parser.getInputStream().getSourceName(), node.getSymbol());
     }
 
     /****************************************
@@ -168,7 +167,7 @@ public class ModuleListener extends ASNBaseListener {
         try {
             store.addMacroValue(s, macro.name, macro.values, macro.value.value);
         } catch (MibException e) {
-            throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
+            parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
     }
 
@@ -186,7 +185,9 @@ public class ModuleListener extends ASNBaseListener {
         try {
             store.addTrapType(s, macro.name, macro.values, value.value);
         } catch (MibException e) {
-            throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
+            parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
+        } catch (ClassCastException e) {
+            throw new ParseCancellationException(String.format("mib storage exception: %s", e.getMessage()));
         }
     }
 
@@ -204,7 +205,7 @@ public class ModuleListener extends ASNBaseListener {
         try {
             store.addObjectType(s, macro.values, vt.value);
         } catch (MibException e) {
-            throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
+            parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
     }
 
@@ -220,7 +221,7 @@ public class ModuleListener extends ASNBaseListener {
         try {
             store.addTextualConvention(s, tc.values);
         } catch (MibException e) {
-            throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
+            parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
     }
 
@@ -248,7 +249,7 @@ public class ModuleListener extends ASNBaseListener {
         try {
             store.addModuleIdentity(s, mi.values, vt.value);
         } catch (MibException e) {
-            throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
+            parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
     }
 
@@ -259,7 +260,7 @@ public class ModuleListener extends ASNBaseListener {
         try {
             store.addType(s, td.getSyntax(this));
         } catch (MibException e) {
-            throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
+            parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
     }
 
@@ -271,7 +272,7 @@ public class ModuleListener extends ASNBaseListener {
         try {
             store.addValue(s, td.getSyntax(this), vt.value);
         } catch (MibException e) {
-            throw new ModuleException(String.format("mib storage exception: %s", e.getMessage()), parser.getInputStream().getSourceName(), ctx.start);
+            parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
     }
 
@@ -337,7 +338,7 @@ public class ModuleListener extends ASNBaseListener {
                 }
             }
         } catch (Exception e) {
-            throw new ModuleException("Invalid number " + ctx.getText(), parser.getInputStream().getSourceName(), ctx.start);
+            parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
         stack.push(new ValueType.IntegerValue(fitNumber(v)));
 
@@ -471,7 +472,8 @@ public class ModuleListener extends ASNBaseListener {
                 td.type = Asn1Type.bitsType;
                 break;
             default:
-                throw new ModuleException("Unsupported ASN.1 type", parser.getInputStream().getSourceName(), ctx.start);
+                throw new ParseCancellationException();
+                //throw new ModuleException("Unsupported ASN.1 type", parser.getInputStream().getSourceName(), ctx.start);
             }
         } else if (ctx.referencedType() != null) {
             td.type = Asn1Type.referencedType;
