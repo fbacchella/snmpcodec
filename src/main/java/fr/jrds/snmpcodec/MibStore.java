@@ -37,10 +37,11 @@ public class MibStore {
     LogAdapter logger = LogAdapter.getLogger(MibStore.class);
 
     private final Set<Symbol> badsymbols = new HashSet<>();
-    public final Map<Symbol, Oid> oids = new Symbol.SymbolMap<>();
-    public final Map<String, int[]> names = new HashMap<>();
-    public final Map<Symbol, Syntax> codecs = new Symbol.SymbolMap<>();
-    public final Map<Symbol, Map<Integer, Map<String, Object>>> traps = new Symbol.SymbolMap<>();
+    public final Map<Symbol, Oid> oids = new HashMap<>();
+    public final Map<Symbol, int[]> symbolOids = new HashMap<>();
+    public final Map<String, List<Symbol>> names = new HashMap<>();
+    public final Map<Symbol, Syntax> codecs = new HashMap<>();
+    public final Map<Symbol, Map<Integer, Map<String, Object>>> traps = new HashMap<>();
     public final OidTreeNode top = new OidTreeNode();
     private final Set<String> modules = new HashSet<>();
     public Map<Symbol, Map<String, Object>> textualConventions = new HashMap<>();
@@ -48,9 +49,9 @@ public class MibStore {
     private final Set<Symbol> symbols = new HashSet<>();
 
     public MibStore() {
-        Symbol ccitt = new Symbol("CCITT", "ccitt");
-        Symbol iso = new Symbol("ISO", "iso");
-        Symbol joint = new Symbol("JOINT", "joint-iso-ccitt");
+        Symbol ccitt = new Symbol("ccitt");
+        Symbol iso = new Symbol("iso");
+        Symbol joint = new Symbol("joint-iso-ccitt");
         try {
             oids.put(ccitt, new Oid(new int[]{0}, oids));
             oids.put(iso, new Oid(new int[]{1}, oids));
