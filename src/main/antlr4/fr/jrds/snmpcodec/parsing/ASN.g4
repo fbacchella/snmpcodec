@@ -137,6 +137,7 @@ assignementType :
      | objectTypeAssignement
      | trapTypeAssignement
      | moduleIdentityAssignement
+     | moduleComplianceAssignement
      | macroAssignement
      ;
 
@@ -166,8 +167,7 @@ complexAssignement :
     ;
 
 macroName :
-    | 'MODULE-COMPLIANCE'
-    | 'OBJECT-GROUP'
+    'OBJECT-GROUP'
     | 'OBJECT-IDENTITY'
     | 'NOTIFICATION-TYPE'
     | 'NOTIFICATION-GROUP'
@@ -192,7 +192,6 @@ complexAttribut:
     | name='DESCRIPTION' stringValue
     | name='MODULE' IDENTIFIER?
     | name='INCLUDES' groups
-    | name='MANDATORY-GROUPS' groups
     | name='OBJECTS' objects
     | name='VARIABLES' variables
     | name='INDEX' index
@@ -268,6 +267,23 @@ textualConventionAssignement :
     '::=' 'TEXTUAL-CONVENTION' (complexAttribut ','*)+
     ;
 
+moduleComplianceAssignement :
+    'MODULE-COMPLIANCE'
+    status
+    'DESCRIPTION' stringValue
+    ('REFERENCE' stringValue)?
+    (complianceModules)+
+    '::='
+    objectIdentifierValue
+    ;
+    
+complianceModules :
+    'MODULE' IDENTIFIER?
+    ('MANDATORY-GROUPS' groups)?
+    ( ('GROUP' IDENTIFIER 'DESCRIPTION' stringValue) | 
+       ('OBJECT' ('SYNTAX' type)? ('WRITE-SYNTAX' type)? ('MIN-ACCESS' IDENTIFIER)? ('DESCRIPTION' stringValue)? )
+    )*
+    ;
 trapTypeAssignement :
     'TRAP-TYPE'
      (complexAttribut ','*)+
