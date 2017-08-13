@@ -482,13 +482,13 @@ fragment Exponent
     : ('e'|'E') ('+'|'-')? NUMBER
     ;
 
-//INLINE_COMMENT
-//    : '--' ~('\n'|'\r'| '--')* ( '--' | ('\r'? '\n'))->skip
-//    ;
-
 LINE_COMMENT
-    : '--' ~('\n'|'\r')* '\r'? '\n' ->skip
+    : '--' .*? ( '--' | ('\r'? '\n')) ->skip
     ;
+
+//INLINE_COMMENT
+//    : '--' ~('\n'|'\r')* '\r'? '\n' ->skip
+//    ;
 
 fragment HEXDIGIT
     : (DIGIT|'a'..'f'|'A'..'F')
