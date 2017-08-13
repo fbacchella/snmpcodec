@@ -41,7 +41,7 @@ public class Index {
         List<Object> indexesValues = new ArrayList<>();
         int[] oidParsed = Arrays.copyOf(oid, oid.length);
         for(OidTreeNode i: indexes) {
-            ObjectType column = store.resolvedObjects.get(i);
+            ObjectType column = store.objects.get(i);
             if(column == null) {
                 logger.error("index not found: %s", i);
                 break;

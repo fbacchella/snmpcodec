@@ -51,7 +51,7 @@ public class MibStore {
     private final Map<OidTreeNode, Syntax> _syntaxes = new HashMap<>();
     public final Map<OidTreeNode, Syntax> syntaxes = Collections.unmodifiableMap(_syntaxes);
     private final Map<OidTreeNode, ObjectType> _objects = new HashMap<>();
-    public final Map<OidTreeNode, ObjectType> resolvedObjects = Collections.unmodifiableMap(_objects);
+    public final Map<OidTreeNode, ObjectType> objects = Collections.unmodifiableMap(_objects);
     private final Map<OidTreeNode, Map<Integer, Map<String, Object>>> _resolvedTraps = new HashMap<>();
     public final Map<OidTreeNode, Map<Integer, Map<String, Object>>> resolvedTraps = Collections.unmodifiableMap(_resolvedTraps);
     private final Set<String> _modules = new HashSet<>();
@@ -345,7 +345,7 @@ public class MibStore {
         if(foundOID.length < oid.length ) {
             OidTreeNode parent = top.find(Arrays.copyOf(foundOID, foundOID.length -1 ));
             if (parent != null) {
-                ObjectType parentCodec = resolvedObjects.get(parent);
+                ObjectType parentCodec = objects.get(parent);
                 if(parentCodec.isIndexed()) {
                     Index idx = parentCodec.getIndex();
                     int[] index = Arrays.copyOfRange(oid, foundOID.length, oid.length);
@@ -382,7 +382,7 @@ public class MibStore {
                 trap.get("SYMBOL").toString();
             }
         } else if (buildObjects.containsKey(s)) {
-            ObjectType ot = resolvedObjects.get(s);
+            ObjectType ot = objects.get(s);
             return ot.format(variable);
         }
         return null;
