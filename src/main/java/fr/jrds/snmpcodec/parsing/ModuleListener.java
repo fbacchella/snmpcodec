@@ -31,6 +31,7 @@ import fr.jrds.snmpcodec.parsing.ASNParser.ConstraintContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ElementsContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.IntegerTypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.IntegerValueContext;
+import fr.jrds.snmpcodec.parsing.ASNParser.ModuleComplianceAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleDefinitionContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleIdentityAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleRevisionContext;
@@ -60,7 +61,6 @@ import fr.jrds.snmpcodec.parsing.MibObject.TrapTypeObject;
 import fr.jrds.snmpcodec.parsing.ValueType.OidValue;
 import fr.jrds.snmpcodec.parsing.ValueType.StringValue;
 import fr.jrds.snmpcodec.smi.Constraint;
-import fr.jrds.snmpcodec.smi.Oid;
 import fr.jrds.snmpcodec.smi.Symbol;
 import fr.jrds.snmpcodec.smi.Syntax;
 
@@ -163,6 +163,7 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterAssignment(AssignmentContext ctx) {
+        stack.clear();
         stack.push(resolveSymbol(ctx.identifier.getText()));
     }
 
@@ -191,6 +192,10 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitTrapTypeAssignement(TrapTypeAssignementContext ctx) {
+        if (! (stack.peek() instanceof ValueType)) {
+            stack.clear();
+            return;
+        }
         @SuppressWarnings("unchecked")
         ValueType<Number> value = (ValueType<Number>) stack.pop();
         TrapTypeObject macro = (TrapTypeObject) stack.pop();
@@ -277,6 +282,9 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitValueAssignment(ValueAssignmentContext ctx) {
+        if (! (stack.peek() instanceof ValueType)) {
+            return;
+        }
         ValueType<?> vt = (ValueType<?>) stack.pop();
         TypeDescription td = (TypeDescription) stack.pop();
         Symbol s = (Symbol) stack.pop();
@@ -453,6 +461,16 @@ public class ModuleListener extends ASNBaseListener {
         @SuppressWarnings("unchecked")
         List<Revision> revisions = (List<Revision>) stack.peek();
         revisions.add(new Revision(description.value, revision.value));
+    }
+
+    @Override
+    public void enterModuleComplianceAssignement(ModuleComplianceAssignementContext ctx) {
+        stack.push(new MappedObject("MODULE-COMPLIANCE"));
+    }
+
+    @Override
+    public void exitModuleComplianceAssignement(ModuleComplianceAssignementContext ctx) {
+        stack.pop();
     }
 
     /****************************************

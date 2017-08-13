@@ -280,10 +280,14 @@ moduleComplianceAssignement :
 complianceModules :
     'MODULE' IDENTIFIER?
     ('MANDATORY-GROUPS' groups)?
-    ( ('GROUP' IDENTIFIER 'DESCRIPTION' stringValue) | 
-       ('OBJECT' ('SYNTAX' type)? ('WRITE-SYNTAX' type)? ('MIN-ACCESS' IDENTIFIER)? ('DESCRIPTION' stringValue)? )
-    )*
+    compliance*
     ;
+    
+compliance:
+    ('GROUP' IDENTIFIER 'DESCRIPTION' stringValue)
+    | ('OBJECT' IDENTIFIER ('SYNTAX' type)? ('WRITE-SYNTAX' type)? ('MIN-ACCESS' IDENTIFIER)? ('DESCRIPTION' stringValue)?)
+    ;
+
 trapTypeAssignement :
     'TRAP-TYPE'
      (complexAttribut ','*)+
