@@ -202,7 +202,7 @@ complexAttribut:
     | name='AUGMENTS' augments
     | name='WRITE-SYNTAX' type
     | name='PRODUCT-RELEASE' stringValue
-    | name='CREATION-REQUIRES' value
+    | name='CREATION-REQUIRES' groups
     | name='DISPLAY-HINT' stringValue
     | name='REFERENCE' stringValue
 ;
@@ -260,7 +260,7 @@ moduleRevisions:
     ;
 
 moduleRevision:
-    'REVISION' stringValue
+    ('REVISION' stringValue)?
     'DESCRIPTION' stringValue
     ;
 
@@ -382,11 +382,11 @@ referenceValue
     ;
 
 objectIdentifierValue :
-    '{' objIdComponentsList '}'
+    '{' IDENTIFIER ? objIdComponentsList '}'
     ;
 
 objIdComponentsList :
-    (objIdComponents ','? )+
+    (objIdComponents ','? )*
     ;
 
 objIdComponents 
