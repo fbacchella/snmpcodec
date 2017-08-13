@@ -474,21 +474,19 @@ NUMBER
     : '-'? DIGIT+
     ;
 
-WS
-    :  (' '|'\r'|'\t'|'\u000C'|'\n') -> skip
-    ;
-
 fragment Exponent
     : ('e'|'E') ('+'|'-')? NUMBER
     ;
 
-LINE_COMMENT
-    : '--' .*? ( '--' | ('\r'? '\n')) ->skip
+COMMENT : 
+    ('--' ~( '\n' |'\r' ) (.*? ( ~('-' | '\n') '--' | EOF | '\r'? '\n'))
+    | '--' '-'? (EOF | '\r'? '\n')
+    ) -> channel(HIDDEN)
     ;
 
-//INLINE_COMMENT
-//    : '--' ~('\n'|'\r')* '\r'? '\n' ->skip
-//    ;
+WS
+    :  (' '|'\r'|'\t'|'\u000C'|'\n') -> channel(HIDDEN)
+    ;
 
 fragment HEXDIGIT
     : (DIGIT|'a'..'f'|'A'..'F')
