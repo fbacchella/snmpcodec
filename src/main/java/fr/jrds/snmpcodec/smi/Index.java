@@ -9,6 +9,7 @@ import org.snmp4j.smi.OID;
 import org.snmp4j.smi.Variable;
 
 import fr.jrds.snmpcodec.MibStore;
+import fr.jrds.snmpcodec.OidTreeNode;
 import fr.jrds.snmpcodec.Utils;
 import fr.jrds.snmpcodec.log.LogAdapter;
 
@@ -25,9 +26,9 @@ public class Index {
 
     private final static LogAdapter logger = LogAdapter.getLogger(Constraint.class);
 
-    private final List<Symbol> indexes;
+    private final List<OidTreeNode> indexes;
 
-    public Index(List<Symbol> indexes) {
+    public Index(List<OidTreeNode> indexes) {
         this.indexes = indexes;
     }
 
@@ -39,8 +40,8 @@ public class Index {
     public Object[] resolve(int[] oid, MibStore store) {
         List<Object> indexesValues = new ArrayList<>();
         int[] oidParsed = Arrays.copyOf(oid, oid.length);
-        for(Symbol i: indexes) {
-            ObjectType column = store.objects.get(i);
+        for(OidTreeNode i: indexes) {
+            ObjectType column = store.resolvedObjects.get(i);
             if(column == null) {
                 logger.error("index not found: %s", i);
                 break;

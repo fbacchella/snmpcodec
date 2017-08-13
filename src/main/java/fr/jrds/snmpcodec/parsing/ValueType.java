@@ -1,9 +1,5 @@
 package fr.jrds.snmpcodec.parsing;
 
-import java.util.List;
-
-import fr.jrds.snmpcodec.smi.Oid.OidComponent;
-
 abstract class ValueType<T> {
 
     final T value;
@@ -15,8 +11,8 @@ abstract class ValueType<T> {
         return value.toString();
     }
 
-    static class OidValue extends ValueType<List<OidComponent>> {
-        OidValue(List<OidComponent> value) {
+    static class OidValue extends ValueType<OidPath> {
+        OidValue(OidPath value) {
             super(value);
         }
     }

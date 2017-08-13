@@ -1,8 +1,5 @@
 package fr.jrds.snmpcodec.smi;
 
-import java.util.List;
-import java.util.Map;
-
 import org.snmp4j.smi.Variable;
 
 public class ObjectType {
@@ -11,13 +8,11 @@ public class ObjectType {
     private final boolean indexed;
     private final Index index;
 
-    @SuppressWarnings("unchecked")
-    public ObjectType(Map<String, Object> attributes) {
-        syntax = (Syntax) attributes.remove("SYNTAX");
-        this.indexed = attributes.containsKey("INDEX");
-        this.index = new Index((List<Symbol>)attributes.remove("INDEX"));
+    public ObjectType(Syntax syntax, boolean indexed, Index index) {
+        this.syntax = syntax;
+        this.indexed = indexed;
+        this.index = index;
     }
-
 
     public String format(Variable v) {
         if (syntax.isNamed()) {

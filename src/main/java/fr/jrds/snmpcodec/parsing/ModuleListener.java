@@ -36,6 +36,7 @@ import fr.jrds.snmpcodec.parsing.ASNParser.ModuleIdentityAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleRevisionContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleRevisionsContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ObjIdComponentsListContext;
+import fr.jrds.snmpcodec.parsing.ASNParser.ObjectIdentifierValueContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ObjectTypeAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ReferencedTypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.SequenceOfTypeContext;
@@ -49,7 +50,6 @@ import fr.jrds.snmpcodec.parsing.ASNParser.TrapTypeAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.TypeAssignmentContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.TypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ValueAssignmentContext;
-import fr.jrds.snmpcodec.parsing.MibObject.Import;
 import fr.jrds.snmpcodec.parsing.MibObject.MappedObject;
 import fr.jrds.snmpcodec.parsing.MibObject.ModuleIdentityObject;
 import fr.jrds.snmpcodec.parsing.MibObject.ObjectTypeObject;
@@ -57,10 +57,10 @@ import fr.jrds.snmpcodec.parsing.MibObject.OtherMacroObject;
 import fr.jrds.snmpcodec.parsing.MibObject.Revision;
 import fr.jrds.snmpcodec.parsing.MibObject.TextualConventionObject;
 import fr.jrds.snmpcodec.parsing.MibObject.TrapTypeObject;
+import fr.jrds.snmpcodec.parsing.ValueType.OidValue;
 import fr.jrds.snmpcodec.parsing.ValueType.StringValue;
 import fr.jrds.snmpcodec.smi.Constraint;
-import fr.jrds.snmpcodec.smi.Oid.OidComponent;
-import fr.jrds.snmpcodec.smi.Oid.OidPath;
+import fr.jrds.snmpcodec.smi.Oid;
 import fr.jrds.snmpcodec.smi.Symbol;
 import fr.jrds.snmpcodec.smi.Syntax;
 
@@ -69,7 +69,7 @@ public class ModuleListener extends ASNBaseListener {
     Parser parser;
 
     private final Deque<Object> stack = new ArrayDeque<>();
-    private final Map<String, Object> objects = new HashMap<>();
+    private final Map<String, Symbol> symbols = new HashMap<>();
     private final Map<String, String> importedFrom = new HashMap<>();
 
     private String currentModule = null;
@@ -81,11 +81,14 @@ public class ModuleListener extends ASNBaseListener {
     }
 
     Symbol resolveSymbol(String name) {
+        Symbol newSymbol;
         if (importedFrom.containsKey(name)) {
-            return new Symbol(importedFrom.get(name), name);
+            newSymbol = new Symbol(importedFrom.get(name), name);
         } else {
-            return new Symbol(currentModule, name);
+            newSymbol = new Symbol(currentModule, name);
         }
+        symbols.put(name, newSymbol);
+        return newSymbol;
     }
 
     private Number fitNumber(BigInteger v) {
@@ -123,22 +126,33 @@ public class ModuleListener extends ASNBaseListener {
             throw new ParseCancellationException("Empty module");
         }
         currentModule = ctx.IDENTIFIER().getText();
-        objects.clear();
+        symbols.clear();
+
+        //The root symbols are often forgotten
+        Symbol ccitt = new Symbol("ccitt");
+        Symbol iso = new Symbol("iso");
+        Symbol joint = new Symbol("joint-iso-ccitt");
+        symbols.put(ccitt.name, ccitt);
+        symbols.put(iso.name, iso);
+        symbols.put(joint.name, joint);
+
+
         importedFrom.clear();
         try {
             store.newModule(currentModule);
         } catch (MibException e) {
-             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
+            parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
     }
 
     @Override
     public void enterSymbolsFromModule(SymbolsFromModuleContext ctx) {
-        Import imported = new Import(ctx.globalModuleReference().getText());
         ctx.symbolList().symbol().stream()
         .forEach( i->  {
-            objects.put(i.getText(), imported);
-            importedFrom.put(i.getText(), ctx.globalModuleReference().getText());
+            String name = i.getText();
+            String module = ctx.globalModuleReference().getText();
+            importedFrom.put(name, module);
+            symbols.put(name, new Symbol(module, name));
         });
     }
 
@@ -159,8 +173,7 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitComplexAssignement(ComplexAssignementContext ctx) {
-        @SuppressWarnings("unchecked")
-        ValueType<OidPath> value = (ValueType<OidPath>) stack.pop();
+        OidValue value = (OidValue) stack.pop();
         OtherMacroObject macro = (OtherMacroObject) stack.pop();
         Symbol s = (Symbol) stack.pop();
         macro.value = value;
@@ -198,8 +211,7 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitObjectTypeAssignement(ObjectTypeAssignementContext ctx) {
-        @SuppressWarnings("unchecked")
-        ValueType<OidPath> vt = (ValueType<OidPath>) stack.pop();
+        OidValue vt = (OidValue) stack.pop();
         ObjectTypeObject macro = (ObjectTypeObject) stack.pop();
         Symbol s = (Symbol) stack.pop();
         try {
@@ -232,8 +244,7 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitModuleIdentityAssignement(ModuleIdentityAssignementContext ctx) {
-        @SuppressWarnings("unchecked")
-        ValueType<OidPath> vt = (ValueType<OidPath>) stack.pop();
+        OidValue vt = (OidValue) stack.pop();
         Object revisions = stack.pop();
         StringValue description = (StringValue)stack.pop();
         StringValue contactInfo = (StringValue)stack.pop();
@@ -281,25 +292,34 @@ public class ModuleListener extends ASNBaseListener {
      ***************************************/
 
     @Override
+    public void exitObjectIdentifierValue(ObjectIdentifierValueContext ctx) {
+        OidValue stackval = (OidValue) stack.peek();
+        OidPath oidParts = stackval.value;
+        if (ctx.IDENTIFIER() != null) {
+            String name = ctx.IDENTIFIER().getText();
+            if (symbols.containsKey(name)) {
+                oidParts.root = symbols.get(name);
+            } else {
+                oidParts.root = new Symbol(currentModule, name);
+            }
+        }
+    }
+
+    @Override
     public void enterObjIdComponentsList(ObjIdComponentsListContext ctx) {
         OidPath oidParts = ctx.objIdComponents().stream().map( i-> {
-            OidComponent oidc = new OidComponent();
+            String name = null;
+            int number;
             if( i.IDENTIFIER() != null) {
-                String name = i.IDENTIFIER().getText();
-                if (importedFrom.containsKey(name)) {
-                    oidc.symbol = new Symbol(importedFrom.get(name), name);
-                } else {
-                    oidc.symbol = new Symbol(currentModule, name);
-                }
+                name = i.IDENTIFIER().getText();
             }
-            if ( i.NUMBER() != null) {
-                oidc.value = Integer.parseInt(i.NUMBER().getText());
-            }
+            number = Integer.parseInt(i.NUMBER().getText());
+            OidPath.OidComponent oidc = new OidPath.OidComponent(name, number);
             return oidc;
         })
                 .collect(OidPath::new, OidPath::add,
                         OidPath::addAll);
-        stack.push(new ValueType.OidValue(oidParts));
+        stack.push(new OidValue(oidParts));
     }
 
     @Override

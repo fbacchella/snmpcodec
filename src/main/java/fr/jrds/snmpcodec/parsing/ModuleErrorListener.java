@@ -33,7 +33,7 @@ public class ModuleErrorListener extends BaseErrorListener {
                 } else if (e!= null) {
                     message = e.getClass().getSimpleName();
                 } else {
-                    message = "Some error";
+                    message = msg;
                 }
                 logger.debug("%s at %s, line %s:%s", message, recognizer.getInputStream().getSourceName(), line, charPositionInLine);
             }

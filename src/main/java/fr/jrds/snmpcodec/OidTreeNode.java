@@ -9,28 +9,26 @@ import java.util.stream.Collectors;
 
 import org.snmp4j.smi.OID;
 
-import fr.jrds.snmpcodec.smi.Symbol;
-
 public class OidTreeNode {
 
-    private final Symbol symbol;
+    private final String name;
     private int[] oidElements;
     private final NavigableMap<Integer, OidTreeNode> childs = new TreeMap<Integer, OidTreeNode>();
     private final OidTreeNode root;
     private final boolean isTableEntry;
     private final OidTreeNode parent;
 
-    public OidTreeNode() {
-        symbol = null;
+    OidTreeNode() {
+        name = null;
         root = this;
         oidElements = new int[] {};
         isTableEntry = false;
         parent = null;
     }
 
-    private OidTreeNode(OidTreeNode parent, int id, Symbol object, boolean isTableEntry) {
+    private OidTreeNode(OidTreeNode parent, int id, String name, boolean isTableEntry) {
         this.parent = parent;
-        this.symbol = object;
+        this.name = name;
         this.root = parent.root;
         parent.childs.put(id, this);
         this.oidElements = Arrays.copyOf(parent.oidElements, parent.oidElements.length + 1);
@@ -40,11 +38,11 @@ public class OidTreeNode {
 
     /**
      * Added a new node at the right place in the tree
-     * @param object
+     * @param symbol
      * @param isTableEntry 
      * @throws MibException 
      */
-    public OidTreeNode add(int[] oidElements, Symbol object, boolean isTableEntry) throws MibException {
+    public OidTreeNode add(int[] oidElements, String symbol, boolean isTableEntry) throws MibException {
         OidTreeNode found = find(oidElements);
         if ( found != null) {
             //already exists, don't add
@@ -54,16 +52,16 @@ public class OidTreeNode {
         int[] oidParent = Arrays.copyOf(elements, elements.length - 1);
         //Adding a first level child
         if(oidParent.length == 0) {
-            return new OidTreeNode(root, elements[0], object, isTableEntry);
+            return new OidTreeNode(root, elements[0], symbol, isTableEntry);
         } else {
             OidTreeNode parent = root.find(oidParent);
             if(parent != null) {
-                return new OidTreeNode(parent, elements[elements.length - 1], object, isTableEntry);
+                return new OidTreeNode(parent, elements[elements.length - 1], symbol, isTableEntry);
             } else {
                 String dottedOid = Arrays.stream(oidElements)
                         .mapToObj(i -> Integer.toString(i))
                         .collect(Collectors.joining("."));
-                throw new MibException("adding orphan child " + object + " " + dottedOid);
+                throw new MibException("adding orphan child " + symbol + " " + dottedOid);
             }
         }
     }
@@ -71,8 +69,8 @@ public class OidTreeNode {
     /**
      * @return The node content
      */
-    public Symbol getSymbol() {
-        return symbol;
+    public String getSymbol() {
+        return name;
     }
 
     public OidTreeNode search(int[] oid) {
@@ -111,7 +109,7 @@ public class OidTreeNode {
 
     @Override
     public String toString() {
-        return (oidElements != null ? Utils.dottedNotation(oidElements) : "" )+ "=" + (symbol !=null ? symbol.toString() : "");
+        return (oidElements != null ? Utils.dottedNotation(oidElements) : "" )+ "=" + (name !=null ? name.toString() : "");
     }
 
     public int[] getElements() {
@@ -130,13 +128,13 @@ public class OidTreeNode {
         return Collections.unmodifiableCollection(childs.values());
     }
 
-    public Symbol getTableEntry() {
+    public OidTreeNode getTableEntry() {
         OidTreeNode curs = this;
         while( curs != null && ! curs.isTableEntry) {
             curs = curs.parent;
         }
         if (curs != null && curs.isTableEntry) {
-            return curs.symbol;
+            return curs;
         } else {
             return null;
         }

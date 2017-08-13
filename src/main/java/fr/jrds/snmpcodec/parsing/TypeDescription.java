@@ -25,7 +25,7 @@ public class TypeDescription {
         Syntax trySyntax;
         switch (type) {
         case referencedType:
-            trySyntax = new Referenced(listener.resolveSymbol((String) typeDescription), listener.store, names, constraints);
+            trySyntax = new Referenced(listener.resolveSymbol((String) typeDescription), names, constraints);
             break;
         case octetStringType:
             trySyntax = SmiType.OctetString;

@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import fr.jrds.snmpcodec.parsing.ValueType.OidValue;
-import fr.jrds.snmpcodec.smi.Oid.OidPath;
 
 abstract class MibObject {
 

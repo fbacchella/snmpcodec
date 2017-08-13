@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -14,51 +13,65 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.Variable;
 
 import fr.jrds.snmpcodec.MibException.DuplicatedSymbolOid;
 import fr.jrds.snmpcodec.log.LogAdapter;
+import fr.jrds.snmpcodec.parsing.ObjectTypeBuilder;
+import fr.jrds.snmpcodec.parsing.OidPath;
 import fr.jrds.snmpcodec.smi.Index;
 import fr.jrds.snmpcodec.smi.IndirectSyntax;
 import fr.jrds.snmpcodec.smi.ObjectType;
 import fr.jrds.snmpcodec.smi.Oid;
-import fr.jrds.snmpcodec.smi.Oid.OidPath;
+import fr.jrds.snmpcodec.smi.ProvidesTextualConvention;
 import fr.jrds.snmpcodec.smi.Referenced;
 import fr.jrds.snmpcodec.smi.Symbol;
 import fr.jrds.snmpcodec.smi.Syntax;
 import fr.jrds.snmpcodec.smi.TextualConvention;
-import fr.jrds.snmpcodec.smi.ProvidesTextualConvention;
 
 public class MibStore {
 
     LogAdapter logger = LogAdapter.getLogger(MibStore.class);
 
     private final Set<Symbol> badsymbols = new HashSet<>();
-    public final Map<Symbol, Oid> oids = new HashMap<>();
-    public final Map<Symbol, int[]> symbolOids = new HashMap<>();
-    public final Map<String, List<Symbol>> names = new HashMap<>();
-    public final Map<Symbol, Syntax> codecs = new HashMap<>();
-    public final Map<Symbol, Map<Integer, Map<String, Object>>> traps = new HashMap<>();
+    private Map<Symbol, Oid> buildOids = new HashMap<>();
+    private Set<Oid> allOids = new HashSet<>();
+    private Map<Symbol, Syntax> buildSyntaxes = new HashMap<>();
+    private Map<Symbol, Map<Integer, Map<String, Object>>> buildTraps = new HashMap<>();
+    private Map<Symbol, Map<String, Object>> textualConventions = new HashMap<>();
+    private Map<Symbol, ObjectTypeBuilder> buildObjects = new HashMap<>();
+    private Set<Symbol> symbols = new HashSet<>();
+    private Map<Symbol, OidTreeNode> resolvedOids = new HashMap<>();
+
     public final OidTreeNode top = new OidTreeNode();
-    private final Set<String> modules = new HashSet<>();
-    public Map<Symbol, Map<String, Object>> textualConventions = new HashMap<>();
-    public final Map<Symbol, ObjectType> objects = new HashMap<>();
-    private final Set<Symbol> symbols = new HashSet<>();
+    public final Map<String, List<OidTreeNode>> names = new HashMap<>();
+    private final Map<OidTreeNode, Syntax> _syntaxes = new HashMap<>();
+    public final Map<OidTreeNode, Syntax> syntaxes = Collections.unmodifiableMap(_syntaxes);
+    private final Map<OidTreeNode, ObjectType> _objects = new HashMap<>();
+    public final Map<OidTreeNode, ObjectType> resolvedObjects = Collections.unmodifiableMap(_objects);
+    private final Map<OidTreeNode, Map<Integer, Map<String, Object>>> _resolvedTraps = new HashMap<>();
+    public final Map<OidTreeNode, Map<Integer, Map<String, Object>>> resolvedTraps = Collections.unmodifiableMap(_resolvedTraps);
+    private final Set<String> _modules = new HashSet<>();
+    public final Set<String> modules = Collections.unmodifiableSet(_modules);
+
 
     public MibStore() {
         Symbol ccitt = new Symbol("ccitt");
         Symbol iso = new Symbol("iso");
         Symbol joint = new Symbol("joint-iso-ccitt");
+        Symbol broken = new Symbol("broken-module");
         try {
-            oids.put(ccitt, new Oid(new int[]{0}, oids));
-            oids.put(iso, new Oid(new int[]{1}, oids));
-            oids.put(joint, new Oid(new int[]{2}, oids));
-            top.add(new int[]{0}, ccitt, false);
-            top.add(new int[]{1}, iso, false);
-            top.add(new int[]{2}, joint, false);
+            buildOids.put(ccitt, new Oid(new int[]{0}, ccitt.name));
+            buildOids.put(iso, new Oid(new int[]{1}, iso.name));
+            buildOids.put(joint, new Oid(new int[]{2}, joint.name));
+            buildOids.put(broken, new Oid(new int[]{-1}, broken.name));
+            top.add(new int[]{0}, ccitt.name, false);
+            top.add(new int[]{1}, iso.name, false);
+            top.add(new int[]{2}, joint.name, false);
+            top.add(new int[]{-1}, broken.name, false);
         } catch (MibException e) {
         }
     }
@@ -70,10 +83,10 @@ public class MibStore {
      * @throws MibException 
      */
     public void newModule(String currentModule) throws MibException {
-        if (modules.contains(currentModule)) {
+        if (_modules.contains(currentModule)) {
             throw new MibException.DuplicatedModuleException(currentModule);
         } else {
-            modules.add(currentModule);
+            _modules.add(currentModule);
         }
     }
 
@@ -92,7 +105,7 @@ public class MibStore {
         if (symbols.contains(s) ) {
             throw new MibException.DuplicatedSymbolException(s);
         }
-        codecs.put(s, type);
+        buildSyntaxes.put(s, type);
         symbols.add(s);
     }
 
@@ -108,9 +121,9 @@ public class MibStore {
         if (symbols.contains(s) ) {
             throw new MibException.DuplicatedSymbolException(s);
         }
-        ObjectType newtype = new ObjectType(attributes);
-        addOid(s, (OidPath)value, newtype.isIndexed());
-        objects.put(s, newtype);
+        ObjectTypeBuilder newtype = new ObjectTypeBuilder(attributes);
+        addOid(s, value, newtype.isIndexed());
+        buildObjects.put(s, newtype);
     }
 
     public void addTrapType(Symbol s, String name, Map<String, Object> attributes, Number trapIndex) throws MibException {
@@ -120,7 +133,7 @@ public class MibStore {
         attributes.put("SYMBOL", s);
         Object enterprise = attributes.get("ENTERPRISE");
         if (enterprise instanceof Symbol) {
-            traps.computeIfAbsent((Symbol)enterprise, k -> new HashMap<>()).put(trapIndex.intValue(), attributes);
+            buildTraps.computeIfAbsent((Symbol)enterprise, k -> new HashMap<>()).put(trapIndex.intValue(), attributes);
         }
     }
 
@@ -139,30 +152,23 @@ public class MibStore {
     }
 
     private void addOid(Symbol s, OidPath p, boolean tableEntry) throws MibException {
-        // Multiple elements defined in the path, add missing ones
-        if (p.size() > 2) {
-            Symbol lastSymbol = s;
-            for(int i=2 ; i < p.size() ; i++) {
-                OidPath newPath = new OidPath(p.subList(0, i));
-                Symbol newSymbol = p.get(i - 1).symbol;
-                // Anonymous name, build using .<value>
-                if (newSymbol == null) {
-                    newSymbol = new Symbol(lastSymbol.module, lastSymbol.name + "." + p.get(i - 1).value);
-                }
-                lastSymbol = newSymbol;
-                Oid oid = new Oid(newPath, oids, tableEntry);
-                if (! oids.containsKey(newSymbol)) {
-                    oids.put(newSymbol, oid);
-                }
+        p.getAll(tableEntry).forEach( i-> {
+            if (i.getName() != null) {
+                allOids.add(i);
             }
-        }
-        Oid oid = new Oid(p, oids, tableEntry);
-        if (!oids.containsKey(s)) {
-            oids.put(s, oid);
+        });
+        Oid oid = new Oid(p.getRoot(), p.getComponents(), s.name, tableEntry);
+        allOids.add(oid);
+        if (!buildOids.containsKey(s)) {
+            buildOids.put(s, oid);
         } else {
             throw new DuplicatedSymbolOid(oid.toString());
         }
         symbols.add(s);
+    }
+
+    public OidTreeNode resolveToBuild(Symbol s) {
+        return this.resolvedOids.get(s);
     }
 
     public void buildTree() {
@@ -183,40 +189,70 @@ public class MibStore {
         props.entrySet().iterator().forEachRemaining( i -> {
             Symbol bad = new Symbol(i.getKey().toString());
             Symbol good = new Symbol(i.getValue().toString());
-            if (oids.containsKey(good) && ! badsymbols.contains(bad)) {
+            if (buildOids.containsKey(good) && ! badsymbols.contains(bad)) {
                 logger.debug("adding invalid symbol mapping: %s -> %s" , bad, good);
-                oids.put(bad, oids.get(good));
+                buildOids.put(bad, buildOids.get(good));
                 badsymbols.add(bad);
             }
-            if (codecs.containsKey(good) && ! codecs.containsKey(bad)) {
+            if (buildSyntaxes.containsKey(good) && ! buildSyntaxes.containsKey(bad)) {
                 logger.debug("adding invalid type declaration mapping: %s -> %s" , bad, good);
-                codecs.put(bad, codecs.get(good));
+                buildSyntaxes.put(bad, buildSyntaxes.get(good));
             }
         });
-
         // Replace some eventually defined TextualConvention with the smarter version
         Symbol dateAndTime = new Symbol("SNMPv2-TC", "DateAndTime");
-        if (codecs.containsKey(dateAndTime)) {
-            codecs.put(dateAndTime, new TextualConvention.DateAndTime());
+        if (buildSyntaxes.containsKey(dateAndTime)) {
+            buildSyntaxes.put(dateAndTime, new TextualConvention.DateAndTime());
         }
         Symbol displayString = new Symbol("SNMPv2-TC", "DisplayString");
-        if (codecs.containsKey(displayString)) {
-            codecs.put(displayString, new TextualConvention.DisplayString());
+        if (buildSyntaxes.containsKey(displayString)) {
+            buildSyntaxes.put(displayString, new TextualConvention.DisplayString());
         }
-
-        for (Symbol s: getSortedOids()) {
+        sortdOids();
+        allOids.forEach(oid -> {
             try {
-                Oid oid = oids.get(s);
-                int[] content = oid.getPath().stream().mapToInt(Integer::intValue).toArray();
-                top.add(content, s, oid.isTableEntry());
-                names.put(s.name, content);
+                int[] content = oid.getPath(buildOids).stream().mapToInt(Integer::intValue).toArray();
+                OidTreeNode node = top.add(content, oid.getName(), oid.isTableEntry());
+                names.computeIfAbsent(oid.getName(), i -> new ArrayList<>()).add(node);
             } catch (MibException e) {
+                try {
+                    int[] content = oid.getPath(buildOids).stream().mapToInt(Integer::intValue).toArray();
+                    OidTreeNode node = top.add(content, oid.getName(), oid.isTableEntry());
+                } catch (MibException e1) {
+                    System.out.println(e.getMessage());
+                }
                 System.out.println(e.getMessage());
             }
-        }
+        });
+        buildObjects.forEach((k,v) -> {
+            OidTreeNode node = resolvedOids.get(k);
+            _objects.put(node, v.resolve(this, node));
+        });
+        this.buildSyntaxes.forEach((k, v) -> {
+            OidTreeNode node = resolvedOids.get(k);
+            _syntaxes.put(node, checkSyntax(node, v));
+        });
         resolveTextualConventions();
         symbols.clear();
+        buildObjects = null;
+        buildOids = null;
+        buildSyntaxes = null;
+        buildTraps = null;
+        resolvedOids = null;
     }
+
+    public Syntax checkSyntax(OidTreeNode node, Syntax syntax) {
+        if (syntax instanceof Referenced) {
+            Referenced ref = (Referenced) syntax;
+            Symbol refSymbol = ref.getSymbol();
+            if (refSymbol != null) {
+                OidTreeNode refNode = resolvedOids.get(ref.getSymbol());
+                ref.resolve(refNode, this);
+            }
+        }
+        return syntax;
+    }
+
 
     private void resolveTextualConventions() {
         textualConventions.forEach((s, attributes) -> {
@@ -227,7 +263,14 @@ public class MibStore {
             while (! (finaltype instanceof ProvidesTextualConvention) && finaltype != null) {
                 if (finaltype instanceof Referenced) {
                     Referenced ref = (Referenced) finaltype;
-                    finaltype = codecs.get(ref.getSym());
+                    Symbol refSymbol = ref.getSymbol();
+                    if (refSymbol != null) {
+                        OidTreeNode refNode = resolvedOids.get(ref.getSymbol());
+                        ref.resolve(refNode, this);
+                        finaltype = buildSyntaxes.get(refSymbol);
+                    } else {
+                        finaltype = _syntaxes.get(ref.getNode());
+                    }
                 } else if (finaltype instanceof TextualConvention) {
                     TextualConvention temporary = (TextualConvention) finaltype;
                     finaltype = temporary.getSyntax();
@@ -239,7 +282,8 @@ public class MibStore {
                 try {
                     tc = ((ProvidesTextualConvention)finaltype).getTextualConvention(hint, type);
                     if (tc != null) {
-                        codecs.put(s, tc);
+                        OidTreeNode node = resolvedOids.get(s);
+                        _syntaxes.put(node, tc);
                     }
                 } catch (Exception e) {
                     System.out.println("Broken hint for textual convention " + s + ": " + hint);
@@ -251,13 +295,13 @@ public class MibStore {
         textualConventions = null;
     }
 
-    private Collection<Symbol> getSortedOids() {
-        Map<Oid, Symbol> sortedoid = new TreeMap<>(new Comparator<Oid>() {
+    private void sortdOids() {
+        Set<Oid> sortedoid = new TreeSet<>(new Comparator<Oid>() {
 
             @Override
             public int compare(Oid o1, Oid o2) {
                 try {
-                    int sorted = Integer.compare(o1.getPath().size(), o2.getPath().size());
+                    int sorted = Integer.compare(o1.getPath(buildOids).size(), o2.getPath(buildOids).size());
                     if (sorted == 0) {
                         sorted = Integer.compare(o1.hashCode(), o2.hashCode());
                     }
@@ -269,16 +313,24 @@ public class MibStore {
 
         });
 
-        oids.entrySet().forEach(i -> {
+        allOids.forEach( i-> {
             try {
-                if (! i.getValue().getPath().isEmpty()) {
-                    sortedoid.put(i.getValue(), i.getKey());
+                if (! i.getPath(buildOids).isEmpty()) {
+                    sortedoid.add(i);
                 }
             } catch (MibException | MibException.NonCheckedMibException e) {
-                logger.error("Can't add new symbol OID %s at %s: %s", i.getKey(), i.getValue(), e.getMessage());
+                logger.error("Can't add new OID %s: %s", i, e.getMessage());
+                try {
+                    if (! i.getPath(buildOids).isEmpty()) {
+                        sortedoid.add(i);
+                    }
+                } catch (MibException e1) {
+                    logger.error("Second failure: can't add new OID %s: %s", i, e.getMessage());
+                }
+
             }
         });
-        return sortedoid.values();
+        allOids = sortedoid;
     }
 
     public Object[] parseIndexOID(int[] oid) {
@@ -288,12 +340,12 @@ public class MibStore {
         }
         List<Object> parts = new ArrayList<Object>();
         int[] foundOID = found.getElements();
-        parts.add(found.getSymbol().name);
+        parts.add(found.getSymbol());
         //The full path was not found, try to resolve the left other
         if(foundOID.length < oid.length ) {
-            Symbol parent = top.find(Arrays.copyOf(foundOID, foundOID.length -1 )).getSymbol();
+            OidTreeNode parent = top.find(Arrays.copyOf(foundOID, foundOID.length -1 ));
             if (parent != null) {
-                ObjectType parentCodec = objects.get(parent);
+                ObjectType parentCodec = resolvedObjects.get(parent);
                 if(parentCodec.isIndexed()) {
                     Index idx = parentCodec.getIndex();
                     int[] index = Arrays.copyOfRange(oid, foundOID.length, oid.length);
@@ -309,23 +361,28 @@ public class MibStore {
     }
 
     public int[] getFromName(String text) {
-        return names.get(text);
+        if (names.containsKey(text)) {
+            for(OidTreeNode s: names.get(text)) {
+                return s.getElements();
+            }
+        }
+        return null;
     }
 
     public String format(OID instanceOID, Variable variable) {
-        Symbol s = top.find(instanceOID.getValue()).getSymbol();
+        OidTreeNode s = top.find(instanceOID.getValue());
         if (s == null) {
             return null;
         }
-        else if (traps.containsKey(s)) {
-            Map<String, Object> trap = traps.get(s).get(variable.toInt());
+        else if (buildTraps.containsKey(s)) {
+            Map<String, Object> trap = buildTraps.get(s).get(variable.toInt());
             if (trap == null) {
                 return null;
             } else {
                 trap.get("SYMBOL").toString();
             }
-        } else if (objects.containsKey(s)) {
-            ObjectType ot = objects.get(s);
+        } else if (buildObjects.containsKey(s)) {
+            ObjectType ot = resolvedObjects.get(s);
             return ot.format(variable);
         }
         return null;
@@ -333,11 +390,10 @@ public class MibStore {
 
     public Variable parse(OID instanceOID, String text) {
         OidTreeNode node = top.search(instanceOID.getValue());
-        Symbol s = node.getSymbol();
-        if (s == null) {
+        if (node == null) {
             return null;
-        } else if (codecs.containsKey(s)) {
-            return codecs.get(s).parse(text);
+        } else if (syntaxes.containsKey(node)) {
+            return syntaxes.get(node).parse(text);
         }
         return null;
     }
