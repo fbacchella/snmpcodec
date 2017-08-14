@@ -38,11 +38,12 @@ public class MibStore {
 
     private final Set<Symbol> badsymbols = new HashSet<>();
     private Map<Symbol, Oid> buildOids = new HashMap<>();
+    private Map<Oid, Symbol> buildOidNames = new HashMap<>();
     private Set<Oid> allOids = new HashSet<>();
     private Map<Symbol, Syntax> buildSyntaxes = new HashMap<>();
     private Map<Symbol, Map<Integer, Map<String, Object>>> buildTraps = new HashMap<>();
     private Map<Symbol, Map<String, Object>> textualConventions = new HashMap<>();
-    private Map<Symbol, ObjectTypeBuilder> buildObjects = new HashMap<>();
+    private Map<Oid, ObjectTypeBuilder> buildObjects = new HashMap<>();
     private Set<Symbol> symbols = new HashSet<>();
     private Map<Symbol, OidTreeNode> resolvedOids = new HashMap<>();
 
@@ -90,15 +91,11 @@ public class MibStore {
         }
     }
 
-    public void addValue(Symbol s, Syntax syntax, Object value) throws MibException {
+    public void addValue(Symbol s, Syntax syntax, OidPath value) throws MibException {
         if (symbols.contains(s)) {
             throw new MibException.DuplicatedSymbolException(s);
         }
-        if (value instanceof OidPath) {
-            addOid(s, (OidPath)value, false);
-        } else {
-            throw new MibException("Unsupported value assignement " + value);
-        }
+        addOid(s, (OidPath)value, false);
     }
 
     public void addType(Symbol s, Syntax type) throws MibException {
@@ -122,8 +119,8 @@ public class MibStore {
             throw new MibException.DuplicatedSymbolException(s);
         }
         ObjectTypeBuilder newtype = new ObjectTypeBuilder(attributes);
-        addOid(s, value, newtype.isIndexed());
-        buildObjects.put(s, newtype);
+        Oid oid = addOid(s, value, newtype.isIndexed());
+        buildObjects.put(oid, newtype);
     }
 
     public void addTrapType(Symbol s, String name, Map<String, Object> attributes, Number trapIndex) throws MibException {
@@ -151,7 +148,7 @@ public class MibStore {
         addOid(s, value, false);
     }
 
-    private void addOid(Symbol s, OidPath p, boolean tableEntry) throws MibException {
+    private Oid addOid(Symbol s, OidPath p, boolean tableEntry) throws MibException {
         p.getAll(tableEntry).forEach( i-> {
             if (i.getName() != null) {
                 allOids.add(i);
@@ -165,6 +162,7 @@ public class MibStore {
             throw new DuplicatedSymbolOid(oid.toString());
         }
         symbols.add(s);
+        return oid;
     }
 
     public OidTreeNode resolveToBuild(Symbol s) {
@@ -217,7 +215,7 @@ public class MibStore {
             } catch (MibException e) {
                 try {
                     int[] content = oid.getPath(buildOids).stream().mapToInt(Integer::intValue).toArray();
-                    OidTreeNode node = top.add(content, oid.getName(), oid.isTableEntry());
+                    top.add(content, oid.getName(), oid.isTableEntry());
                 } catch (MibException e1) {
                     System.out.println(e.getMessage());
                 }
@@ -225,8 +223,13 @@ public class MibStore {
             }
         });
         buildObjects.forEach((k,v) -> {
-            OidTreeNode node = resolvedOids.get(k);
-            _objects.put(node, v.resolve(this, node));
+            OidTreeNode node;
+            try {
+                node = top.find(k.getPath(buildOids).stream().mapToInt(Integer::intValue).toArray());
+                _objects.put(node, v.resolve(this, node));
+            } catch (MibException e) {
+                System.out.println(e.getMessage());
+            }
         });
         this.buildSyntaxes.forEach((k, v) -> {
             OidTreeNode node = resolvedOids.get(k);
