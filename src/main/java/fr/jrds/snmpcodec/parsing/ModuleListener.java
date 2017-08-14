@@ -289,7 +289,10 @@ public class ModuleListener extends ASNBaseListener {
         TypeDescription td = (TypeDescription) stack.pop();
         Symbol s = (Symbol) stack.pop();
         try {
-            store.addValue(s, td.getSyntax(this), vt.value);
+            if (vt.value instanceof OidPath) {
+                OidPath path = (OidPath) vt.value;
+                store.addValue(s, td.getSyntax(this), path);
+            }
         } catch (MibException e) {
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
