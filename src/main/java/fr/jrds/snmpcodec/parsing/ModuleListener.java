@@ -321,8 +321,8 @@ public class ModuleListener extends ASNBaseListener {
         OidPath oidParts = ctx.objIdComponents().stream().map( i-> {
             String name = null;
             int number;
-            if( i.IDENTIFIER() != null) {
-                name = i.IDENTIFIER().getText();
+            if( i.identifier != null) {
+                name = i.identifier.getText();
             }
             number = Integer.parseInt(i.NUMBER().getText());
             OidPath.OidComponent oidc = new OidPath.OidComponent(name, number);

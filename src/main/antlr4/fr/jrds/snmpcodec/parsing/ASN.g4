@@ -411,7 +411,7 @@ objIdComponentsList :
 
 objIdComponents 
     : NUMBER
-    | IDENTIFIER ( '(' NUMBER ')' )?
+    | identifier=(OIDIDENTIFIER|IDENTIFIER) ( '(' NUMBER ')' )?
     ;
 
 integerValue :
@@ -585,6 +585,10 @@ JavaIDDigit
 
 IDENTIFIER
     :   LETTER (LETTER|JavaIDDigit)*
+    ;
+
+OIDIDENTIFIER
+    : (LETTER|JavaIDDigit)+
     ;
 
 BOM :
