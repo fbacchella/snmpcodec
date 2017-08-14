@@ -473,7 +473,16 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitModuleComplianceAssignement(ModuleComplianceAssignementContext ctx) {
-        stack.pop();
+        OidValue value = (OidValue) stack.pop();
+        while(! (stack.peek() instanceof Symbol)) {
+            stack.pop().getClass();
+        }
+        Symbol s = (Symbol) stack.pop();
+        try {
+            store.addMacroValue(s, "MODULE-COMPLIANCE", Collections.emptyMap(), value.value);
+        } catch (MibException e) {
+            parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
+        }
     }
 
     /****************************************
