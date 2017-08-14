@@ -58,10 +58,14 @@ public class OidTreeNode {
             if(parent != null) {
                 return new OidTreeNode(parent, elements[elements.length - 1], symbol, isTableEntry);
             } else {
-                String dottedOid = Arrays.stream(oidElements)
-                        .mapToObj(i -> Integer.toString(i))
-                        .collect(Collectors.joining("."));
-                throw new MibException("adding orphan child " + symbol + " " + dottedOid);
+                // Missing intermediary steps, add them
+                int[] closer = search(oidElements).oidElements;
+                for (int i=closer.length; i < oidElements.length -1 ; i++) {
+                    int[] missing = Arrays.copyOf(oidElements, i);
+                    OidTreeNode missingParent = root.find(missing);
+                    parent = new OidTreeNode(missingParent, elements[i], null, false);
+                }
+                return new OidTreeNode(parent, elements[elements.length - 1], symbol, isTableEntry);
             }
         }
     }
