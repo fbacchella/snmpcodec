@@ -34,9 +34,9 @@ public abstract class SmiType extends Syntax {
     };
 
     /**
-     * From SNMPv2-SMI, defined as [APPLICATION 4]<p>
-     * -- for backward-compatibility only<p/>
-     * This can also manage the special float type as defined by Net-SNMP. But it don't parse float.<p>
+     * <p>From SNMPv2-SMI, defined as [APPLICATION 4]</p>
+     * <p> for backward-compatibility only</p>
+     * <p>This can also manage the special float type as defined by Net-SNMP. But it don't parse float.</p>
      * @author Fabrice Bacchella
      */
     public static final SmiType Opaque = new SmiType() {
@@ -132,9 +132,9 @@ public abstract class SmiType extends Syntax {
     };
 
     /**
-     * From SNMPv2-SMI, defined as [APPLICATION 2]<p>
-     * -- an unsigned 32-bit quantity<p/>
-     * -- indistinguishable from Gauge32
+     * <p>From SNMPv2-SMI, defined as [APPLICATION 2]</p>
+     * <p>an unsigned 32-bit quantity</p>
+     * <p>indistinguishable from Gauge32</p>
      * @author Fabrice Bacchella
      *
      */
@@ -202,8 +202,8 @@ public abstract class SmiType extends Syntax {
      * <ul>
      * <li>{@link #getVariable()} return an empty {@link org.snmp4j.smi.IpAddress} variable.</li>
      * <li>{@link #convert(Variable)} return a {@link java.net.InetAddress}.</li>
-     * <li>{@link #format(OidInfos, Variable)} try to resolve the hostname associated with the IP address.</li>
-     * <li>{@link #parse(OidInfos, String)} parse the string as an hostname or a IP address.</li>
+     * <li>{@link #format(Variable)} try to resolve the hostname associated with the IP address.</li>
+     * <li>{@link #parse(String)} parse the string as an hostname or a IP address.</li>
      * </ul>
      * @author Fabrice Bacchella
      *
@@ -326,7 +326,7 @@ public abstract class SmiType extends Syntax {
      * <ul>
      * <li>{@link #getVariable()} return an empty {@link org.snmp4j.smi.Counter32} variable.</li>
      * <li>{@link #convert(Variable)} return the value stored in a {@link java.lang.Long}.</li>
-     * <li>{@link #parse(OidInfos, String)} parse the string as a long value.</li>
+     * <li>{@link #parse(String)} parse the string as a long value.</li>
      * </ul>
      * @author Fabrice Bacchella
      *
@@ -375,8 +375,8 @@ public abstract class SmiType extends Syntax {
      * -- for counters that wrap in less than one hour with only 32 bits</p>
      * <ul>
      * <li>{@link #getVariable()} return an empty {@link org.snmp4j.smi.Counter64} variable.</li>
-     * <li>{@link #convert(Variable)} return the value stored in a {@link fr.jrds.SmiExtensions.Utils.UnsignedLong}.</li>
-     * <li>{@link #parse(OidInfos, String)} parse the string as a long value.</li>
+     * <li>{@link #convert(Variable)} return the value stored in a {@link fr.jrds.snmpcodec.Utils.UnsignedLong}.</li>
+     * <li>{@link #parse(String)} parse the string as a long value.</li>
      * </ul>
      * @author Fabrice Bacchella
      *
@@ -422,7 +422,7 @@ public abstract class SmiType extends Syntax {
      * <ul>
      * <li>{@link #getVariable()} return an empty {@link org.snmp4j.smi.Gauge32} variable.</li>
      * <li>{@link #convert(Variable)} return the value stored in a Long.</li>
-     * <li>{@link #parse(OidInfos, String)} parse the string as a long value.</li>
+     * <li>{@link #parse(String)} parse the string as a long value.</li>
      * </ul>
      * @author Fabrice Bacchella
      *
@@ -472,8 +472,8 @@ public abstract class SmiType extends Syntax {
      * <ul>
      * <li>{@link #getVariable()} return an empty {@link org.snmp4j.smi.TimeTicks} variable.</li>
      * <li>{@link #convert(Variable)} return the time ticks as a number of milliseconds stored in a Long</li>
-     * <li>{@link #format(OidInfos, Variable)} format the value using {@link org.snmp4j.smi.TimeTicks#toString()}
-     * <li>{@link #parse(OidInfos, String)} can parse a number, expressing timeticks or the result of {@link org.snmp4j.smi.TimeTicks#toString()}
+     * <li>{@link #format(Variable)} format the value using {@link org.snmp4j.smi.TimeTicks#toString()}
+     * <li>{@link #parse(String)} can parse a number, expressing timeticks or the result of {@link org.snmp4j.smi.TimeTicks#toString()}
      * </ul>
      * @author Fabrice Bacchella
      *

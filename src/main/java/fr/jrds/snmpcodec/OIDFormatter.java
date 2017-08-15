@@ -28,7 +28,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
     }
 
     /**
-     * Register in SNMP4J a default {@link MibTree}, it can be called many times
+     * Register in SNMP4J a default {@link MibStore}, it can be called many times
      * @return the new OIDFormatter
      */
     public static OIDFormatter register() {
@@ -37,7 +37,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
     }
 
     /**
-     * Register in SNMP4J a custom  {@link MibTree}, it can be called many times
+     * Register in SNMP4J a custom  {@link MibStore}, it can be called many times
      * @param resolver the new OIDFormatter
      * @return the new OIDFormatter
      */

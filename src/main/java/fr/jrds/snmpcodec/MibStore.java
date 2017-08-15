@@ -80,7 +80,6 @@ public class MibStore {
     /**
      * Prepare a new module
      * @param currentModule
-     * @return true if the module is indeed new.
      * @throws MibException 
      */
     public void newModule(String currentModule) throws MibException {
