@@ -439,9 +439,4 @@ public class MibLoader {
         return oid;
     }
 
-    public OidTreeNode resolveToBuild(Symbol i) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
 }
