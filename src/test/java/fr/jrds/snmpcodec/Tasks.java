@@ -22,8 +22,8 @@ public class Tasks {
 
     private final static LogAdapter logger = LogAdapter.getLogger(Tasks.class);
 
-    public static void load(MibStore store, String... mibdirs) {
-        MibLoader loader = new MibLoader(store);
+    public static MibLoader load(String... mibdirs) {
+        MibLoader loader = new MibLoader();
         String defaultval = Arrays.stream(mibdirs).collect(Collectors.joining(":"));
         String rootmibs = System.getProperty("MIBDIRS",defaultval);
         Arrays.stream(rootmibs.split(File.pathSeparator))
@@ -38,7 +38,7 @@ public class Tasks {
                 e.printStackTrace(System.err);
             }
         });
-        store.buildTree();
+        return loader;
 
     }
 
@@ -58,10 +58,9 @@ public class Tasks {
             case "dpi11.txt":
             case "GbE mib descriptions.txt":
             case "Gbe2 mib descriptions.txt":
-            case "rfc1228.txt":  // The raw RFC
             case "dpi20ref.txt": // Not a mib module
-            case "dpiSimple.mib":
-            case "TEST-MIB.my":
+            /*case "dpiSimple.mib":
+            case "TEST-MIB.my":*/
                 // bad mibs
                 //case "mibs_f5/F5-EM-MIB.txt":
                 //case "rfc/HPR-MIB.txt":
@@ -108,6 +107,15 @@ public class Tasks {
             System.out.println(i);
             dumpNode(i);
         }
+    }
+
+    public static long countOid(OidTreeNode level) {
+        long count = 0;
+        Collection<OidTreeNode> childs = level.childs();
+        for (OidTreeNode i: childs) {
+            count += 1 + countOid(i);
+        }
+        return count;
     }
 
 }

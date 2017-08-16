@@ -1,10 +1,14 @@
-package fr.jrds.snmpcodec;
+package fr.jrds.snmpcodec.parsing;
 
 import java.io.IOException;
 
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import fr.jrds.snmpcodec.LogUtils;
+import fr.jrds.snmpcodec.MibException;
+import fr.jrds.snmpcodec.OidTreeNode;
 
 public class OidTreeNodeTest {
 
@@ -15,7 +19,7 @@ public class OidTreeNodeTest {
 
     @Test
     public void manualfill() throws MibException {
-        OidTreeNode top = new OidTreeNode();
+        OidTreeNodeImpl top = new OidTreeNodeImpl();
         top.add(new int[] {1}, "iso", false);
         top.add(new int[] {1, 1}, "std", false);
         top.add(new int[] {1, 1, 8802}, "iso8802", false);
@@ -32,7 +36,7 @@ public class OidTreeNodeTest {
 
     @Test
     public void fillWithHole() throws MibException {
-        OidTreeNode top = new OidTreeNode();
+        OidTreeNodeImpl top = new OidTreeNodeImpl();
         top.add(new int[] {1}, "iso", false);
         top.add(new int[] {1, 1}, "std", false);
         top.add(new int[] {1, 1, 8802}, "iso8802", false);

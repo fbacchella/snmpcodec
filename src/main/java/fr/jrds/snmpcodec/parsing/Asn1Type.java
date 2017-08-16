@@ -1,6 +1,6 @@
 package fr.jrds.snmpcodec.parsing;
 
-public enum Asn1Type {
+enum Asn1Type {
     octetStringType,
     bitStringType,
     choiceType,

@@ -11,7 +11,7 @@ import fr.jrds.snmpcodec.smi.Oid;
 
 public class OidPath extends ArrayList<OidPath.OidComponent> {
 
-    public static class OidComponent {
+    static public class OidComponent {
         public final int number;
         public final String name;
         public OidComponent(String name, int number) {
@@ -38,7 +38,7 @@ public class OidPath extends ArrayList<OidPath.OidComponent> {
                 + stream().map( i -> i.toString()).collect(Collectors.joining("."));
     }
 
-    public Symbol getRoot() {
+    Symbol getRoot() {
         return root;
     }
 

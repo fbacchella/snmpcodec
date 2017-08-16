@@ -18,7 +18,6 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
 import fr.jrds.snmpcodec.MibException;
-import fr.jrds.snmpcodec.MibStore;
 import fr.jrds.snmpcodec.parsing.ASNParser.AccessContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.AssignmentContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.BitDescriptionContext;
@@ -74,9 +73,9 @@ public class ModuleListener extends ASNBaseListener {
 
     private String currentModule = null;
 
-    final MibStore store;
+    final MibLoader store;
 
-    public ModuleListener(MibStore store) {
+    ModuleListener(MibLoader store) {
         this.store = store;
     }
 

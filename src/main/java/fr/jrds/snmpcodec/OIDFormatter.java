@@ -13,6 +13,7 @@ import org.snmp4j.smi.VariableBinding;
 import org.snmp4j.util.OIDTextFormat;
 import org.snmp4j.util.VariableTextFormat;
 
+import fr.jrds.snmpcodec.parsing.MibLoader;
 import fr.jrds.snmpcodec.smi.SmiType;
 
 public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
@@ -32,7 +33,8 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
      * @return the new OIDFormatter
      */
     public static OIDFormatter register() {
-        MibStore resolver = new MibStore();
+        MibLoader loader = new MibLoader();
+        MibStore resolver = loader.buildTree();
         return register(resolver);
     }
 
