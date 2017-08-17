@@ -305,7 +305,20 @@ public class MibLoader {
                 try {
                     int sorted = Integer.compare(o1.getPath(buildOids).size(), o2.getPath(buildOids).size());
                     if (sorted == 0) {
-                        sorted = Integer.compare(o1.hashCode(), o2.hashCode());
+                        List<Integer> l1 = o1.getPath(buildOids);
+                        List<Integer> l2 = o2.getPath(buildOids);
+                        int length = l1.size();
+                        for (int i = 0 ; i < length ; i++) {
+                            int v1 = l1.get(i);
+                            int v2 = l2.get(i);
+                            sorted = Integer.compare(v1, v2);
+                            if (sorted != 0) {
+                                break;
+                            }
+                        }
+                    }
+                    if (sorted == 0) {
+                        sorted = String.CASE_INSENSITIVE_ORDER.compare(o1.getName(), o2.getName());
                     }
                     return sorted;
                 } catch (MibException e) {
