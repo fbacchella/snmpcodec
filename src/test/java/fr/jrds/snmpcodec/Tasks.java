@@ -1,13 +1,16 @@
 package fr.jrds.snmpcodec;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
@@ -24,6 +27,21 @@ public class Tasks {
 
     public static MibLoader load(String... mibdirs) {
         MibLoader loader = new MibLoader();
+        try {
+            Collections.list(Tasks.class.getClassLoader().getResources("allmibs.txt")).forEach( i -> {
+                try {
+                    try(BufferedReader r = new BufferedReader(new InputStreamReader(i.openStream()))) {
+                        String line;
+                        while( (line = r.readLine()) != null) {
+                            Tasks.loadpath(loader, Paths.get(line));
+                        }
+                    };
+                } catch (IOException e) {
+                }
+            });
+            ;
+        } catch (IOException e1) {
+        }
         String defaultval = Arrays.stream(mibdirs).collect(Collectors.joining(":"));
         String rootmibs = System.getProperty("MIBDIRS",defaultval);
         Arrays.stream(rootmibs.split(File.pathSeparator))
@@ -109,8 +127,8 @@ public class Tasks {
         }
     }
 
-    public static long countOid(OidTreeNode level) {
-        long count = 0;
+    public static int countOid(OidTreeNode level) {
+        int count = 0;
         Collection<OidTreeNode> childs = level.childs();
         for (OidTreeNode i: childs) {
             count += 1 + countOid(i);
