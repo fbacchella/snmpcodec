@@ -45,8 +45,12 @@ If you have some comments/improvements, send me an e-mail.
 
 grammar ASN;
 
+fileContent :
+    BOM? moduleDefinition*
+    ;
+
 moduleDefinition :
-    BOM? IDENTIFIER ( '{' modulePath? '}' )?
+    IDENTIFIER ( '{' modulePath? '}' )?
     'DEFINITIONS'
     '::='
     'BEGIN'

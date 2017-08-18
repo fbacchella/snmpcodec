@@ -118,7 +118,7 @@ public class MibLoader {
         })
         .map(i -> {
             try {
-                return i.moduleDefinition();
+                return i.fileContent();
             } catch (WrappedException e) {
                 logger.error("Not a valid module: " + e.getMessage() + " "+ e.getLocation());
                 return null;

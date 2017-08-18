@@ -33,7 +33,7 @@ public class TestParserLocal {
         }
         org.antlr.v4.gui.TestRig.main(new String[] {
                 "fr.jrds.snmpcodec.parsing.ASN",
-                "moduleDefinition",
+                "fileContent",
                 "-tokens",
                 "-diagnostics",
                 "-ps","example1.ps",
