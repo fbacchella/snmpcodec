@@ -1,9 +1,9 @@
 package fr.jrds.snmpcodec;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -11,8 +11,9 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.BiPredicate;
-import java.util.stream.Collectors;
 
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
@@ -25,37 +26,46 @@ public class Tasks {
 
     private final static LogAdapter logger = LogAdapter.getLogger(Tasks.class);
 
-    public static MibLoader load(String... mibdirs) {
+    public static MibLoader load(boolean allmibs, String... mibdirs) throws IOException {
         MibLoader loader = new MibLoader();
-        try {
-            Collections.list(Tasks.class.getClassLoader().getResources("allmibs.txt")).forEach( i -> {
-                try {
-                    try(BufferedReader r = new BufferedReader(new InputStreamReader(i.openStream()))) {
-                        String line;
-                        while( (line = r.readLine()) != null) {
-                            Tasks.loadpath(loader, Paths.get(line));
-                        }
-                    };
-                } catch (IOException e) {
-                }
-            });
-            ;
-        } catch (IOException e1) {
-        }
-        String defaultval = Arrays.stream(mibdirs).collect(Collectors.joining(":"));
-        String rootmibs = System.getProperty("MIBDIRS",defaultval);
-        Arrays.stream(rootmibs.split(File.pathSeparator))
-        .map( i -> Paths.get(i))
-        .forEach(i -> {
+        Set<String> done = new HashSet<>();
+        if (allmibs) {
             try {
-                Tasks.loadpath(loader, i);
-            } catch (IOException e) {
-                logger.error("invalid path source: %s", i);
-            } catch (Exception e) {
-                logger.error("broken mib path: %s\n", i);
-                e.printStackTrace(System.err);
+                Collections.list(Tasks.class.getClassLoader().getResources("allmibs.txt")).forEach( i -> {
+                    try {
+                        try(BufferedReader r = new BufferedReader(new InputStreamReader(i.openStream()))) {
+                            String line;
+                            while( (line = r.readLine()) != null) {
+                                Path module = Paths.get(line);
+                                String resolved = module.toAbsolutePath().normalize().toString().intern();
+                                if (! done.contains(resolved)) {
+                                    done.add(resolved);
+                                    Tasks.loadpath(loader, module);
+                                }
+                            }
+                        };
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                });
+                Arrays.stream(mibdirs)
+                .map( i -> Paths.get(i))
+                .forEach(i -> {
+                    try {
+                        String resolved = i.toAbsolutePath().normalize().toString().intern();
+                        if (! done.contains(resolved)) {
+                            done.add(resolved);
+                            System.out.println(resolved);
+                            Tasks.loadpath(loader, i);
+                        }
+                    } catch (IOException e) {
+                        throw new UncheckedIOException(e);
+                    }
+                });
+            } catch (UncheckedIOException e) {
+                throw e.getCause();
             }
-        });
+        }
         return loader;
 
     }
@@ -77,14 +87,14 @@ public class Tasks {
             case "GbE mib descriptions.txt":
             case "Gbe2 mib descriptions.txt":
             case "dpi20ref.txt": // Not a mib module
-            /*case "dpiSimple.mib":
+                /*case "dpiSimple.mib":
             case "TEST-MIB.my":*/
                 // bad mibs
                 //case "mibs_f5/F5-EM-MIB.txt":
                 //case "rfc/HPR-MIB.txt":
                 //case "test-mib-v1smi.my":   // Empty mib module
-            //case "test-mib.my":         // Empty mib module
-            //case "CISCO-OPTICAL-MONITORING-MIB.my": // Bad EOL
+                //case "test-mib.my":         // Empty mib module
+                //case "CISCO-OPTICAL-MONITORING-MIB.my": // Bad EOL
                 //case "CISCO-ATM-PVCTRAP-EXTN-CAPABILITY.my": //What is a VARIATION
                 //case "rfc1592.txt": //RFC with text
                 //case "rfc1227.txt": //RFC with text
@@ -113,7 +123,7 @@ public class Tasks {
                 logger.error("Broken module %s parsing : %s\n", i, e.getMessage());
                 e.printStackTrace(System.err);
             }
-            
+
         });
     }
 

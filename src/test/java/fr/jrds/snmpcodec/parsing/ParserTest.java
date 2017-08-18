@@ -20,8 +20,8 @@ public class ParserTest {
     }
 
     @Test
-    public void checkCodecs() throws URISyntaxException {
-        MibStore store = Tasks.load(
+    public void checkCodecs() throws URISyntaxException, IOException {
+        MibStore store = Tasks.load(false, 
                 Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-CONF.txt").toURI()).toString(),
                 Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-MIB.txt").toURI()).toString(),
                 Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-SMI.txt").toURI()).toString(),

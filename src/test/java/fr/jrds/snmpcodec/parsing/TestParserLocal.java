@@ -55,14 +55,14 @@ public class TestParserLocal {
 
     @Test
     public void test3() throws Exception {
-        MibStore store = Tasks.load().buildTree();
+        MibStore store = Tasks.load(true).buildTree();
         int numoid = Tasks.countOid(store.top);
         int numnames = store.names.size();
         AtomicInteger duplicates = new AtomicInteger();
         store.names.values().stream().map( i -> i.size()).filter(i -> i > 1).forEach( i-> duplicates.addAndGet(i));
         int numduplicates = duplicates.get();
         System.out.format("%d differents OID, %d differents names, %d names collisions\n", numoid, numnames, numduplicates);
-        store.names.entrySet().stream().filter(i -> i.getValue().size() > 1).forEach(i -> {
+        store.names.entrySet().stream().filter(i -> false && i.getValue().size() > 1).forEach(i -> {
             System.out.println(i.getKey());
             i.getValue().forEach( j -> System.out.println("    " + j));
         });
@@ -71,7 +71,7 @@ public class TestParserLocal {
     //@Ignore
     @Test
     public void test4() throws Exception {
-        MibStore store = Tasks.load().buildTree();
+        MibStore store = Tasks.load(true).buildTree();
 
         BufferedInputStream bis = new BufferedInputStream(getClass().getClassLoader().getResourceAsStream("alloid.txt"));
         try(BufferedReader d = new BufferedReader(new InputStreamReader(bis))){
