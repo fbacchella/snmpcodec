@@ -46,7 +46,7 @@ If you have some comments/improvements, send me an e-mail.
 grammar ASN;
 
 fileContent :
-    BOM? moduleDefinition*
+    BOM? moduleDefinition* SUBSTITUTE?
     ;
 
 moduleDefinition :
@@ -609,3 +609,8 @@ OIDIDENTIFIER
 BOM :
     '\ufffd' -> skip
     ;
+    
+SUBSTITUTE :
+    '\u001a' -> skip
+    ;
+
