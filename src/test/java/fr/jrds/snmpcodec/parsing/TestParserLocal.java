@@ -24,6 +24,7 @@ public class TestParserLocal {
         LogUtils.setLevel(OidTreeNodeTest.class, 
                 OidTreeNode.class.getName(), MibStore.class.getName(), ModuleErrorListener.class.getName(),
                 Tasks.class.getName());
+        LogFactory.getLogger(ModuleErrorListener.class.getName()).setLogLevel(LogLevel.INFO);
     }
 
     @Test

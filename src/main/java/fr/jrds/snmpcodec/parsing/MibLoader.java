@@ -24,7 +24,6 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
-import fr.jrds.snmpcodec.MibException.DuplicatedSymbolOid;
 import fr.jrds.snmpcodec.MibException.NonCheckedMibException;
 import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.MibStore;
@@ -45,7 +44,7 @@ public class MibLoader {
     final LogAdapter logger = LogAdapter.getLogger(MibLoader.class);
 
     private final ModuleListener modulelistener;
-    private final ANTLRErrorListener errorListener = new ModuleErrorListener();
+    private final ANTLRErrorListener errorListener;
     private final Properties encodings;
 
 
@@ -77,6 +76,7 @@ public class MibLoader {
         }
 
         modulelistener = new ModuleListener(this);
+        errorListener = new ModuleErrorListener(modulelistener);
 
         encodings = new Properties();
         try {
@@ -92,7 +92,7 @@ public class MibLoader {
             throw new UncheckedIOException("Invalid modules encoding property file: " + e.getMessage(), e);
         }
     }
-    
+
     private void addRoot(String name, int num) throws MibException {
         Symbol s = new Symbol(name);
         OidPath path = new OidPath();
@@ -102,6 +102,7 @@ public class MibLoader {
 
     private void load(Stream<ANTLRInputStream> source) {
         source
+        .filter( i -> {modulelistener.firstError = true; return true;} )
         .map(i -> {
             ASNLexer lexer = new ASNLexer(i);
             lexer.removeErrorListeners();

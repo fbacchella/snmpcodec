@@ -66,6 +66,7 @@ import fr.jrds.snmpcodec.smi.Syntax;
 public class ModuleListener extends ASNBaseListener {
 
     Parser parser;
+    boolean firstError = true;
 
     private final Deque<Object> stack = new ArrayDeque<>();
     private final Map<String, Symbol> symbols = new HashMap<>();
@@ -134,7 +135,6 @@ public class ModuleListener extends ASNBaseListener {
         symbols.put(ccitt.name, ccitt);
         symbols.put(iso.name, iso);
         symbols.put(joint.name, joint);
-
 
         importedFrom.clear();
         try {
