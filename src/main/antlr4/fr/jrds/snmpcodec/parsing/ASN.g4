@@ -248,10 +248,10 @@ indexTypes:
 
 moduleIdentityAssignement:
     'MODULE-IDENTITY'
-    'LAST-UPDATED' stringValue
-    'ORGANIZATION' stringValue
-    'CONTACT-INFO' stringValue
-    'DESCRIPTION' stringValue
+    ('LAST-UPDATED' stringValue
+    | 'ORGANIZATION' stringValue
+    | 'CONTACT-INFO' stringValue
+    | 'DESCRIPTION' stringValue)+
     moduleRevisions
     '::='
     objectIdentifierValue
@@ -263,7 +263,7 @@ moduleRevisions:
     ;
 
 moduleRevision:
-    ('REVISION' stringValue)?
+    'REVISION' stringValue
     'DESCRIPTION' stringValue
     ;
 

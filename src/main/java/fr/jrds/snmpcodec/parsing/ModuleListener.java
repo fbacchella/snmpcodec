@@ -250,16 +250,11 @@ public class ModuleListener extends ASNBaseListener {
     public void exitModuleIdentityAssignement(ModuleIdentityAssignementContext ctx) {
         OidValue vt = (OidValue) stack.pop();
         Object revisions = stack.pop();
-        StringValue description = (StringValue)stack.pop();
-        StringValue contactInfo = (StringValue)stack.pop();
-        StringValue organization = (StringValue)stack.pop();
-        StringValue lastUpdate = (StringValue)stack.pop();
+        while ( ! (stack.peek() instanceof ModuleIdentityObject)) {
+            stack.pop();
+        }
         ModuleIdentityObject mi = (ModuleIdentityObject) stack.pop();;
         Symbol s = (Symbol) stack.pop();
-        mi.values.put("LAST-UPDATED", lastUpdate);
-        mi.values.put("ORGANIZATION", organization);
-        mi.values.put("CONTACT-INFO", contactInfo);
-        mi.values.put("DESCRIPTION", description);
         mi.values.put("revisions", revisions);
         try {
             store.addModuleIdentity(s, mi.values, vt.value);
