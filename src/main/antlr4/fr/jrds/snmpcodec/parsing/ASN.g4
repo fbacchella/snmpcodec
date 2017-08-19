@@ -386,6 +386,7 @@ defValue
     |   stringValue
     |   bitsValue
     |   objectIdentifierValue
+    |   ipValue
     ;
 
 value
@@ -430,6 +431,10 @@ choiceValue  :
 
 stringValue
     : CSTRING
+    ;
+
+ipValue
+    : IP
     ;
 
 signedNumber:
@@ -492,6 +497,10 @@ fragment UPPER
 
 fragment LOWER
     : ('a'..'z')
+    ;
+
+IP :
+    DIGIT+ '.' DIGIT+  '.' DIGIT+  '.' DIGIT+ 
     ;
 
 NUMBER
