@@ -502,14 +502,16 @@ fragment Exponent
     : ('e'|'E') ('+'|'-')? NUMBER
     ;
 
-COMMENT : 
-    ('--' ~( '\n' |'\r' ) (.*? ( ~('-' | '\n') '--' | EOF | '\r'? '\n'))
+COMMENT :
+    ( '\r'? '\n' ('--' ~( '\n' |'\r')* '\r'? '\n')+ // A comments at the line starts comments the whole line
+    | '-- CIM' ~( '\n' |'\r')* '\r'? '\n'           // -- CIM--# is a construct found in some Compaq's MIB
+    | '--' ~( '\n' |'\r' ) (.*? ( ~('-' | '\n') '--' | EOF | '\r'? '\n')) 
     | '--' '-'? (EOF | '\r'? '\n')
-    ) -> channel(HIDDEN)
+    ) -> skip
     ;
 
 WS
-    :  (' '|'\r'|'\t'|'\u000C'|'\n') -> channel(HIDDEN)
+    :  (' '|'\r'|'\t'|'\u000C'|'\n') -> skip
     ;
 
 fragment HEXDIGIT

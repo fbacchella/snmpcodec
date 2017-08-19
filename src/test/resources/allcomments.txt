@@ -1,0 +1,50 @@
+TEST-COMMENTS-MIB  DEFINITIONS ::= BEGIN
+
+IMPORTS
+    mib-2 FROM SNMPv2-SMI  -- [RFC2578]
+
+  --Simple comment
+
+snmpcodec OBJECT IDENTIFIER ::= { 1 3 6 1 4 1 1 }
+
+test OBJECT IDENTIFIER ::= { snmpcodec 1 }
+
+oid1 OBJECT IDENTIFIER ::= { test 1 }
+
+-- ***************************************************************
+-- Decorated comment
+-- ***************************************************************
+
+oid2 OBJECT IDENTIFIER ::= { test 2 }
+
+  --
+  -- Another comment
+  --
+
+oid3 OBJECT IDENTIFIER ::= { test 3 }
+
+oid4 -- in line comment -- OBJECT IDENTIFIER ::= { test 4 }
+
+---
+---
+--- oid5 OBJECT IDENTIFIER ::= { test 5 }
+---
+---
+oid6 OBJECT IDENTIFIER ::= { test 6 }
+
+-- old text -- oid7 OBJECT IDENTIFIER ::= { test 7 }
+
+snmpcodectrap TRAP-TYPE 
+    ENTERPRISE snmpcodec
+    VARIABLES { variable }
+    DESCRIPTION  ""
+--#SUMMARY   "" 
+--#CATEGORY  ""
+--#ARGUMENTS { 0 }
+--#SEVERITY  CRITICAL
+--#STATE     OPERATIONAL
+-- CIM--#CATEGORY "STORAGE"
+--#STATUS    MANDATORY
+                        ::=  1
+
+END
