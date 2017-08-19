@@ -115,7 +115,7 @@ symbol :
     ;
 
 assignmentList :
-    assignment+
+    assignment*
     ;
 
 assignment :
