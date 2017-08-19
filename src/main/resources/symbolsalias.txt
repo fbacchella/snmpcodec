@@ -28,3 +28,5 @@ NETFINITYMANAGER-MIB.DmiMibs=IBM-Director-Server-MIB.dmiMibs
 XMSERVD-PERF-MIB.internet=SNMPv2-SMI.internet
 IBM-Director-Alert-MIB.enterprises=SNMPv2-SMI.enterprises
 HOST-RESOURCES-MIB.mgmt=SNMPv2-SMI.mgmt
+Printer-MIB.mib-2=SNMPv2-SMI.mib-2
+IEEE8021-PFC-MIB.ieee802dot1mibs=IEEE8021-TC-MIB.ieee802dot1mibs

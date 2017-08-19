@@ -380,9 +380,6 @@ public class MibLoader {
 
 
     void addMacroValue(Symbol s, String name, Map<String, Object> attributes, OidPath value) throws MibException {
-        if (symbols.contains(s) ) {
-            throw new MibException.DuplicatedSymbolException(s);
-        }
         addOid(s, value, false);
     }
 
@@ -398,9 +395,6 @@ public class MibLoader {
     }
 
     void addObjectType(Symbol s, Map<String, Object> attributes, OidPath value) throws MibException {
-        if (symbols.contains(s) ) {
-            throw new MibException.DuplicatedSymbolException(s);
-        }
         ObjectTypeBuilder newtype = new ObjectTypeBuilder(attributes);
         Oid oid = addOid(s, value, newtype.isIndexed());
         buildObjects.put(oid, newtype);
@@ -415,9 +409,6 @@ public class MibLoader {
     }
 
     public void addModuleIdentity(Symbol s, Map<String, Object> attributes, OidPath value) throws MibException {
-        if (symbols.contains(s) ) {
-            throw new MibException.DuplicatedSymbolException(s);
-        }
         addOid(s, value, false);
     }
 
@@ -446,8 +437,6 @@ public class MibLoader {
         allOids.add(oid);
         if (!buildOids.containsKey(s)) {
             buildOids.put(s, oid);
-        } else {
-            throw new DuplicatedSymbolOid(oid.toString());
         }
         symbols.add(s);
         return oid;
