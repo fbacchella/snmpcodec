@@ -1,15 +1,14 @@
 802-1x-2001-mib.txt = Windows-1252
 IEEE8021-PAE-MIB-200101160000Z.txt = Windows-1252
-# raw IP address, line 426:14
-IBMIROCAUTH-MIB.mib = skip
 # Invalid escape sequence, line 1205:34
 CIMWIN32-MIB.mib = skip
-# A rfc with a lone \ before "
 IBM-WIN32-MIB.mib = skip
 # Empty module, from IBM
 test-mib-v1smi.my = skip
 # Empty module, from cisco:
 test-mib.my = skip
+TEST-MIB.my = skip
 # RFC, mib not extracted
 rfc1592.txt = skip
 rfc1227.txt = skip
+rfc1228.txt = skip
