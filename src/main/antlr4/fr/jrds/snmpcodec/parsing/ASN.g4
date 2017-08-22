@@ -359,7 +359,7 @@ nullType:
     ;
 
 referencedType :
-    IDENTIFIER ('.' IDENTIFIER)? ( '{' namedNumberList '}' )?
+    IDENTIFIER ('.' IDENTIFIER)?
     ;
 
 elements :

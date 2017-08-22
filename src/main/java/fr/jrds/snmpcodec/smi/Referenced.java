@@ -1,7 +1,5 @@
 package fr.jrds.snmpcodec.smi;
 
-import java.util.Map;
-
 import org.snmp4j.smi.Variable;
 
 import fr.jrds.snmpcodec.MibStore;
@@ -12,19 +10,19 @@ public class Referenced extends Syntax {
     private MibStore store;
     private Symbol symbol; 
 
-    public Referenced(Symbol symbol, Map<Number, String> names, Constraint constraints) {
-        super(names, constraints);
+    public Referenced(Symbol symbol) {
+        super(null, null);
         this.symbol = symbol;
     }
-    
+
     public OidTreeNode getNode() {
         return ref;
     }
-    
+
     public Symbol getSymbol() {
         return symbol;
     }
-    
+
     public void resolve(OidTreeNode node, MibStore store) {
         this.symbol = null;
         this.store = store;

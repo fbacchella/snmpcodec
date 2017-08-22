@@ -50,7 +50,7 @@ public class TextualConventionTest {
         names.put(3, "nonVolatile");
         names.put(4, "permanent");
         names.put(5, "readOnly");
-        Syntax syntax = new IndirectSyntax(SmiType.INTEGER, names, null);
+        Syntax syntax = new AnnotedSyntax(SmiType.INTEGER, names, null);
         TextualConvention tc = SmiType.INTEGER.getTextualConvention(null, syntax);
         Assert.assertEquals(new Integer32(3), tc.parse("nonVolatile"));
         Assert.assertEquals(new Integer32(2), tc.parse("2"));

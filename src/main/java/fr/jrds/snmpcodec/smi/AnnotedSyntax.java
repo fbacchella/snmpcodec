@@ -4,11 +4,11 @@ import java.util.Map;
 
 import org.snmp4j.smi.Variable;
 
-public class IndirectSyntax extends Syntax {
+public class AnnotedSyntax extends Syntax {
 
     private final Syntax syntax;
 
-    public IndirectSyntax(Syntax syntax, Map<Number, String> names, Constraint constraints) {
+    public AnnotedSyntax(Syntax syntax, Map<Number, String> names, Constraint constraints) {
         super(names, constraints);
         this.syntax = syntax;
     }

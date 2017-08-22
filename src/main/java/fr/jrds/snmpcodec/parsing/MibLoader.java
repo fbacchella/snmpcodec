@@ -29,7 +29,7 @@ import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.MibStore;
 import fr.jrds.snmpcodec.OidTreeNode;
 import fr.jrds.snmpcodec.log.LogAdapter;
-import fr.jrds.snmpcodec.smi.IndirectSyntax;
+import fr.jrds.snmpcodec.smi.AnnotedSyntax;
 import fr.jrds.snmpcodec.smi.ObjectType;
 import fr.jrds.snmpcodec.smi.Oid;
 import fr.jrds.snmpcodec.smi.ProvidesTextualConvention;

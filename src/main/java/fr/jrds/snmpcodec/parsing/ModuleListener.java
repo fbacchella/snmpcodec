@@ -672,15 +672,6 @@ public class ModuleListener extends ASNBaseListener {
     public void enterReferencedType(ReferencedTypeContext ctx) {
         TypeDescription td = (TypeDescription) stack.peek();
         td.typeDescription = ctx.getText();
-        if (ctx.namedNumberList() != null) {
-            Map<Number, String> names = new HashMap<>();
-            ctx.namedNumberList().namedNumber().forEach( i -> {
-                Number value = new Integer(i.signedNumber().getText());
-                String name = i.name.getText();
-                names.put(value, name);
-            });
-            td.names = names;
-        }
     }
 
 }

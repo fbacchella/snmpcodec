@@ -4,7 +4,7 @@ import java.util.Map;
 
 import fr.jrds.snmpcodec.smi.Bits;
 import fr.jrds.snmpcodec.smi.Constraint;
-import fr.jrds.snmpcodec.smi.IndirectSyntax;
+import fr.jrds.snmpcodec.smi.AnnotedSyntax;
 import fr.jrds.snmpcodec.smi.Referenced;
 import fr.jrds.snmpcodec.smi.SmiType;
 import fr.jrds.snmpcodec.smi.Syntax;
@@ -25,7 +25,7 @@ public class TypeDescription {
         Syntax trySyntax;
         switch (type) {
         case referencedType:
-            trySyntax = new Referenced(listener.resolveSymbol((String) typeDescription), names, constraints);
+            trySyntax = new Referenced(listener.resolveSymbol((String) typeDescription));
             break;
         case octetStringType:
             trySyntax = SmiType.OctetString;
@@ -60,7 +60,7 @@ public class TypeDescription {
             return null;
         }
         if (names != null || constraints != null) {
-            return new IndirectSyntax(trySyntax, names, constraints);
+            return new AnnotedSyntax(trySyntax, names, constraints);
         } else {
             return trySyntax;
         }

@@ -19,7 +19,7 @@ import org.snmp4j.smi.Variable;
 
 import fr.jrds.snmpcodec.smi.Constraint.ConstraintElement;
 
-public abstract class TextualConvention extends IndirectSyntax {
+public abstract class TextualConvention extends AnnotedSyntax {
 
     public static class OidTextualConvention extends TextualConvention {
 
@@ -67,7 +67,7 @@ public abstract class TextualConvention extends IndirectSyntax {
             Constraint8or11.add(new ConstraintElement(8));
             Constraint8or11.add(new ConstraintElement(11));
         }
-        private final static IndirectSyntax localsyntax = new IndirectSyntax(SmiType.OctetString, null, Constraint8or11);
+        private final static AnnotedSyntax localsyntax = new AnnotedSyntax(SmiType.OctetString, null, Constraint8or11);
 
         private static final Pattern HINTREGEX = Pattern.compile("(\\d+)-(\\d+)-(\\d+),(\\d+):(\\d+):(\\d+).(\\d+),(\\+|-)(\\d+):(\\d+)");
 
@@ -349,7 +349,7 @@ public abstract class TextualConvention extends IndirectSyntax {
         static {
             Constraint255a.add(new ConstraintElement(255));
         }
-        private final static IndirectSyntax localsyntax = new IndirectSyntax(SmiType.OctetString, null, Constraint255a);
+        private final static AnnotedSyntax localsyntax = new AnnotedSyntax(SmiType.OctetString, null, Constraint255a);
         static private final Charset USASCII = Charset.forName("US-ASCII");
 
         public DisplayString() {
