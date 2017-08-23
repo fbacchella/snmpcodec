@@ -3,7 +3,6 @@ package fr.jrds.snmpcodec.parsing;
 import java.util.List;
 import java.util.Map;
 
-import fr.jrds.snmpcodec.OidTreeNode;
 import fr.jrds.snmpcodec.smi.Index;
 import fr.jrds.snmpcodec.smi.ObjectType;
 import fr.jrds.snmpcodec.smi.Symbol;
@@ -27,9 +26,10 @@ public class ObjectTypeBuilder {
         }
     }
 
-    ObjectType resolve(MibLoader loader, OidTreeNode node) {
+    ObjectType resolve(MibLoader loader) {
+        loader.resolve(syntax);
         Index newIndex = index != null ? index.resolve(loader) : null;
-        return new ObjectType(loader.checkSyntax(node, syntax), indexed, newIndex);
+        return new ObjectType(syntax, indexed, newIndex);
     }
 
     boolean isIndexed() {

@@ -12,7 +12,7 @@ import fr.jrds.snmpcodec.smi.Syntax;
 class MibStoreImpl extends MibStore {
 
     public MibStoreImpl(OidTreeNode top, Set<String> modules, Map<String, List<OidTreeNode>> names,
-            Map<OidTreeNode, Syntax> syntaxes, Map<OidTreeNode, ObjectType> objects, Map<OidTreeNode, Map<Integer, Map<String, Object>>> resolvedTraps 
+            Map<String, Syntax> syntaxes, Map<OidTreeNode, ObjectType> objects, Map<OidTreeNode, Map<Integer, Map<String, Object>>> resolvedTraps 
             ) {
         super(top, modules, names, syntaxes, objects, resolvedTraps);
     }

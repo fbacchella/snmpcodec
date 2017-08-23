@@ -11,6 +11,7 @@ import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.UnsignedInteger32;
 import org.snmp4j.smi.Variable;
 
+import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.smi.TextualConvention.PatternDisplayHint;
 import fr.jrds.snmpcodec.smi.TextualConvention.Unsigned32DisplayHint;
 import fr.jrds.snmpcodec.smi.TextualConvention.Signed32DisplayHint;
@@ -18,7 +19,7 @@ import fr.jrds.snmpcodec.smi.TextualConvention.Signed32DisplayHint;
 public class TextualConventionTest {
 
     @SuppressWarnings("rawtypes")
-    private void testhint(Symbol s, String displayHint, Variable v, String expected) {
+    private void testhint(Symbol s, String displayHint, Variable v, String expected) throws MibException {
         Map<Symbol, TextualConvention> annotations = new HashMap<>();
         if (v instanceof UnsignedInteger32) {
             annotations.put(s, new Unsigned32DisplayHint(SmiType.Unsigned32, displayHint));
@@ -31,7 +32,7 @@ public class TextualConventionTest {
 
     }
     @Test
-    public void testpattern() {
+    public void testpattern() throws MibException {
         testhint(new Symbol("T11FabricIndex"), "d", new UnsignedInteger32(10), "10");
         testhint(new Symbol("L2tpMilliSeconds"), "d-3", new Integer32(1234), "1.234");
         testhint(new Symbol("L2tpMilliSeconds"), "d-3", new Integer32(123), ".123");
@@ -43,7 +44,7 @@ public class TextualConventionTest {
     }
 
     @Test
-    public void test3() {
+    public void test3() throws MibException {
         Map<Number, String> names = new HashMap<>();
         names.put(1, "other");
         names.put(2, "volatile");
@@ -57,7 +58,7 @@ public class TextualConventionTest {
     }
 
     @Test
-    public void test4() {
+    public void test4() throws MibException {
         TextualConvention tc = SmiType.Counter64.getTextualConvention("d", SmiType.Counter64);
         Assert.assertEquals(new Counter64(2), tc.parse("2"));
     }

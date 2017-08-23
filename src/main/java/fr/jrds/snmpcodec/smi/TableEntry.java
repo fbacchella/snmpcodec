@@ -46,4 +46,14 @@ public class TableEntry extends Syntax {
         return rows;
     }
 
+    @Override
+    public String toString() {
+        return "TableEntry " + this.rows.keySet();
+    }
+
+    @Override
+    public boolean resolve(Map<Symbol, Syntax> types) {
+        return true;
+    }
+
 }

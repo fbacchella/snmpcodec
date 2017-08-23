@@ -4,7 +4,9 @@ import java.util.Map;
 
 import org.snmp4j.smi.Variable;
 
-public class AnnotedSyntax extends Syntax {
+import fr.jrds.snmpcodec.MibException;
+
+public class AnnotedSyntax extends Syntax implements SyntaxContainer {
 
     private final Syntax syntax;
 
@@ -52,6 +54,21 @@ public class AnnotedSyntax extends Syntax {
 
     public Syntax getSyntax() {
         return syntax;
+    }
+
+    @Override
+    public String toString() {
+        return super.toString() + " -> " + syntax;
+    }
+
+    @Override
+    public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
+        return syntax.getTextualConvention(hint, type);
+    }
+
+    @Override
+    public boolean resolve(Map<Symbol, Syntax> types) {
+        return syntax.resolve(types);
     }
 
 }

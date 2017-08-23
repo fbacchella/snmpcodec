@@ -8,6 +8,8 @@ import java.util.regex.Pattern;
 
 import org.snmp4j.smi.Variable;
 
+import fr.jrds.snmpcodec.MibException;
+
 public abstract class Syntax {
 
     private static final Pattern NAMEDINDEXFORMAT = Pattern.compile("(?<name>\\p{L}(?:\\p{L}|\\d)+)(?:\\s*\\((?<value>\\d+)?\\))?");
@@ -67,6 +69,25 @@ public abstract class Syntax {
         } else {
             return null;
         }
+    }
+
+
+    public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
+        throw new MibException("Can't provide textual convention");
+    }
+
+    public abstract boolean resolve(Map<Symbol, Syntax> types);
+
+    @Override
+    public String toString() {
+        StringBuilder buffer = new StringBuilder();
+        toname.forEach((i,j) -> {
+            buffer.append(String.format("%s (%d) ", j, i));
+        });
+        if (constraints != null) {
+            buffer.append(constraints.toString());
+        }
+        return buffer.toString();
     }
 
 }

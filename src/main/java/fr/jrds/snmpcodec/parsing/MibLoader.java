@@ -24,16 +24,13 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
-import fr.jrds.snmpcodec.MibException.NonCheckedMibException;
 import fr.jrds.snmpcodec.MibException;
+import fr.jrds.snmpcodec.MibException.NonCheckedMibException;
 import fr.jrds.snmpcodec.MibStore;
 import fr.jrds.snmpcodec.OidTreeNode;
 import fr.jrds.snmpcodec.log.LogAdapter;
-import fr.jrds.snmpcodec.smi.AnnotedSyntax;
 import fr.jrds.snmpcodec.smi.ObjectType;
 import fr.jrds.snmpcodec.smi.Oid;
-import fr.jrds.snmpcodec.smi.ProvidesTextualConvention;
-import fr.jrds.snmpcodec.smi.Referenced;
 import fr.jrds.snmpcodec.smi.Symbol;
 import fr.jrds.snmpcodec.smi.Syntax;
 import fr.jrds.snmpcodec.smi.TextualConvention;
@@ -41,29 +38,28 @@ import fr.jrds.snmpcodec.smi.TextualConvention;
 
 public class MibLoader {
 
-    final LogAdapter logger = LogAdapter.getLogger(MibLoader.class);
+    private static final LogAdapter logger = LogAdapter.getLogger(MibLoader.class);
 
     private final ModuleListener modulelistener;
     private final ANTLRErrorListener errorListener;
     private final Properties encodings;
 
-
     private Set<Oid> allOids = new HashSet<>();
     private final Set<Symbol> badsymbols = new HashSet<>();
     private final Map<Symbol, Oid> buildOids = new HashMap<>();
-    private final Map<Symbol, Syntax> buildSyntaxes = new HashMap<>();
+    private final Map<Oid, OidTreeNode> nodes = new HashMap<>();
+    private final Map<Symbol, Syntax> types = new HashMap<>();
     private final Map<Symbol, Map<Integer, Map<String, Object>>> buildTraps = new HashMap<>();
     private final Map<Symbol, Map<String, Object>> textualConventions = new HashMap<>();
     private final Map<Oid, ObjectTypeBuilder> buildObjects = new HashMap<>();
     private final Set<Symbol> symbols = new HashSet<>();
-    private final Map<Symbol, OidTreeNode> resolvedOids = new HashMap<>();
     private final OidTreeNodeImpl top = new OidTreeNodeImpl();
     private final Map<String, List<OidTreeNode>> names = new HashMap<>();
     private final Set<String> modules = new HashSet<>();
 
-    private Map<OidTreeNode, Syntax> _syntaxes = new HashMap<>();
-    private Map<OidTreeNode, ObjectType> _objects = new HashMap<>();
-    private Map<OidTreeNode, Map<Integer, Map<String, Object>>> _resolvedTraps = new HashMap<>();
+    private final Map<String, Syntax> _syntaxes = new HashMap<>();
+    private final Map<OidTreeNode, ObjectType> _objects = new HashMap<>();
+    private final Map<OidTreeNode, Map<Integer, Map<String, Object>>> _resolvedTraps = new HashMap<>();
     private MibStore newStore = null;
 
     public MibLoader() {
@@ -186,6 +182,7 @@ public class MibLoader {
     }
 
     public MibStore buildTree() {
+        newStore = new MibStoreImpl(top, modules, names, _syntaxes, _objects, _resolvedTraps);
 
         // Check in provides symbolsalias.txt for known problems or frequent problems in mibs files
         Properties props = new Properties();
@@ -209,25 +206,21 @@ public class MibLoader {
                 buildOids.put(bad, buildOids.get(good));
                 badsymbols.add(bad);
             }
-            if (buildSyntaxes.containsKey(good) && ! buildSyntaxes.containsKey(bad)) {
+            if (types.containsKey(good) && ! badsymbols.contains(bad)) {
                 logger.debug("adding invalid type declaration mapping: %s -> %s" , bad, good);
-                buildSyntaxes.put(bad, buildSyntaxes.get(good));
+                types.put(bad, types.get(good));
+            }
+            if (textualConventions.containsKey(good) && ! badsymbols.contains(bad)) {
+                logger.debug("adding invalid textual convention declaration mapping: %s -> %s" , bad, good);
+                textualConventions.put(bad, textualConventions.get(good));
             }
         });
-        // Replace some eventually defined TextualConvention with the smarter version
-        Symbol dateAndTime = new Symbol("SNMPv2-TC", "DateAndTime");
-        if (buildSyntaxes.containsKey(dateAndTime)) {
-            buildSyntaxes.put(dateAndTime, new TextualConvention.DateAndTime());
-        }
-        Symbol displayString = new Symbol("SNMPv2-TC", "DisplayString");
-        if (buildSyntaxes.containsKey(displayString)) {
-            buildSyntaxes.put(displayString, new TextualConvention.DisplayString());
-        }
         sortdOids();
         allOids.forEach(oid -> {
             try {
                 int[] content = oid.getPath(buildOids).stream().mapToInt(Integer::intValue).toArray();
                 OidTreeNode node = top.add(content, oid.getName(), oid.isTableEntry());
+                nodes.put(oid, node);
                 names.computeIfAbsent(oid.getName(), i -> new ArrayList<>()).add(node);
             } catch (MibException e) {
                 try {
@@ -239,63 +232,69 @@ public class MibLoader {
                 System.out.println(e.getMessage());
             }
         });
+        types.entrySet().stream()
+        .filter(i -> i.getValue() != null)
+        .filter( i-> ! i.getValue().resolve(types))
+        .forEach( i-> System.out.format("Can't resolve type %s\n", i.getKey()));
+        resolveTextualConventions();
+        // Replace some eventually defined TextualConvention with the smarter version
+        Symbol dateAndTime = new Symbol("SNMPv2-TC", "DateAndTime");
+        if (types.containsKey(dateAndTime)) {
+            types.put(dateAndTime, new TextualConvention.DateAndTime());
+        }
+        Symbol displayString = new Symbol("SNMPv2-TC", "DisplayString");
+        if (types.containsKey(displayString)) {
+            types.put(displayString, new TextualConvention.DisplayString());
+        }
+        types.forEach((i,j) -> _syntaxes.put(i.name, j));
         buildObjects.forEach((k,v) -> {
             OidTreeNode node;
             try {
                 node = top.find(k.getPath(buildOids).stream().mapToInt(Integer::intValue).toArray());
-                _objects.put(node, v.resolve(this, node));
+                ObjectType object = v.resolve(this);
+                _objects.put(node, object);
             } catch (MibException e) {
                 System.out.println(e.getMessage());
             }
         });
-        newStore = new MibStoreImpl(top, modules, names, _syntaxes, _objects, _resolvedTraps);
-        this.buildSyntaxes.forEach((k, v) -> {
-            OidTreeNode node = resolvedOids.get(k);
-            _syntaxes.put(node, checkSyntax(node, v));
-        });
-        resolveTextualConventions(newStore, _syntaxes);
         return newStore;
     }
 
-    private void resolveTextualConventions(MibStore store, Map<OidTreeNode, Syntax> _syntaxes) {
-        textualConventions.forEach((s, attributes) -> {
-            Syntax type = (Syntax) attributes.get("SYNTAX");
-            String hint = (String) attributes.get("DISPLAY-HINT");
-            TextualConvention tc;
-            Syntax finaltype = type;
-            while (! (finaltype instanceof ProvidesTextualConvention) && finaltype != null) {
-                if (finaltype instanceof Referenced) {
-                    Referenced ref = (Referenced) finaltype;
-                    Symbol refSymbol = ref.getSymbol();
-                    if (refSymbol != null) {
-                        OidTreeNode refNode = resolvedOids.get(ref.getSymbol());
-                        ref.resolve(refNode, store);
-                        finaltype = buildSyntaxes.get(refSymbol);
-                    } else {
-                        finaltype = _syntaxes.get(ref.getNode());
-                    }
-                } else if (finaltype instanceof TextualConvention) {
-                    TextualConvention temporary = (TextualConvention) finaltype;
-                    finaltype = temporary.getSyntax();
+    private void resolveTextualConventions() {
+        int resolvCount = 0;
+        int oldResolvCount = -1;
+        Set<Symbol> notDone = new HashSet<>(textualConventions.keySet());
+        while (textualConventions.size() != resolvCount && resolvCount != oldResolvCount) {
+            oldResolvCount = resolvCount;
+            for (Map.Entry<Symbol, Map<String, Object>> e: textualConventions.entrySet()) {
+                Symbol s = e.getKey();
+                if (types.containsKey(s)){
+                    continue;
                 } else {
-                    finaltype = ((IndirectSyntax) finaltype).getSyntax();
-                }
-            }
-            if (finaltype != null) {
-                try {
-                    tc = ((ProvidesTextualConvention)finaltype).getTextualConvention(hint, type);
-                    if (tc != null) {
-                        OidTreeNode node = resolvedOids.get(s);
-                        _syntaxes.put(node, tc);
+                    Map<String, Object> attributes = e.getValue();
+                    Syntax type = (Syntax) attributes.get("SYNTAX");
+                    String hint = (String) attributes.get("DISPLAY-HINT");
+                    boolean resolved = type.resolve(types);
+                    if (resolved) {
+                        notDone.remove(s);
+                        resolvCount++;
+                        try {
+                            TextualConvention tc = type.getTextualConvention(hint, type);
+                            types.put(s, tc);
+                        } catch (MibException | MibException.NonCheckedMibException ex) {
+                            types.put(s, null);
+                            System.out.println("Invalid textual convention " + s + " " + ex.getMessage());
+                        }
+                        if (resolvCount == textualConventions.size()) {
+                            break;
+                        }
                     }
-                } catch (Exception e) {
-                    System.out.println("Broken hint for textual convention " + s + ": " + hint);
                 }
-            } else {
-                attributes.remove("DESCRIPTION");
-                System.out.println("Invalid textual convention " + s + " " + attributes);
             }
-        });
+        }
+        if (notDone.size() > 0) {
+            System.out.println("missing " + notDone);
+        }
     }
 
     private void sortdOids() {
@@ -349,20 +348,17 @@ public class MibLoader {
         allOids = sortedoid;
     }
 
-    Syntax checkSyntax(OidTreeNode node, Syntax syntax) {
-        if (syntax instanceof Referenced) {
-            Referenced ref = (Referenced) syntax;
-            Symbol refSymbol = ref.getSymbol();
-            if (refSymbol != null) {
-                OidTreeNode refNode = resolvedOids.get(ref.getSymbol());
-                ref.resolve(refNode, newStore);
-            }
-        }
-        return syntax;
+    void resolve(Syntax syntax) {
+        syntax.resolve(types);
     }
 
     OidTreeNode resolveNode(Symbol s) {
-        return resolvedOids.get(s);
+        if (buildOids.containsKey(s)) {
+            Oid o = buildOids.get(s);
+            return nodes.get(o);
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -416,7 +412,7 @@ public class MibLoader {
         if (symbols.contains(s) ) {
             throw new MibException.DuplicatedSymbolException(s);
         }
-        buildSyntaxes.put(s, type);
+        types.put(s, type);
         symbols.add(s);
     }
 

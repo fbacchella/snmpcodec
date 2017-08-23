@@ -4,7 +4,7 @@ import java.util.Map;
 
 import org.snmp4j.smi.Variable;
 
-public class Bits extends Syntax implements ProvidesTextualConvention {
+public class Bits extends Syntax {
 
     public Bits(Map<String, Integer> map, Constraint constraints) {
         super(null, constraints);
@@ -41,9 +41,14 @@ public class Bits extends Syntax implements ProvidesTextualConvention {
     }
 
     @Override
-    public TextualConvention getTextualConvention(String hint, Syntax type) {
-        // TODO Auto-generated method stub
-        return null;
+    public boolean resolve(Map<Symbol, Syntax> types) {
+        return true;
     }
+
+    @Override
+    public TextualConvention getTextualConvention(String hint, Syntax type) {
+        return new TextualConvention.Bits();
+    }
+
 
 }

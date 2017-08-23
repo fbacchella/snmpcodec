@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.time.Duration;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -18,6 +19,7 @@ import org.snmp4j.smi.TimeTicks;
 import org.snmp4j.smi.UnsignedInteger32;
 import org.snmp4j.smi.Variable;
 
+import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.Utils;
 import fr.jrds.snmpcodec.log.LogAdapter;
 import fr.jrds.snmpcodec.smi.TextualConvention.PatternDisplayHint;
@@ -28,10 +30,6 @@ import fr.jrds.snmpcodec.smi.TextualConvention.PatternDisplayHint;
  *
  */
 public abstract class SmiType extends Syntax {
-
-    public abstract static class SmiTypeTextual extends SmiType implements ProvidesTextualConvention {
-
-    };
 
     /**
      * <p>From SNMPv2-SMI, defined as [APPLICATION 4]</p>
@@ -85,7 +83,7 @@ public abstract class SmiType extends Syntax {
         }
     };
 
-    public static final SmiTypeTextual OctetString = new SmiTypeTextual() {
+    public static final SmiType OctetString = new SmiType() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.OctetString();
@@ -138,7 +136,7 @@ public abstract class SmiType extends Syntax {
      * @author Fabrice Bacchella
      *
      */
-    public static final SmiTypeTextual Unsigned32 = new SmiTypeTextual() {
+    public static final SmiType Unsigned32 = new SmiType() {
         @Override
         public Variable getVariable() {
             return new UnsignedInteger32();
@@ -156,7 +154,7 @@ public abstract class SmiType extends Syntax {
             return v.toLong();
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, Syntax type) {
+        public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
             return new TextualConvention.Unsigned32DisplayHint<UnsignedInteger32>(type, hint);
         }
         @Override
@@ -243,7 +241,7 @@ public abstract class SmiType extends Syntax {
         }
     };
 
-    public static final SmiTypeTextual ObjID = new SmiTypeTextual() {
+    public static final SmiType ObjID = new SmiType() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.OID();
@@ -281,7 +279,7 @@ public abstract class SmiType extends Syntax {
         }
     };
 
-    public static final SmiTypeTextual INTEGER = new SmiTypeTextual() {
+    public static final SmiType INTEGER = new SmiType() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Integer32();
@@ -307,7 +305,7 @@ public abstract class SmiType extends Syntax {
             return new org.snmp4j.smi.Integer32(Integer.parseInt(text));
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, Syntax type) {
+        public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
             return new TextualConvention.Signed32DisplayHint<Integer32>(type, hint);
         }
         @Override
@@ -331,7 +329,7 @@ public abstract class SmiType extends Syntax {
      * @author Fabrice Bacchella
      *
      */
-    public static final SmiTypeTextual Counter32 = new SmiTypeTextual() {
+    public static final SmiType Counter32 = new SmiType() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Counter32();
@@ -357,7 +355,7 @@ public abstract class SmiType extends Syntax {
             return new org.snmp4j.smi.Counter32(Long.parseLong(text));
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, Syntax type) {
+        public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
             return new TextualConvention.Unsigned32DisplayHint<UnsignedInteger32>(type, hint);
         }
         @Override
@@ -381,7 +379,7 @@ public abstract class SmiType extends Syntax {
      * @author Fabrice Bacchella
      *
      */
-    public static final SmiTypeTextual Counter64 = new SmiTypeTextual() {
+    public static final SmiType Counter64 = new SmiType() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Counter64();
@@ -407,7 +405,7 @@ public abstract class SmiType extends Syntax {
             return new org.snmp4j.smi.Counter64(Long.parseLong(text));
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, Syntax type) {
+        public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
             return new TextualConvention.Counter64DisplayHint(type, hint);
         }
         @Override
@@ -427,7 +425,7 @@ public abstract class SmiType extends Syntax {
      * @author Fabrice Bacchella
      *
      */
-    public static final SmiTypeTextual Gauge32 = new SmiTypeTextual() {
+    public static final SmiType Gauge32 = new SmiType() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.Gauge32();
@@ -453,7 +451,7 @@ public abstract class SmiType extends Syntax {
             return new org.snmp4j.smi.Gauge32(Long.parseLong(text));
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, Syntax type) {
+        public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
             return new TextualConvention.Unsigned32DisplayHint<org.snmp4j.smi.Gauge32>(type, hint);
         }
         @Override
@@ -478,7 +476,7 @@ public abstract class SmiType extends Syntax {
      * @author Fabrice Bacchella
      *
      */
-    public static final SmiTypeTextual TimeTicks = new SmiTypeTextual() {
+    public static final SmiType TimeTicks = new SmiType() {
         @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.TimeTicks();
@@ -522,7 +520,7 @@ public abstract class SmiType extends Syntax {
             }
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, Syntax type) {
+        public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
             return new TextualConvention.Unsigned32DisplayHint<org.snmp4j.smi.Gauge32>(type, hint);
         }
         @Override
@@ -592,6 +590,17 @@ public abstract class SmiType extends Syntax {
     @Override
     public String toString() {
         return AbstractVariable.getSyntaxString(getSyntaxString());
+    }
+
+
+    @Override
+    public boolean resolve(Map<Symbol, Syntax> types) {
+        return true;
+    }
+
+    @Override
+    public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
+        return null;
     }
 
 }

@@ -1,13 +1,14 @@
 package fr.jrds.snmpcodec.smi;
 
+import java.util.Map;
+
 import org.snmp4j.smi.Variable;
 
-import fr.jrds.snmpcodec.MibStore;
-import fr.jrds.snmpcodec.OidTreeNode;
+import fr.jrds.snmpcodec.MibException;
 
-public class Referenced extends Syntax {
-    private OidTreeNode ref;
-    private MibStore store;
+public class Referenced extends Syntax implements SyntaxContainer {
+
+    private Syntax ref;
     private Symbol symbol; 
 
     public Referenced(Symbol symbol) {
@@ -15,61 +16,70 @@ public class Referenced extends Syntax {
         this.symbol = symbol;
     }
 
-    public OidTreeNode getNode() {
-        return ref;
-    }
-
-    public Symbol getSymbol() {
-        return symbol;
-    }
-
-    public void resolve(OidTreeNode node, MibStore store) {
-        this.symbol = null;
-        this.store = store;
-        this.ref = node;
-    }
-
     @Override
     public String format(Variable v) {
         if (this.isNamed()) {
             return getNameFromNumer(v.toInt());
         } else {
-            return store.syntaxes.get(ref).format(v);
+            return ref.format(v);
         }
     }
 
     @Override
     public Variable parse(String text) {
         if (isNamed()) {
-            return store.syntaxes.get(ref).getVariable(getNumberFromName(text));
+            return ref.getVariable(getNumberFromName(text));
         } else {
-            return store.syntaxes.get(ref).parse(text);
+            return ref.parse(text);
         }
     }
 
     @Override
     public Object convert(Variable v) {
-        return store.syntaxes.get(ref).convert(v);
+        return ref.convert(v);
     }
 
     @Override
     public Variable getVariable(Object source) {
-        return store.syntaxes.get(ref).getVariable(source);
+        return ref.getVariable(source);
     }
 
     @Override
     public Variable getVariable() {
-        return store.syntaxes.get(ref).getVariable();
+        return ref.getVariable();
     }
 
     @Override
     public Constraint getConstrains() {
-        return store.syntaxes.get(ref).getConstrains();
+        return ref.getConstrains();
     }
 
     @Override
     public String toString() {
-        return ref != null ? ref.toString() : (symbol != null ? symbol.toString() : "not found"); //store.syntaxes.get(ref).toString();
+        return ref != null ? ref.toString() : (symbol != null ? symbol.toString() : "not found");
+    }
+
+    @Override
+    public Syntax getSyntax() {
+        return ref;
+    }
+
+    @Override
+    public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
+        return ref.getTextualConvention(hint, type);
+    }
+
+    @Override
+    public boolean resolve(Map<Symbol, Syntax> types) {
+        if (ref != null) {
+            return true;
+        } else if (types.containsKey(symbol)) {
+            ref = types.get(symbol);
+            symbol = null;
+            return true;
+        } else {
+            return false;
+        }
     }
 
 };

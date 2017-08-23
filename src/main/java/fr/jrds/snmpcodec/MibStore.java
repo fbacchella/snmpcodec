@@ -3,8 +3,6 @@ package fr.jrds.snmpcodec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -23,32 +21,20 @@ public abstract class MibStore {
 
     public final OidTreeNode top;
     public final Map<String, List<OidTreeNode>> names;
-    public final Map<OidTreeNode, Syntax> syntaxes;
+    public final Map<String, Syntax> syntaxes;
     public final Map<OidTreeNode, ObjectType> objects ;
     public final Map<OidTreeNode, Map<Integer, Map<String, Object>>> resolvedTraps;
     public final Set<String> modules;
 
 
     protected MibStore(OidTreeNode top, Set<String> modules,
-            Map<String, List<OidTreeNode>> names, Map<OidTreeNode, Syntax> syntaxes, Map<OidTreeNode, ObjectType> objects, 
+            Map<String, List<OidTreeNode>> names, Map<String, Syntax> syntaxes, Map<OidTreeNode, ObjectType> objects, 
             Map<OidTreeNode, Map<Integer, Map<String, Object>>> resolvedTraps) {
 
-        Map<OidTreeNode, Syntax> _syntaxes = new HashMap<>();
-        Map<OidTreeNode, ObjectType> _objects = new HashMap<>();
-        Map<OidTreeNode, Map<Integer, Map<String, Object>>> _resolvedTraps = new HashMap<>();
-        Set<String> _modules = new HashSet<>();
-        Map<String, List<OidTreeNode>> _names = new HashMap<>();
-
-        _syntaxes.putAll(syntaxes);
-        _objects.putAll(objects);
-        _resolvedTraps.putAll(resolvedTraps);
-        _modules.addAll(modules);
-        _names.putAll(names);
-
-        this.syntaxes = Collections.unmodifiableMap(_syntaxes);
-        this.objects = Collections.unmodifiableMap(_objects);
-        this.resolvedTraps = Collections.unmodifiableMap(_resolvedTraps);
-        this.modules = Collections.unmodifiableSet(_modules);
+        this.syntaxes = Collections.unmodifiableMap(syntaxes);
+        this.objects = Collections.unmodifiableMap(objects);
+        this.resolvedTraps = Collections.unmodifiableMap(resolvedTraps);
+        this.modules = Collections.unmodifiableSet(modules);
         this.names = Collections.unmodifiableMap(names);
 
         this.top = top;

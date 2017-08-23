@@ -1,9 +1,11 @@
 package fr.jrds.snmpcodec.smi;
 
+import java.util.Map;
+
 import org.snmp4j.smi.Variable;
 
 public class Table extends Syntax {
-    
+
     private final Symbol row;
 
     public Table(Symbol row) {
@@ -41,6 +43,11 @@ public class Table extends Syntax {
      */
     public Symbol getRow() {
         return row;
+    }
+
+    @Override
+    public boolean resolve(Map<Symbol, Syntax> types) {
+        return true;
     }
 
 }

@@ -17,9 +17,10 @@ import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.UnsignedInteger32;
 import org.snmp4j.smi.Variable;
 
+import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.smi.Constraint.ConstraintElement;
 
-public abstract class TextualConvention extends AnnotedSyntax {
+public abstract class TextualConvention extends AnnotedSyntax implements SyntaxContainer {
 
     public static class OidTextualConvention extends TextualConvention {
 
@@ -122,7 +123,7 @@ public abstract class TextualConvention extends AnnotedSyntax {
         protected final int fixedfloat;
         protected final char radix;
 
-        protected NumberDisplayHint(Syntax syntax, String hint) {
+        protected NumberDisplayHint(Syntax syntax, String hint) throws MibException {
             super(syntax, hint, null, null);
             if (hint != null) {
                 Matcher m = floatPattern.matcher(hint);
@@ -135,7 +136,7 @@ public abstract class TextualConvention extends AnnotedSyntax {
                         fixedfloat = Integer.parseInt(floatSuffix);
                     }
                 } else {
-                    throw new RuntimeException("Invalid display hint " + hint);
+                    throw new MibException("Invalid display hint " + hint);
                 }
             } else {
                 fixedfloat = -1;
@@ -189,14 +190,14 @@ public abstract class TextualConvention extends AnnotedSyntax {
 
     public static class Unsigned32DisplayHint<V extends UnsignedInteger32> extends NumberDisplayHint<V> {
 
-        protected Unsigned32DisplayHint(Syntax syntax, String hint) {
+        protected Unsigned32DisplayHint(Syntax syntax, String hint) throws MibException {
             super(syntax, hint);
         }
 
     }
 
     public static class Signed32DisplayHint<V extends Integer32> extends NumberDisplayHint<V> {
-        protected Signed32DisplayHint(Syntax syntax, String hint) {
+        protected Signed32DisplayHint(Syntax syntax, String hint) throws MibException {
             super(syntax, hint);
         }
 
@@ -204,7 +205,7 @@ public abstract class TextualConvention extends AnnotedSyntax {
 
     public static class Counter64DisplayHint extends NumberDisplayHint<Counter64> {
 
-        protected Counter64DisplayHint(Syntax syntax, String hint) {
+        protected Counter64DisplayHint(Syntax syntax, String hint) throws MibException {
             super(syntax, hint);
         }
 
@@ -377,8 +378,19 @@ public abstract class TextualConvention extends AnnotedSyntax {
 
     }
 
-    protected TextualConvention(Syntax syntax, Map<Number, String> names, Constraint constraints) {
+    public static class Bits  extends TextualConvention {
+        Bits() {
+            super(null, null, null);
+        }
+    }
+
+    private TextualConvention(Syntax syntax, Map<Number, String> names, Constraint constraints) {
         super(syntax, names, constraints);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("TextualConvention[%s]", getSyntax());
     }
 
 }
