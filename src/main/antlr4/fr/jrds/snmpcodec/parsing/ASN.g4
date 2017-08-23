@@ -541,7 +541,7 @@ BINARYNUMBER:
     ;
 
 CSTRING
-    :  QUOTATIONMARK ( EscapeSequence | ~('\\'| '"' | '“' | '”') )* QUOTATIONMARK
+    :  QUOTATIONMARK (  ~( '"' | '“' | '”') )* QUOTATIONMARK
     ;
 
 fragment
@@ -551,10 +551,6 @@ QUOTATIONMARK:
     | '”'
     ;
 
-fragment
-EscapeSequence
-    :   '\\' ('b'|'t'|'n'|'f'|'r'|'"'|'\''|'\\' | . )
-    ;
 
 //fragment
 

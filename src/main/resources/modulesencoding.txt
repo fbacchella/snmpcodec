@@ -1,8 +1,5 @@
 802-1x-2001-mib.txt = Windows-1252
 IEEE8021-PAE-MIB-200101160000Z.txt = Windows-1252
-# Invalid escape sequence, line 1205:34
-CIMWIN32-MIB.mib = skip
-IBM-WIN32-MIB.mib = skip
 # Empty module, from IBM
 test-mib-v1smi.my = skip
 # Empty module, from cisco:
