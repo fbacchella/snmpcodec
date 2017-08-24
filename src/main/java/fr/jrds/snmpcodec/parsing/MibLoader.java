@@ -34,6 +34,7 @@ import fr.jrds.snmpcodec.smi.Oid;
 import fr.jrds.snmpcodec.smi.Symbol;
 import fr.jrds.snmpcodec.smi.Syntax;
 import fr.jrds.snmpcodec.smi.TextualConvention;
+import fr.jrds.snmpcodec.smi.Trap;
 
 
 public class MibLoader {
@@ -59,7 +60,7 @@ public class MibLoader {
 
     private final Map<String, Syntax> _syntaxes = new HashMap<>();
     private final Map<OidTreeNode, ObjectType> _objects = new HashMap<>();
-    private final Map<OidTreeNode, Map<Integer, Map<String, Object>>> _resolvedTraps = new HashMap<>();
+    private final Map<OidTreeNode, Map<Integer,Trap>> resolvedTraps = new HashMap<>();
     private MibStore newStore = null;
 
     public MibLoader() {
@@ -182,7 +183,7 @@ public class MibLoader {
     }
 
     public MibStore buildTree() {
-        newStore = new MibStoreImpl(top, modules, names, _syntaxes, _objects, _resolvedTraps);
+        newStore = new MibStoreImpl(top, modules, names, _syntaxes, _objects, resolvedTraps);
 
         // Check in provides symbolsalias.txt for known problems or frequent problems in mibs files
         Properties props = new Properties();
@@ -256,6 +257,15 @@ public class MibLoader {
             } catch (MibException e) {
                 System.out.println(e.getMessage());
             }
+        });
+        buildTraps.forEach((i,j) -> {
+            Oid oid = this.buildOids.get(i);
+            OidTreeNode node = this.nodes.get(oid);
+            Map<Integer, Trap> traps = new HashMap<>(j.size());
+            j.forEach((k,l) -> {
+                traps.put(k, new Trap(l));
+            });
+            resolvedTraps.put(node, traps);
         });
         return newStore;
     }

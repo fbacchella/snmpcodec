@@ -14,6 +14,7 @@ import fr.jrds.snmpcodec.log.LogAdapter;
 import fr.jrds.snmpcodec.smi.Index;
 import fr.jrds.snmpcodec.smi.ObjectType;
 import fr.jrds.snmpcodec.smi.Syntax;
+import fr.jrds.snmpcodec.smi.Trap;
 
 public abstract class MibStore {
 
@@ -23,17 +24,17 @@ public abstract class MibStore {
     public final Map<String, List<OidTreeNode>> names;
     public final Map<String, Syntax> syntaxes;
     public final Map<OidTreeNode, ObjectType> objects ;
-    public final Map<OidTreeNode, Map<Integer, Map<String, Object>>> resolvedTraps;
+    public final Map<OidTreeNode, Map<Integer, Trap>> resolvedTraps;
     public final Set<String> modules;
 
 
     protected MibStore(OidTreeNode top, Set<String> modules,
             Map<String, List<OidTreeNode>> names, Map<String, Syntax> syntaxes, Map<OidTreeNode, ObjectType> objects, 
-            Map<OidTreeNode, Map<Integer, Map<String, Object>>> resolvedTraps) {
+            Map<OidTreeNode, Map<Integer, Trap>> _resolvedTraps) {
 
         this.syntaxes = Collections.unmodifiableMap(syntaxes);
         this.objects = Collections.unmodifiableMap(objects);
-        this.resolvedTraps = Collections.unmodifiableMap(resolvedTraps);
+        this.resolvedTraps = Collections.unmodifiableMap(_resolvedTraps);
         this.modules = Collections.unmodifiableSet(modules);
         this.names = Collections.unmodifiableMap(names);
 
@@ -82,11 +83,11 @@ public abstract class MibStore {
             return null;
         }
         else if (resolvedTraps.containsKey(s)) {
-            Map<String, Object> trap = resolvedTraps.get(s).get(variable.toInt());
+            Trap trap = resolvedTraps.get(s).get(variable.toInt());
             if (trap == null) {
                 return null;
             } else {
-                trap.get("SYMBOL").toString();
+                return trap.name;
             }
         } else if (objects.containsKey(s)) {
             ObjectType ot = objects.get(s);
