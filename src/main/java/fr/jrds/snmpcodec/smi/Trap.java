@@ -4,17 +4,26 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import fr.jrds.snmpcodec.MibException;
+
 public class Trap {
 
     public final String name;
     public final List<String> variables;
 
-    public Trap(Map<String, Object> details) {
-        Symbol s = (Symbol) details.get("SYMBOL");
+    public Trap(Map<String, Object> details) throws MibException {
+        if (! details.containsKey("SYMBOL")) {
+            throw new MibException("Unfinished trap");
+        }
+        Symbol s = (Symbol) details.remove("SYMBOL");
         name = s.name;
-        @SuppressWarnings("unchecked")
-        List<String> variables = (List<String>) details.get("VARIABLES");
-        this.variables = Collections.unmodifiableList(variables);
+        if (details.containsKey("VARIABLES")) {
+            @SuppressWarnings("unchecked")
+            List<String> variables = (List<String>) details.remove("VARIABLES");
+            this.variables = Collections.unmodifiableList(variables);
+        } else {
+            this.variables = Collections.emptyList();
+        }
     }
 
 }

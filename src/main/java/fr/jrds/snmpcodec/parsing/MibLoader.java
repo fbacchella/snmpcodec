@@ -263,7 +263,11 @@ public class MibLoader {
             OidTreeNode node = this.nodes.get(oid);
             Map<Integer, Trap> traps = new HashMap<>(j.size());
             j.forEach((k,l) -> {
-                traps.put(k, new Trap(l));
+                try {
+                    traps.put(k, new Trap(l));
+                } catch (MibException e) {
+                    System.out.format("Invalid trap: %s %s %s\n", i, k, l);
+                }
             });
             resolvedTraps.put(node, traps);
         });
