@@ -29,8 +29,8 @@ public class Tasks {
     public static MibLoader load(boolean allmibs, String... mibdirs) throws IOException {
         MibLoader loader = new MibLoader();
         Set<String> done = new HashSet<>();
-        if (allmibs) {
-            try {
+        try {
+            if (allmibs) {
                 Collections.list(Tasks.class.getClassLoader().getResources("allmibs.txt")).forEach( i -> {
                     try {
                         try(BufferedReader r = new BufferedReader(new InputStreamReader(i.openStream()))) {
@@ -48,23 +48,23 @@ public class Tasks {
                         throw new UncheckedIOException(e);
                     }
                 });
-                Arrays.stream(mibdirs)
-                .map( i -> Paths.get(i))
-                .forEach(i -> {
-                    try {
-                        String resolved = i.toAbsolutePath().normalize().toString().intern();
-                        if (! done.contains(resolved)) {
-                            done.add(resolved);
-                            System.out.println(resolved);
-                            Tasks.loadpath(loader, i);
-                        }
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                });
-            } catch (UncheckedIOException e) {
-                throw e.getCause();
             }
+            Arrays.stream(mibdirs)
+            .map( i -> Paths.get(i))
+            .forEach(i -> {
+                try {
+                    String resolved = i.toAbsolutePath().normalize().toString().intern();
+                    if (! done.contains(resolved)) {
+                        done.add(resolved);
+                        System.out.println(resolved);
+                        Tasks.loadpath(loader, i);
+                    }
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            });
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
         }
         return loader;
 

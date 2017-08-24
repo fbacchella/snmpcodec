@@ -23,6 +23,7 @@ public class ParserTest {
 
     @Test
     public void checkCodecs() throws URISyntaxException, IOException {
+
         MibStore store = Tasks.load(false, 
                 Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-CONF.txt").toURI()).toString(),
                 Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-MIB.txt").toURI()).toString(),
@@ -30,16 +31,19 @@ public class ParserTest {
                 Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-TC.txt").toURI()).toString(),
                 Paths.get(getClass().getClassLoader().getResource("custommib.txt").toURI()).toString()
                 ).buildTree();
-       // System.out.println(store.names);
-//        Symbol tableSymbol = new Symbol("CUSTOM","table");
-//
-//        Syntax table = resolver.codecs.get(tableSymbol);
-//        
-//        Assert.assertFalse(resolver.codecs.containsKey(tableSymbol));
-//        
-//        System.out.println(resolver.codecs);
-//        System.out.println(resolver.traps);
-        Tasks.dumpNode(store.top);
+        Assert.assertTrue(store.modules.contains("SNMPv2-CONF"));
+        Assert.assertTrue(store.modules.contains("SNMPv2-SMI"));
+        Assert.assertTrue(store.modules.contains("SNMPv2-TC"));
+        Assert.assertTrue(store.modules.contains("CUSTOM"));
+        Assert.assertTrue(store.modules.contains("SNMPv2-MIB"));
+        Assert.assertEquals(5, store.modules.size());
+        Assert.assertEquals(92, store.names.size());
+        Assert.assertEquals(48, store.objects.size());
+        Assert.assertEquals(0, store.resolvedTraps.size());
+        Assert.assertEquals(33, store.syntaxes.size());
+        int countOid = Tasks.countOid(store.top);
+        Assert.assertEquals(92, countOid);
+
     }
 
     @Test
@@ -54,9 +58,9 @@ public class ParserTest {
         Assert.assertNotNull(store.top.find(new int[]{1,3,6,1,4,1,1,1,2})); //oid2
         Assert.assertNotNull(store.top.find(new int[]{1,3,6,1,4,1,1,1,3})); //oid3
         Assert.assertNotNull(store.top.find(new int[]{1,3,6,1,4,1,1,1,4})); //oid4
-        Assert.assertNull(store.top.find(new int[]{1,3,6,1,4,1,1,1,5})); //oid5
+        Assert.assertNull(store.top.find(new int[]{1,3,6,1,4,1,1,1,5}));    //oid5
         Assert.assertNotNull(store.top.find(new int[]{1,3,6,1,4,1,1,1,6})); //oid6
-        Assert.assertNull(store.top.find(new int[]{1,3,6,1,4,1,1,1,7})); //oid7
+        Assert.assertNull(store.top.find(new int[]{1,3,6,1,4,1,1,1,7}));    //oid7
 
     }
 
