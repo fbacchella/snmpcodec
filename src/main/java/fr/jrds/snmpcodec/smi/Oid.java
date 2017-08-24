@@ -113,10 +113,10 @@ public class Oid {
         if (path != null) {
             return path.equals(other.path) && name.equals(other.name);
         } else {
-            if(root == null) {
+            if (root == null) {
                 if(other.root != null)
                     return false;
-            } else if(!root.equals(other.root))
+            } else if (!root.equals(other.root))
                 return false;
             if(components == null) {
                 if(other.components != null)
