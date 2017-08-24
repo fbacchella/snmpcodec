@@ -82,8 +82,6 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
         Matcher m = OIDWITSUFFIX.matcher(text);
         if (m.matches()) {
             String prefixString = m.group("prefix");
-            System.out.println(prefixString);
-            System.out.println(m.group("oids"));
             int[] prefix = resolver.getFromName(m.group("prefix"));
             if (prefix != null) {
                 int[] parsed;
