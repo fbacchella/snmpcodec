@@ -60,23 +60,4 @@ public class Snmp4jTest {
 
     }
 
-    @Test(expected=RuntimeException.class)
-    public void invalidIndex() throws URISyntaxException {
-        MibLoader loader = new MibLoader();
-        loader.load(Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-CONF.txt").toURI()));
-        loader.load(Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-MIB.txt").toURI()));
-        loader.load(Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-SMI.txt").toURI()));
-        loader.load(Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-TC.txt").toURI()));
-        loader.load(Paths.get(getClass().getClassLoader().getResource("custommib.txt").toURI()));
-
-        MibStore resolver = loader.buildTree();
-
-        OIDFormatter formatter = new OIDFormatter(resolver);
-        SNMP4JSettings.setOIDTextFormat(formatter);
-        SNMP4JSettings.setVariableTextFormat(formatter);
-
-        Assert.assertEquals("sysORIndex[1]", new OID("sysORID.1").format());
-
-    }
-
 }
