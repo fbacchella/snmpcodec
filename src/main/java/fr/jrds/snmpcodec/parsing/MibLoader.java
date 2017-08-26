@@ -304,7 +304,7 @@ public class MibLoader {
             oldResolvCount = resolvCount;
             for (Map.Entry<Symbol, Map<String, Object>> e: textualConventions.entrySet()) {
                 Symbol s = e.getKey();
-                if (types.containsKey(s)){
+                if (! notDone.contains(s)){
                     continue;
                 } else {
                     Map<String, Object> attributes = e.getValue();
