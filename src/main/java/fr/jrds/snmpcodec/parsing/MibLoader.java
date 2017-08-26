@@ -53,7 +53,6 @@ public class MibLoader {
     private final Map<Object, Map<Integer, Map<String, Object>>> buildTraps = new HashMap<>();
     private final Map<Symbol, Map<String, Object>> textualConventions = new HashMap<>();
     private final Map<Oid, ObjectTypeBuilder> buildObjects = new HashMap<>();
-    private final Set<Symbol> symbols = new HashSet<>();
     private final OidTreeNodeImpl top = new OidTreeNodeImpl();
     private final Map<String, List<OidTreeNode>> names = new HashMap<>();
     private final Set<String> modules = new HashSet<>();
@@ -431,11 +430,10 @@ public class MibLoader {
     }
 
     public void addTextualConvention(Symbol s, Map<String, Object> attributes) throws MibException {
-        if (symbols.contains(s) ) {
+        if (textualConventions.containsKey(s) ) {
             throw new MibException.DuplicatedSymbolException(s);
         }
         textualConventions.put(s, attributes);
-        symbols.add(s);
     }
 
     public void addModuleIdentity(Symbol s, Map<String, Object> attributes, OidPath value) throws MibException {
@@ -443,23 +441,19 @@ public class MibLoader {
     }
 
     public void addType(Symbol s, Syntax type) throws MibException {
-        if (symbols.contains(s) ) {
+        if (types.containsKey(s) ) {
             throw new MibException.DuplicatedSymbolException(s);
         }
         types.put(s, type);
-        symbols.add(s);
     }
 
     public void addValue(Symbol s, Syntax syntax, OidPath value) throws MibException {
-        if (symbols.contains(s)) {
-            throw new MibException.DuplicatedSymbolException(s);
-        }
-        addOid(s, (OidPath)value, false);
+        addOid(s, value, false);
     }
 
     private Oid addOid(Symbol s, OidPath p, boolean tableEntry) throws MibException {
         p.getAll(tableEntry).forEach( i-> {
-            if (i.getName() != null) {
+            if (i.getName() != null &&  ! allOids.contains(i)) {
                 allOids.add(i);
             }
         });
@@ -467,8 +461,9 @@ public class MibLoader {
         allOids.add(oid);
         if (!buildOids.containsKey(s)) {
             buildOids.put(s, oid);
+        } else {
+            throw new MibException.DuplicatedSymbolException(s);
         }
-        symbols.add(s);
         return oid;
     }
 
