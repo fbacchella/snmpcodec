@@ -10,7 +10,6 @@ import java.util.Set;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.Variable;
 
-import fr.jrds.snmpcodec.log.LogAdapter;
 import fr.jrds.snmpcodec.smi.Index;
 import fr.jrds.snmpcodec.smi.ObjectType;
 import fr.jrds.snmpcodec.smi.Syntax;
@@ -18,15 +17,12 @@ import fr.jrds.snmpcodec.smi.Trap;
 
 public abstract class MibStore {
 
-    LogAdapter logger = LogAdapter.getLogger(MibStore.class);
-
     public final OidTreeNode top;
     public final Map<String, List<OidTreeNode>> names;
     public final Map<String, Syntax> syntaxes;
     public final Map<OidTreeNode, ObjectType> objects ;
     public final Map<OidTreeNode, Map<Integer, Trap>> resolvedTraps;
     public final Set<String> modules;
-
 
     protected MibStore(OidTreeNode top, Set<String> modules,
             Map<String, List<OidTreeNode>> names, Map<String, Syntax> syntaxes, Map<OidTreeNode, ObjectType> objects, 

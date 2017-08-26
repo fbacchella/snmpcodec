@@ -11,10 +11,18 @@ public class LogAdapter {
         return new LogAdapter(c);
     }
 
+    public static LogAdapter getLogger(String l) {
+        return new LogAdapter(l);
+    }
+
     private final org.snmp4j.log.LogAdapter adapter;
 
     private LogAdapter(Class<?> c) {
         adapter = LogFactory.getLogger(c);
+    }
+
+    private LogAdapter(String l) {
+        adapter = LogFactory.getLogger(l);
     }
 
     public boolean isDebugEnabled() {

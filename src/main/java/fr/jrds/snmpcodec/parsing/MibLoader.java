@@ -39,7 +39,7 @@ import fr.jrds.snmpcodec.smi.Trap;
 
 public class MibLoader {
 
-    private static final LogAdapter logger = LogAdapter.getLogger(MibLoader.class);
+    public static LogAdapter MIBPARSINGLOGGER = LogAdapter.getLogger(MibStore.class.getPackage().getName() + ".MibParsingError");
 
     private final ModuleListener modulelistener;
     private final ANTLRErrorListener errorListener;
@@ -117,7 +117,7 @@ public class MibLoader {
             try {
                 return i.fileContent();
             } catch (WrappedException e) {
-                logger.error("Not a valid module: " + e.getMessage() + " "+ e.getLocation());
+                MIBPARSINGLOGGER.error("Not a valid module: " + e.getMessage() + " "+ e.getLocation());
                 return null;
             }
         })
@@ -130,7 +130,7 @@ public class MibLoader {
                     throw e.getWrapper();
                 } catch (MibException.DuplicatedModuleException e2) {
                 } catch (MibException e2) {
-                    logger.error(e2.getMessage());
+                    MIBPARSINGLOGGER.error(e2, e2.getMessage());
                 }
             }
         });
@@ -169,7 +169,7 @@ public class MibLoader {
                         }
                         return new ANTLRFileStream(i.toString(), moduleencoding);
                     } catch (IOException e) {
-                        logger.error("Invalid MIB source %s: %s", i, e.getMessage());
+                        MIBPARSINGLOGGER.error("Invalid MIB source %s: %s", i, e.getMessage());
                         return null;
                     }
                 })
@@ -202,16 +202,16 @@ public class MibLoader {
             Symbol bad = new Symbol(i.getKey().toString());
             Symbol good = new Symbol(i.getValue().toString());
             if (buildOids.containsKey(good) && ! badsymbols.contains(bad)) {
-                logger.debug("adding invalid symbol mapping: %s -> %s" , bad, good);
+                MIBPARSINGLOGGER.debug("adding invalid symbol mapping: %s -> %s" , bad, good);
                 buildOids.put(bad, buildOids.get(good));
                 badsymbols.add(bad);
             }
             if (types.containsKey(good) && ! badsymbols.contains(bad)) {
-                logger.debug("adding invalid type declaration mapping: %s -> %s" , bad, good);
+                MIBPARSINGLOGGER.debug("adding invalid type declaration mapping: %s -> %s" , bad, good);
                 types.put(bad, types.get(good));
             }
             if (textualConventions.containsKey(good) && ! badsymbols.contains(bad)) {
-                logger.debug("adding invalid textual convention declaration mapping: %s -> %s" , bad, good);
+                MIBPARSINGLOGGER.debug("adding invalid textual convention declaration mapping: %s -> %s" , bad, good);
                 textualConventions.put(bad, textualConventions.get(good));
             }
         });
@@ -227,15 +227,15 @@ public class MibLoader {
                     int[] content = oid.getPath(buildOids).stream().mapToInt(Integer::intValue).toArray();
                     top.add(content, oid.getName(), oid.isTableEntry());
                 } catch (MibException e1) {
-                    System.out.println(e.getMessage());
+                    MIBPARSINGLOGGER.error(e1, e1.getMessage());
                 }
-                System.out.println(e.getMessage());
+                MIBPARSINGLOGGER.error(e, e.getMessage());
             }
         });
         types.entrySet().stream()
         .filter(i -> i.getValue() != null)
         .filter( i-> ! i.getValue().resolve(types))
-        .forEach( i-> System.out.format("Can't resolve type %s\n", i.getKey()));
+        .forEach( i-> MIBPARSINGLOGGER.warn("Can't resolve type %s", i.getKey()));
         resolveTextualConventions();
         // Replace some eventually defined TextualConvention with the smarter version
         Symbol dateAndTime = new Symbol("SNMPv2-TC", "DateAndTime");
@@ -254,7 +254,7 @@ public class MibLoader {
                 ObjectType object = v.resolve(this);
                 _objects.put(node, object);
             } catch (MibException e) {
-                System.out.println(e.getMessage());
+                MIBPARSINGLOGGER.error(e, e.getMessage());
             }
         });
         buildTraps.forEach((i,j) -> {
@@ -284,12 +284,12 @@ public class MibLoader {
                     try {
                         traps.put(k, new Trap(l));
                     } catch (MibException e) {
-                        System.out.format("Invalid trap: %s\n%s %s %s\n", e.getMessage(), i, k, l);
+                        MIBPARSINGLOGGER.warn("Invalid trap: %s", e.getMessage());
                     }
                 });
                 resolvedTraps.put(node, traps);
             } catch (MibException e1) {
-                System.out.format("Invalid trap %s\n%s\n", e1.getMessage(), i, j);
+                MIBPARSINGLOGGER.warn("Invalid trap: %s", e1.getMessage());
             }
         });
         return newStore;
@@ -318,7 +318,7 @@ public class MibLoader {
                             types.put(s, tc);
                         } catch (MibException | MibException.NonCheckedMibException ex) {
                             types.put(s, null);
-                            System.out.println("Invalid textual convention " + s + " " + ex.getMessage());
+                            MIBPARSINGLOGGER.warn("Invalid textual convention  %s %s", s, ex.getMessage());
                         }
                         if (resolvCount == textualConventions.size()) {
                             break;
@@ -328,7 +328,7 @@ public class MibLoader {
             }
         }
         if (notDone.size() > 0) {
-            System.out.println("missing " + notDone);
+            MIBPARSINGLOGGER.debug("missing textual convention %d", notDone.size());
         }
     }
 
@@ -369,13 +369,13 @@ public class MibLoader {
                     sortedoid.add(i);
                 }
             } catch (MibException | MibException.NonCheckedMibException e) {
-                logger.error("Can't add new OID %s: %s", i, e.getMessage());
+                MIBPARSINGLOGGER.error("Can't add new OID %s: %s", i, e.getMessage());
                 try {
                     if (! i.getPath(buildOids).isEmpty()) {
                         sortedoid.add(i);
                     }
                 } catch (MibException e1) {
-                    logger.error("Second failure: can't add new OID %s: %s", i, e.getMessage());
+                    MIBPARSINGLOGGER.error("Second failure: can't add new OID %s: %s", i, e.getMessage());
                 }
 
             }
