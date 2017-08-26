@@ -60,7 +60,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
 
     @Override
     public String format(int[] value) {
-        Object[] parsed = resolver.parseIndexOID(value);
+        Object[] parsed = resolver.parseIndexOID(value).values().toArray();
         if(parsed != null && parsed.length > 0) {
             StringBuffer buffer = new StringBuffer(parsed[0].toString());
             IntStream.range(1, parsed.length).forEach(i -> buffer.append("[" + parsed[i] + "]"));
@@ -82,7 +82,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
         Matcher m = OIDWITSUFFIX.matcher(text);
         if (m.matches()) {
             String prefixString = m.group("prefix");
-            int[] prefix = resolver.getFromName(m.group("prefix"));
+            int[] prefix = resolver.getFromName(prefixString);
             if (prefix != null) {
                 int[] parsed;
                 if (m.group("oids") != null) {

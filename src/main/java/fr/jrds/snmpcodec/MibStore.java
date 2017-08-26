@@ -1,8 +1,8 @@
 package fr.jrds.snmpcodec;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -41,27 +41,39 @@ public abstract class MibStore {
         this.top = top;
     }
 
-    public Object[] parseIndexOID(int[] oid) {
+    /**
+     * Try to resolve the OID as a map.
+     * <p>If the OID is a table entry, the map is {@link java.util.LinkedHashMap LinkedHashMap}. The keys are 
+     * the table name, followed by column name. The values are the current column name followed by the index
+     * values.<p>
+     * If the OID is a single value, both the map's key and value contains the name of the OID.
+     * @param oid
+     * @return resolved OID
+     */
+    public Map<String, Object> parseIndexOID(int[] oid) {
         OidTreeNode found = top.search(oid);
         if(found == null) {
-            return new Object[] {new OID(oid)};
+            return Collections.emptyMap();
         }
-        List<Object> parts = new ArrayList<Object>();
+        Map<String, Object> parts;
         int[] foundOID = found.getElements();
-        parts.add(found.getSymbol());
         //The full path was not found, try to resolve the left other
         if(foundOID.length < oid.length ) {
+            parts = new LinkedHashMap<>();
+            parts.put(found.getTableEntry().getSymbol(), found.getSymbol());
             OidTreeNode parent = top.find(Arrays.copyOf(foundOID, foundOID.length -1 ));
             if (parent != null) {
                 ObjectType parentCodec = objects.get(parent);
                 if(parentCodec.isIndexed()) {
                     Index idx = parentCodec.getIndex();
                     int[] index = Arrays.copyOfRange(oid, foundOID.length, oid.length);
-                    Arrays.stream(idx.resolve(index, this)).forEach(i -> parts.add(i));
+                    idx.resolve(index, this).forEach((i,j) -> parts.put(i, j));
                 }
             }
+        } else {
+            parts = Collections.singletonMap(found.getSymbol(), found.getSymbol());
         }
-        return parts.toArray(new Object[parts.size()]);
+        return parts;
     }
 
     public boolean containsKey(String text) {

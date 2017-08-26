@@ -42,6 +42,10 @@ public abstract class OidTreeNode {
         return name;
     }
 
+    public OidTreeNode getParent() {
+        return parent;
+    }
+
     public OidTreeNode search(int[] oid) {
         return search(oid, false);
     }
@@ -107,7 +111,7 @@ public abstract class OidTreeNode {
             curs = curs.parent;
         }
         if (curs != null && curs.isTableEntry) {
-            return curs;
+            return curs.parent;
         } else {
             return null;
         }

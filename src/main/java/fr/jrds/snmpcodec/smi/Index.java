@@ -1,8 +1,9 @@
 package fr.jrds.snmpcodec.smi;
 
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.snmp4j.smi.OID;
@@ -37,8 +38,8 @@ public class Index {
         return indexes.toString();
     }
 
-    public Object[] resolve(int[] oid, MibStore store) {
-        List<Object> indexesValues = new ArrayList<>();
+    public Map<String, Object> resolve(int[] oid, MibStore store) {
+        Map<String, Object> indexesValues = new LinkedHashMap<>(indexes.size());
         int[] oidParsed = Arrays.copyOf(oid, oid.length);
         for(OidTreeNode i: indexes) {
             ObjectType column = store.objects.get(i);
@@ -47,7 +48,7 @@ public class Index {
                 break;
             }
             Syntax codec = column.getSyntax();
-            logger.debug("given %s, found %s %s", i, codec.getConstrains(), column);
+            logger.debug("given %s, found %s %s", i, codec, column);
             Parsed parsed;
             if(codec.getConstrains() != null) {
                 parsed = codec.getConstrains().extract(oidParsed);
@@ -69,7 +70,7 @@ public class Index {
             if (codec.isNamed()) {
                 o = codec.getNameFromNumer(v.toInt());
             }
-            indexesValues.add(o);
+            indexesValues.put(i.getSymbol(), o);
             oidParsed = parsed.next;
             if (oidParsed == null) {
                 break;
@@ -80,7 +81,7 @@ public class Index {
             throw new RuntimeException("Trailing elements in index: " + traillings);
         }
         logger.debug("will resolve %s to %s", oid, indexesValues);
-        return indexesValues.toArray(new Object[indexesValues.size()]);
+        return indexesValues;
     }
 
 }
