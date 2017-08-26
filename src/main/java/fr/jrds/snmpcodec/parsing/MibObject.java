@@ -60,6 +60,7 @@ abstract class MibObject {
 
     static class TrapTypeObject extends StructuredObject<Number> {
         OidValue oid;
+        Object enterprise;
         public TrapTypeObject() {
             super("TRAP_TYPE");
         }

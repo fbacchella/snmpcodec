@@ -181,7 +181,6 @@ macroName :
 complexAttribut:
     access
     | status
-    | name='ENTERPRISE' ( IDENTIFIER | objectIdentifierValue)
     | name='GROUP' IDENTIFIER
     | name='OBJECT' IDENTIFIER
     | name='SUPPORTS' IDENTIFIER
@@ -294,9 +293,14 @@ compliance:
 
 trapTypeAssignement :
     'TRAP-TYPE'
+    enterpriseAttribute
      (complexAttribut ','*)+
       '::='
       integerValue
+    ;
+
+enterpriseAttribute :
+    'ENTERPRISE' (IDENTIFIER | objectIdentifierValue)
     ;
 
 objectTypeAssignement :

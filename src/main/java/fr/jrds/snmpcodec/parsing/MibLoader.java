@@ -50,7 +50,7 @@ public class MibLoader {
     private final Map<Symbol, Oid> buildOids = new HashMap<>();
     private final Map<Oid, OidTreeNode> nodes = new HashMap<>();
     private final Map<Symbol, Syntax> types = new HashMap<>();
-    private final Map<Symbol, Map<Integer, Map<String, Object>>> buildTraps = new HashMap<>();
+    private final Map<Object, Map<Integer, Map<String, Object>>> buildTraps = new HashMap<>();
     private final Map<Symbol, Map<String, Object>> textualConventions = new HashMap<>();
     private final Map<Oid, ObjectTypeBuilder> buildObjects = new HashMap<>();
     private final Set<Symbol> symbols = new HashSet<>();
@@ -259,17 +259,39 @@ public class MibLoader {
             }
         });
         buildTraps.forEach((i,j) -> {
-            Oid oid = this.buildOids.get(i);
-            OidTreeNode node = this.nodes.get(oid);
-            Map<Integer, Trap> traps = new HashMap<>(j.size());
-            j.forEach((k,l) -> {
-                try {
-                    traps.put(k, new Trap(l));
-                } catch (MibException e) {
-                    System.out.format("Invalid trap: %s %s %s\n", i, k, l);
+            try {
+                Oid oid;
+                if (i instanceof OidPath) {
+                    OidPath p = (OidPath) i;
+                    oid = new Oid(p.getRoot(), p.getComponents(), null, false);
+                } else if (i instanceof Symbol) {
+                    Symbol s =  (Symbol) i;
+                    oid = buildOids.get(s);
+                    if (oid == null) {
+                        throw new MibException("Trap's enterprise unknown " + s.toString());
+                    }
+                } else {
+                    throw new MibException("Wrong enterprise type " + i.getClass().getName());
                 }
-            });
-            resolvedTraps.put(node, traps);
+                int[] oidPath;
+                List<Integer> path = oid.getPath(buildOids);
+                if (path == null) {
+                    throw new MibException("Can't resolve path " + oid);
+                }
+                oidPath = path.stream().mapToInt( k -> k.intValue()).toArray();
+                OidTreeNode node = top.find(oidPath);
+                Map<Integer, Trap> traps = new HashMap<>(j.size());
+                j.forEach((k,l) -> {
+                    try {
+                        traps.put(k, new Trap(l));
+                    } catch (MibException e) {
+                        System.out.format("Invalid trap: %s\n%s %s %s\n", e.getMessage(), i, k, l);
+                    }
+                });
+                resolvedTraps.put(node, traps);
+            } catch (MibException e1) {
+                System.out.format("Invalid trap %s\n%s\n", e1.getMessage(), i, j);
+            }
         });
         return newStore;
     }
@@ -393,15 +415,13 @@ public class MibLoader {
         addOid(s, value, false);
     }
 
-    void addTrapType(Symbol s, String name, Map<String, Object> attributes, Number trapIndex) throws MibException {
-        if (symbols.contains(s) ) {
+    void addTrapType(Symbol s, Object enterprise, Map<String, Object> attributes, Number trapIndex) throws MibException {
+        attributes.put("SYMBOL", s);
+        Map<Integer, Map<String,Object>> traps = buildTraps.computeIfAbsent(enterprise, k -> new HashMap<>());
+        if (traps.containsKey(trapIndex.intValue())) {
             throw new MibException.DuplicatedSymbolException(s);
         }
-        attributes.put("SYMBOL", s);
-        Object enterprise = attributes.get("ENTERPRISE");
-        if (enterprise instanceof Symbol) {
-            buildTraps.computeIfAbsent((Symbol)enterprise, k -> new HashMap<>()).put(trapIndex.intValue(), attributes);
-        }
+        traps.put(trapIndex.intValue(), attributes);
     }
 
     void addObjectType(Symbol s, Map<String, Object> attributes, OidPath value) throws MibException {

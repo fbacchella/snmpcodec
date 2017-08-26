@@ -28,6 +28,7 @@ import fr.jrds.snmpcodec.parsing.ASNParser.ComplexAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ComplexAttributContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ConstraintContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ElementsContext;
+import fr.jrds.snmpcodec.parsing.ASNParser.EnterpriseAttributeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.IntegerTypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.IntegerValueContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleComplianceAssignementContext;
@@ -200,11 +201,11 @@ public class ModuleListener extends ASNBaseListener {
         TrapTypeObject macro = (TrapTypeObject) stack.pop();
         Symbol s = (Symbol) stack.pop();
         try {
-            store.addTrapType(s, macro.name, macro.values, value.value);
+            if (macro.enterprise != null) {
+                store.addTrapType(s, macro.enterprise, macro.values, value.value);
+            }
         } catch (MibException e) {
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
-        } catch (ClassCastException e) {
-            throw new ParseCancellationException(String.format("mib storage exception: %s", e.getMessage()));
         }
     }
 
@@ -428,6 +429,23 @@ public class ModuleListener extends ASNBaseListener {
 
         MappedObject co = (MappedObject) stack.peek();
         co.values.put(name.intern(), value);
+    }
+
+    @Override
+    public void exitEnterpriseAttribute(EnterpriseAttributeContext ctx) {
+        Object enterprise;
+        if (ctx.IDENTIFIER() != null) {
+            enterprise = resolveSymbol(ctx.IDENTIFIER().getText());
+        } else if ( ctx.objectIdentifierValue() != null){
+            OidValue value = (OidValue) stack.pop();
+            enterprise = value.value;
+        } else {
+            MibException e = new MibException("Invalid trap");
+            parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
+            return;
+        }
+        TrapTypeObject co = (TrapTypeObject) stack.peek();
+        co.enterprise = enterprise;
     }
 
     @Override
