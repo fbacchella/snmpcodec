@@ -1,6 +1,12 @@
 package fr.jrds.snmpcodec;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.ParseException;
+import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.IntStream;
@@ -18,6 +24,9 @@ import fr.jrds.snmpcodec.smi.SmiType;
 
 public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
 
+    static public final String MIBDIRSPROPERTY = "snmpcodec.mibdirs";
+    static public final String MIBDIRSPROPERTY_DEFAULT = "/usr/share/snmp/mibs";
+
     private final MibStore resolver;
     private OIDTextFormat previous;
     private VariableTextFormat previousVar;
@@ -34,7 +43,39 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
      */
     public static OIDFormatter register() {
         MibLoader loader = new MibLoader();
+        String[] mibdirs =System.getProperty(MIBDIRSPROPERTY, MIBDIRSPROPERTY_DEFAULT).split(File.pathSeparator);
+        Arrays.stream(mibdirs)
+        .map(i -> Paths.get(i))
+        .filter( i-> {
+            try {
+                File dest = i.toRealPath().toFile();
+                return dest.isDirectory() || dest.isFile();
+            } catch (IOException e) {
+                return false;
+            }
+        })
+        .map( i -> {
+            try {
+                if (i.toRealPath().toFile().isDirectory()) {
+                    return Files.list(i).filter(j -> {
+                        try {
+                            return j.toRealPath().toFile().isFile();
+                        } catch (IOException e1) {
+                            return false;
+                        }
+                    }).toArray(j -> new Path[j]);
+                } else {
+                    return new Path[] {i};
+                }
+            } catch (IOException e1) {
+                return null;
+            }
+        })
+        .filter(i -> i != null)
+        .forEach( i-> loader.load(i));
+
         MibStore resolver = loader.buildTree();
+
         return register(resolver);
     }
 

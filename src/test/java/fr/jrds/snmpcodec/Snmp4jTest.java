@@ -1,11 +1,14 @@
 package fr.jrds.snmpcodec;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.text.ParseException;
 
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.snmp4j.PDU;
@@ -19,9 +22,23 @@ import fr.jrds.snmpcodec.parsing.MibLoader;
 
 public class Snmp4jTest {
 
+    private String mibdirproperty;
+
     @BeforeClass
     static public void configure() throws IOException {
         LogUtils.setLevel(Snmp4jTest.class, MibStore.class.getName());
+    }
+
+    @Before
+    public void saveEnv() {
+        mibdirproperty = System.getProperty(OIDFormatter.MIBDIRSPROPERTY);
+    }
+
+    @After
+    public void restoreEnv() {
+        if (mibdirproperty != null) {
+            System.setProperty(OIDFormatter.MIBDIRSPROPERTY,mibdirproperty);
+        }
     }
 
     @Test
@@ -58,6 +75,15 @@ public class Snmp4jTest {
         Assert.assertEquals("sysORIndex[1]", new OID("sysORIndex.1").format());
         Assert.assertEquals("sysORID", new OID("sysORID").format());
 
+    }
+
+    @Test
+    public void defaultRegister() throws URISyntaxException {
+        String rfcmodules = getClass().getClassLoader().getResource("rfc-modules").toURI().getPath();
+        String custommodule = getClass().getClassLoader().getResource("custommib.txt").toURI().getPath();
+        System.setProperty(OIDFormatter.MIBDIRSPROPERTY, rfcmodules + File.pathSeparatorChar + custommodule);
+        OIDFormatter.register();
+        Assert.assertEquals("snmpcodec", new OID("snmpcodec").format());
     }
 
 }
