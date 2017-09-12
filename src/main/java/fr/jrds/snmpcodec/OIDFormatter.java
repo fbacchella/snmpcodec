@@ -27,7 +27,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
     static public final String MIBDIRSPROPERTY = "snmpcodec.mibdirs";
     static public final String MIBDIRSPROPERTY_DEFAULT = "/usr/share/snmp/mibs";
 
-    private final MibStore resolver;
+    public final MibStore resolver;
     private OIDTextFormat previous;
     private VariableTextFormat previousVar;
 
