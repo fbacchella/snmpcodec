@@ -94,28 +94,16 @@ public class ModuleListener extends ASNBaseListener {
 
     private Number fitNumber(BigInteger v) {
         Number finalV = null;
-        switch(v.bitCount()) {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-        case 7:
+        int bitLength = v.bitLength();
+        if (bitLength < 7) {
             finalV = new Byte((byte) v.intValue());
-            break;
-        case 8:
-        case 15:
+        } else if (bitLength < 15) {
             finalV = new Short((short)v.intValue());
-            break;
-        case 16:
-        case 31:
-            finalV = new Integer(v.intValue());
-            break;
-        case 32:
-        case 63:
-            finalV = new Long(v.longValue());
-            break;
-        case 64:
-        default:
+        } else if (bitLength < 31) {
+            finalV = new Integer((int)v.intValue());
+        } else if (bitLength < 63) {
+            finalV = new Long((long)v.longValue());
+        } else {
             finalV = v;
         }
         return finalV;
