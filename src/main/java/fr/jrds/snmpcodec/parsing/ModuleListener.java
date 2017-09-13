@@ -360,10 +360,18 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterStringValue(StringValueContext ctx) {
-        String cstring = ctx.CSTRING().getText();
-        cstring = cstring.substring(1, cstring.length() - 1);
-        ValueType.StringValue v = new ValueType.StringValue(cstring);
-        stack.push(v);
+        try {
+            if (ctx.CSTRING() == null || ctx.CSTRING().getText() == null) {
+                Exception e = new NullPointerException();
+                parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
+            }
+            String cstring = ctx.CSTRING().getText();
+            cstring = cstring.substring(1, cstring.length() - 1);
+            ValueType.StringValue v = new ValueType.StringValue(cstring);
+            stack.push(v);
+        } catch (Exception e) {
+            parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
+        }
     }
 
     /****************************************
