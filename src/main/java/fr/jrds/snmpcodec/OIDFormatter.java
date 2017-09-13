@@ -27,23 +27,33 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
     static public final String MIBDIRSPROPERTY = "snmpcodec.mibdirs";
     static public final String MIBDIRSPROPERTY_DEFAULT = "/usr/share/snmp/mibs";
 
-    public final MibStore resolver;
+    public final MibStore store;
     private OIDTextFormat previous;
     private VariableTextFormat previousVar;
 
     public OIDFormatter(MibStore resolver) {
-        this.resolver = resolver;
+        this.store = resolver;
         previous = SNMP4JSettings.getOIDTextFormat();
         previousVar = SNMP4JSettings.getVariableTextFormat();
     }
 
     /**
-     * Register in SNMP4J a default {@link MibStore}, it can be called many times
+     * <p>Register in SNMP4J a default {@link MibStore}. The modules folders are found using the system property {@link #MIBDIRSPROPERTY}.</p>
+     * <p>If called many times, formatters and parsers are chained.</p>
      * @return the new OIDFormatter
      */
     public static OIDFormatter register() {
+        String[] mibdirs = System.getProperty(MIBDIRSPROPERTY, MIBDIRSPROPERTY_DEFAULT).split(File.pathSeparator);
+        return register(mibdirs);
+    }
+
+    /**
+     * <p>Register in SNMP4J a default {@link MibStore}. The modules folders are explicitly given.</p>
+     * <p>If called many times, formatters and parsers are chained.</p>
+     * @return the new OIDFormatter
+     */
+    public static OIDFormatter register(String... mibdirs) {
         MibLoader loader = new MibLoader();
-        String[] mibdirs =System.getProperty(MIBDIRSPROPERTY, MIBDIRSPROPERTY_DEFAULT).split(File.pathSeparator);
         Arrays.stream(mibdirs)
         .map(i -> Paths.get(i))
         .filter( i-> {
@@ -80,7 +90,8 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
     }
 
     /**
-     * Register in SNMP4J a custom  {@link MibStore}, it can be called many times
+     * <p>Register in SNMP4J a custom {@link MibStore}.</p>
+     * <p>If called many times, formatters and parsers are chained.</p>
      * @param resolver the new OIDFormatter
      * @return the new OIDFormatter
      */
@@ -101,7 +112,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
 
     @Override
     public String format(int[] value) {
-        Object[] parsed = resolver.parseIndexOID(value).values().toArray();
+        Object[] parsed = store.parseIndexOID(value).values().toArray();
         if(parsed != null && parsed.length > 0) {
             StringBuffer buffer = new StringBuffer(parsed[0].toString());
             IntStream.range(1, parsed.length).forEach(i -> buffer.append("[" + parsed[i] + "]"));
@@ -123,7 +134,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
         Matcher m = OIDWITSUFFIX.matcher(text);
         if (m.matches()) {
             String prefixString = m.group("prefix");
-            int[] prefix = resolver.getFromName(prefixString);
+            int[] prefix = store.getFromName(prefixString);
             if (prefix != null) {
                 int[] parsed;
                 if (m.group("oids") != null) {
@@ -144,7 +155,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
 
     @Override
     public String format(OID instanceOID, Variable variable, boolean withOID) {
-        String formatted = resolver.format(instanceOID, variable);
+        String formatted = store.format(instanceOID, variable);
         if (formatted != null) {
             return formatted;
         } else {
@@ -159,7 +170,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
 
     @Override
     public Variable parse(OID classOrInstanceOID, String text) throws ParseException {
-        Variable v = resolver.parse(classOrInstanceOID, text);
+        Variable v = store.parse(classOrInstanceOID, text);
         if (v != null) {
             return v;
         } else {
