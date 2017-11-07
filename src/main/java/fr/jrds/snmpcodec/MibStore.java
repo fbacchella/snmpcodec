@@ -41,10 +41,10 @@ public abstract class MibStore {
      * Try to resolve the OID as a map.
      * <p>If the OID is a table entry, the map is {@link java.util.LinkedHashMap LinkedHashMap}. The keys are 
      * the table name, followed by column name. The values are the current column name followed by the index
-     * values.<p>
+     * values.</p>
      * If the OID is a single value, both the map's key and value contains the name of the OID.
      * @param oid
-     * @return resolved OID
+     * @return
      */
     public Map<String, Object> parseIndexOID(int[] oid) {
         OidTreeNode found = top.search(oid);
