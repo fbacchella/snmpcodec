@@ -222,7 +222,7 @@ groups:
     ;
 
 objects:
-    '{' value (',' value)* ','? '}'
+    '{' value (','? value)* ','? '}'
     ;
 
 variables:
