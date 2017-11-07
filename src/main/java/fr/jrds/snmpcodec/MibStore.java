@@ -53,11 +53,18 @@ public abstract class MibStore {
         }
         Map<String, Object> parts;
         int[] foundOID = found.getElements();
-        //The full path was not found, try to resolve the left other
         if(foundOID.length < oid.length ) {
+            //The full path was not found, try to resolve the suffix as a value
+
             // It's not a table, MIB module missing, abort
+            // Table check is needed, some broken implementations starts tables at index 0 (not allowed in RFC)
             if (found.getTableEntry() == null) {
-                return Collections.emptyMap();
+                if (foundOID.length == oid.length  - 1 && oid[oid.length - 1] == 0) {
+                    // Hey of course it was not a table, it was a oid value
+                    return Collections.singletonMap(found.getSymbol(), found.getSymbol());
+                } else {
+                    return Collections.singletonMap(found.getSymbol(), Arrays.copyOfRange(oid, foundOID.length, oid.length));
+                }
             }
             parts = new LinkedHashMap<>();
             parts.put(found.getTableEntry().getSymbol(), found.getSymbol());
@@ -112,8 +119,8 @@ public abstract class MibStore {
         OidTreeNode node = top.search(instanceOID.getValue());
         if (node == null) {
             return null;
-        } else if (syntaxes.containsKey(node)) {
-            return syntaxes.get(node).parse(text);
+        } else if (syntaxes.containsKey(node.getSymbol())) {
+            return syntaxes.get(node.getSymbol()).parse(text);
         }
         return null;
     }
