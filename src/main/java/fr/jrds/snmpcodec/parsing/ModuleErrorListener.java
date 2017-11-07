@@ -6,7 +6,6 @@ import org.antlr.v4.runtime.Recognizer;
 import org.snmp4j.log.LogLevel;
 
 import fr.jrds.snmpcodec.MibException;
-import fr.jrds.snmpcodec.MibStore;
 
 public class ModuleErrorListener extends BaseErrorListener {
 
@@ -28,12 +27,15 @@ public class ModuleErrorListener extends BaseErrorListener {
             if (mex.getRootException() instanceof MibException.DuplicatedModuleException
                     || mex.getRootException() instanceof MibException.DuplicatedSymbolException ) {
                 usedLevel = LogLevel.DEBUG;
+            } else if (mex.getRootException() instanceof NullPointerException) {
+                usedLevel = LogLevel.ERROR;
             }
         }
         if (modulelistener.firstError && usedLevel.getLevel() >= loggerLevel.getLevel()) {
             MibLoader.MIBPARSINGLOGGER.info(recognizer.getInputStream().getSourceName());
             modulelistener.firstError = false;
         }
+
         if (usedLevel.getLevel() == LogLevel.LEVEL_DEBUG) {
             MibLoader.MIBPARSINGLOGGER.debug("    line %s:%s: %s", line, charPositionInLine, msg);
         } else if (usedLevel.getLevel() == LogLevel.LEVEL_INFO) {
