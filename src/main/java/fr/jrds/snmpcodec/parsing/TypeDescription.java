@@ -57,7 +57,7 @@ public class TypeDescription {
         case setType:
         case setOfType:
         default:
-            return null;
+            return new NullSyntax();
         }
         if (names != null || constraints != null) {
             return new AnnotedSyntax(trySyntax, names, constraints);

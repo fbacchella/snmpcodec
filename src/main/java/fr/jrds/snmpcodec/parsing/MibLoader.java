@@ -441,8 +441,14 @@ public class MibLoader {
     }
 
     public void addType(Symbol s, Syntax type) throws MibException {
-        if (types.containsKey(s) ) {
+        if (type instanceof NullSyntax) {
+            return;
+        }
+        if (types.containsKey(s)) {
             throw new MibException.DuplicatedSymbolException(s);
+        }
+        if (s == null || type == null) {
+            throw new MibException("Empty settings " + s + " " + type);
         }
         types.put(s, type);
     }
