@@ -55,6 +55,10 @@ public abstract class MibStore {
         int[] foundOID = found.getElements();
         //The full path was not found, try to resolve the left other
         if(foundOID.length < oid.length ) {
+            // It's not a table, MIB module missing, abort
+            if (found.getTableEntry() == null) {
+                return Collections.emptyMap();
+            }
             parts = new LinkedHashMap<>();
             parts.put(found.getTableEntry().getSymbol(), found.getSymbol());
             OidTreeNode parent = top.find(Arrays.copyOf(foundOID, foundOID.length -1 ));
