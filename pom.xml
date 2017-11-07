@@ -18,7 +18,7 @@
         <target>1.8</target>
         <mavenSurefirePlugin>2.19.1</mavenSurefirePlugin>
         <javadoc>2.10.3</javadoc>
-        <antlr>4.6</antlr>
+        <antlr>4.7</antlr>
     </properties>
 
     <dependencies>

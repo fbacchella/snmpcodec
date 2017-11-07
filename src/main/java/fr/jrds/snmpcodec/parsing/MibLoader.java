@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
 import java.io.UncheckedIOException;
+import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,11 +17,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import org.antlr.v4.runtime.ANTLRErrorListener;
-import org.antlr.v4.runtime.ANTLRFileStream;
-import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
@@ -96,7 +98,7 @@ public class MibLoader {
         addOid(s, path, false);
     }
 
-    private void load(Stream<ANTLRInputStream> source) {
+    private void load(Stream<CharStream> source) {
         source
         .filter( i -> {modulelistener.firstError = true; return true;} )
         .map(i -> {
@@ -138,25 +140,39 @@ public class MibLoader {
     }
 
     public void load(InputStream... sources) throws IOException {
-        Stream<ANTLRInputStream> antltrstream = Arrays.stream(sources)
-                .map(i -> i.toString())
-                .map(i -> {
-                    return new ANTLRInputStream(i);
-                });
-        load(antltrstream);
+        try {
+            Stream<CharStream>  antltrstream = Arrays.stream(sources)
+                    .map( i-> {
+                        try {
+                            return CharStreams.fromStream(i);
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+                    });
+            load(antltrstream);
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
+        }
     }
 
     public void load(Reader... sources) throws IOException {
-        Stream<ANTLRInputStream> antltrstream = Arrays.stream(sources)
-                .map(i -> i.toString())
-                .map(i -> {
-                    return new ANTLRInputStream(i);
-                });
-        load(antltrstream);
+        try {
+            Stream<CharStream> antltrstream = Arrays.stream(sources)
+                    .map(i -> {
+                        try {
+                            return CharStreams.fromReader(i);
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+                    });
+            load(antltrstream);
+        } catch (UncheckedIOException e) {
+            throw e.getCause();
+        }
     }
 
     public void load(String encoding, Path... sources) {
-        Stream<ANTLRInputStream> antltrstream = Arrays.stream(sources)
+        Stream<CharStream> antltrstream = Arrays.stream(sources)
                 .map(i -> {
                     try {
                         String moduleencoding = encoding;
@@ -167,13 +183,13 @@ public class MibLoader {
                         if ("skip".equals(moduleencoding)) {
                             return null;
                         }
-                        return new ANTLRFileStream(i.toString(), moduleencoding);
+                        return CharStreams.fromPath(i, Charset.forName(moduleencoding));
                     } catch (IOException e) {
                         MIBPARSINGLOGGER.error("Invalid MIB source %s: %s", i, e.getMessage());
                         return null;
                     }
                 })
-                .filter( i-> i != null).map(i -> (ANTLRInputStream) i);
+                .filter( i-> i != null);
         load(antltrstream);
     }
 
