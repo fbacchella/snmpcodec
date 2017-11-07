@@ -43,25 +43,25 @@ public class MibLoader {
 
     public static LogAdapter MIBPARSINGLOGGER = LogAdapter.getLogger(MibStore.class.getPackage().getName() + ".MibParsingError");
 
-    private final ModuleListener modulelistener;
-    private final ANTLRErrorListener errorListener;
+    private final ThreadLocal<ModuleListener> modulelistener = ThreadLocal.withInitial(() ->  new ModuleListener(this));
+    private final ThreadLocal<ANTLRErrorListener> errorListener = ThreadLocal.withInitial(() ->  new ModuleErrorListener(this.modulelistener.get()));
     private final Properties encodings;
 
-    private Set<Oid> allOids = new HashSet<>();
-    private final Set<Symbol> badsymbols = new HashSet<>();
-    private final Map<Symbol, Oid> buildOids = new HashMap<>();
-    private final Map<Oid, OidTreeNode> nodes = new HashMap<>();
-    private final Map<Symbol, Syntax> types = new HashMap<>();
-    private final Map<Object, Map<Integer, Map<String, Object>>> buildTraps = new HashMap<>();
-    private final Map<Symbol, Map<String, Object>> textualConventions = new HashMap<>();
-    private final Map<Oid, ObjectTypeBuilder> buildObjects = new HashMap<>();
+    private Set<Oid> allOids = ConcurrentHashMap.newKeySet();
+    private final Set<Symbol> badsymbols = ConcurrentHashMap.newKeySet();
+    private final Map<Symbol, Oid> buildOids = new ConcurrentHashMap<>();
+    private final Map<Oid, OidTreeNode> nodes = new ConcurrentHashMap<>();
+    private final Map<Symbol, Syntax> types = new ConcurrentHashMap<>();
+    private final Map<Object, Map<Integer, Map<String, Object>>> buildTraps = new ConcurrentHashMap<>();
+    private final Map<Symbol, Map<String, Object>> textualConventions = new ConcurrentHashMap<>();
+    private final Map<Oid, ObjectTypeBuilder> buildObjects = new ConcurrentHashMap<>();
     private final OidTreeNodeImpl top = new OidTreeNodeImpl();
-    private final Map<String, List<OidTreeNode>> names = new HashMap<>();
+    private final Map<String, List<OidTreeNode>> names = new ConcurrentHashMap<>();
     private final Set<String> modules = new HashSet<>();
 
-    private final Map<String, Syntax> _syntaxes = new HashMap<>();
-    private final Map<OidTreeNode, ObjectType> _objects = new HashMap<>();
-    private final Map<OidTreeNode, Map<Integer,Trap>> resolvedTraps = new HashMap<>();
+    private final Map<String, Syntax> _syntaxes = new ConcurrentHashMap<>();
+    private final Map<OidTreeNode, ObjectType> _objects = new ConcurrentHashMap<>();
+    private final Map<OidTreeNode, Map<Integer,Trap>> resolvedTraps = new ConcurrentHashMap<>();
     private MibStore newStore = null;
 
     public MibLoader() {
@@ -72,9 +72,6 @@ public class MibLoader {
             addRoot("broken-module", -1);
         } catch (MibException e1) {
         }
-
-        modulelistener = new ModuleListener(this);
-        errorListener = new ModuleErrorListener(modulelistener);
 
         encodings = new Properties();
         try {
@@ -100,19 +97,20 @@ public class MibLoader {
 
     private void load(Stream<CharStream> source) {
         source
-        .filter( i -> {modulelistener.firstError = true; return true;} )
+        .filter( i -> {modulelistener.get().firstError = true; return true;} )
+        .parallel()
         .map(i -> {
             ASNLexer lexer = new ASNLexer(i);
             lexer.removeErrorListeners();
-            lexer.addErrorListener(errorListener);
+            lexer.addErrorListener(errorListener.get());
             return lexer;
         })
         .map(i -> new CommonTokenStream(i))
         .map(i -> {
             ASNParser parser = new ASNParser(i);
             parser.removeErrorListeners();
-            parser.addErrorListener(errorListener);
-            modulelistener.parser = parser;
+            parser.addErrorListener(errorListener.get());
+            modulelistener.get().parser = parser;
             return parser;
         })
         .map(i -> {
@@ -126,7 +124,7 @@ public class MibLoader {
         .filter(i -> i != null)
         .forEach(i -> {
             try {
-                ParseTreeWalker.DEFAULT.walk(modulelistener, i);
+                ParseTreeWalker.DEFAULT.walk(modulelistener.get(), i);
             } catch (NonCheckedMibException e) {
                 try {
                     throw e.getWrapper();

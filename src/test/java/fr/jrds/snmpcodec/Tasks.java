@@ -106,7 +106,7 @@ public class Tasks {
             }
         };
 
-        Files.find(Paths.get(mibs.toUri()), 10, matcher).forEach(i -> {
+        Files.find(Paths.get(mibs.toUri()), 10, matcher)./*parallel().*/forEach(i -> {
             try {
                 loader.load(i);
             } catch (WrappedException e) {
