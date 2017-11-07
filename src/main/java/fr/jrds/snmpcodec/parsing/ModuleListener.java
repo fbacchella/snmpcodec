@@ -111,9 +111,6 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterModuleDefinition(ModuleDefinitionContext ctx) {
-        if (ctx.IDENTIFIER() == null) {
-            throw new ParseCancellationException("Empty module");
-        }
         currentModule = ctx.IDENTIFIER().getText();
         symbols.clear();
 
@@ -180,10 +177,6 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitTrapTypeAssignement(TrapTypeAssignementContext ctx) {
-        if (! (stack.peek() instanceof ValueType)) {
-            stack.clear();
-            return;
-        }
         @SuppressWarnings("unchecked")
         ValueType<Number> value = (ValueType<Number>) stack.pop();
         TrapTypeObject macro = (TrapTypeObject) stack.pop();
@@ -265,9 +258,6 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitValueAssignment(ValueAssignmentContext ctx) {
-        if (! (stack.peek() instanceof ValueType)) {
-            return;
-        }
         ValueType<?> vt = (ValueType<?>) stack.pop();
         TypeDescription td = (TypeDescription) stack.pop();
         Symbol s = (Symbol) stack.pop();

@@ -333,7 +333,6 @@ public class MibLoader {
                             TextualConvention tc = type.getTextualConvention(hint, type);
                             types.put(s, tc);
                         } catch (MibException | MibException.NonCheckedMibException ex) {
-                            types.put(s, null);
                             MIBPARSINGLOGGER.warn("Invalid textual convention  %s %s", s, ex.getMessage());
                         }
                         if (resolvCount == textualConventions.size()) {
