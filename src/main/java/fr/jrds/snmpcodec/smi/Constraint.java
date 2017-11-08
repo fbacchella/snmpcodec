@@ -4,12 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import fr.jrds.snmpcodec.log.LogAdapter;
 import fr.jrds.snmpcodec.smi.Index.Parsed;
 
 public class Constraint {
-
-    LogAdapter logger = LogAdapter.getLogger(Constraint.class);
 
     public static class ConstraintElement {
         public final Number value;

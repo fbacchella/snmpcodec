@@ -41,7 +41,7 @@ import fr.jrds.snmpcodec.smi.Trap;
 
 public class MibLoader {
 
-    public static LogAdapter MIBPARSINGLOGGER = LogAdapter.getLogger(MibStore.class.getPackage().getName() + ".MibParsingError");
+    public static final LogAdapter MIBPARSINGLOGGER = LogAdapter.getLogger(MibStore.class.getPackage().getName() + ".MibParsingError");
 
     private final ModuleListener modulelistener;
     private final ANTLRErrorListener errorListener;

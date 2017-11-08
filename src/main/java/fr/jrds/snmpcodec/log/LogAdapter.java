@@ -1,25 +1,25 @@
 package fr.jrds.snmpcodec.log;
 
 import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.snmp4j.log.LogFactory;
 import org.snmp4j.log.LogLevel;
 
 public class LogAdapter {
 
+    private static final Map<String, LogAdapter> loggercache = new ConcurrentHashMap<>();
+
     public static LogAdapter getLogger(Class<?> c) {
-        return new LogAdapter(c);
+        return getLogger(c.getName());
     }
 
     public static LogAdapter getLogger(String l) {
-        return new LogAdapter(l);
+        return loggercache.computeIfAbsent(l,  i-> new LogAdapter(i));
     }
 
     private final org.snmp4j.log.LogAdapter adapter;
-
-    private LogAdapter(Class<?> c) {
-        adapter = LogFactory.getLogger(c);
-    }
 
     private LogAdapter(String l) {
         adapter = LogFactory.getLogger(l);
