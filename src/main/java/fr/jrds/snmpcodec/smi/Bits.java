@@ -41,11 +41,6 @@ public class Bits extends Syntax {
     }
 
     @Override
-    public boolean resolve(Map<Symbol, Syntax> types) {
-        return true;
-    }
-
-    @Override
     public TextualConvention getTextualConvention(String hint, Syntax type) {
         return new TextualConvention.Bits();
     }

@@ -51,9 +51,4 @@ public class TableEntry extends Syntax {
         return "TableEntry " + this.rows.keySet();
     }
 
-    @Override
-    public boolean resolve(Map<Symbol, Syntax> types) {
-        return true;
-    }
-
 }

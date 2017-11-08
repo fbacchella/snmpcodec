@@ -64,6 +64,10 @@ public class Index {
             }
             logger.debug("parsed %s from %s with %s/%s", parsed, oidParsed, i, codec);
             Variable v =  codec.getVariable();
+            if (v == null) {
+                // The definition was incomplete, null variable returned, stop now
+                break;
+            }
             OID subIndex = new OID(parsed.content);
             v.fromSubIndex(subIndex, true);
             Object o = codec.convert(v);

@@ -76,7 +76,8 @@ public abstract class Syntax {
         throw new MibException("Can't provide textual convention");
     }
 
-    public abstract boolean resolve(Map<Symbol, Syntax> types);
+    public void resolve(Map<Symbol, Syntax> types) throws MibException {
+    }
 
     @Override
     public String toString() {

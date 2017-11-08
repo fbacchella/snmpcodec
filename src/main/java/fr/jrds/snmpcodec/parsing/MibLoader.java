@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import org.antlr.v4.runtime.ANTLRErrorListener;
@@ -47,10 +46,14 @@ public class MibLoader {
     private final ANTLRErrorListener errorListener;
     private final Properties encodings;
 
-    private Set<Oid> allOids = new HashSet<>();
+    // Those two sets will contains many instance of the same OID
+    // The first versions of Oid will depends of the module where it's defined
+    // The over will be identified using the exact path to root
+    private final Set<Oid> allOids = new HashSet<>();
+    private final Set<Oid> tableEntryOid = new HashSet<>();
     private final Set<Symbol> badsymbols = new HashSet<>();
     private final Map<Symbol, Oid> buildOids = new HashMap<>();
-    private final Map<Oid, OidTreeNode> nodes = new HashMap<>();
+    private final Map<List<Integer>, OidTreeNode> nodes = new HashMap<>();
     private final Map<Symbol, Syntax> types = new HashMap<>();
     private final Map<Object, Map<Integer, Map<String, Object>>> buildTraps = new HashMap<>();
     private final Map<Symbol, Map<String, Object>> textualConventions = new HashMap<>();
@@ -231,26 +234,35 @@ public class MibLoader {
                 textualConventions.put(bad, textualConventions.get(good));
             }
         });
-        sortdOids();
-        allOids.forEach(oid -> {
+        Set<Oid> sortedOid = sortdOids();
+        allOids.clear();
+        sortedOid.forEach(oid -> {
             try {
                 int[] content = oid.getPath(buildOids).stream().mapToInt(Integer::intValue).toArray();
-                OidTreeNode node = top.add(content, oid.getName(), oid.isTableEntry());
-                nodes.put(oid, node);
+                OidTreeNode node = top.add(content, oid.getName(), tableEntryOid.contains(oid));
+                nodes.put(oid.getPath(buildOids), node);
                 names.computeIfAbsent(oid.getName(), i -> new ArrayList<>()).add(node);
             } catch (MibException e) {
                 try {
                     int[] content = oid.getPath(buildOids).stream().mapToInt(Integer::intValue).toArray();
-                    top.add(content, oid.getName(), oid.isTableEntry());
+                    top.add(content, oid.getName(), tableEntryOid.contains(oid));
                 } catch (MibException e1) {
                     MIBPARSINGLOGGER.error(e1, e1.getMessage());
                 }
                 MIBPARSINGLOGGER.error(e, e.getMessage());
             }
         });
+
         types.entrySet().stream()
         .filter(i -> i.getValue() != null)
-        .filter( i-> ! i.getValue().resolve(types))
+        .filter( i-> {
+            try {
+                i.getValue().resolve(types);
+                return false;
+            } catch (MibException e2) {
+                return true;
+            }
+        })
         .forEach( i-> MIBPARSINGLOGGER.warn("Can't resolve type %s", i.getKey()));
         resolveTextualConventions();
         // Replace some eventually defined TextualConvention with the smarter version
@@ -270,7 +282,7 @@ public class MibLoader {
                 ObjectType object = v.resolve(this);
                 _objects.put(node, object);
             } catch (MibException e) {
-                MIBPARSINGLOGGER.error(e, e.getMessage());
+                MIBPARSINGLOGGER.error("Incomplete OID %s: %s", k, e.getMessage());
             }
         });
         buildTraps.forEach((i,j) -> {
@@ -278,7 +290,7 @@ public class MibLoader {
                 Oid oid;
                 if (i instanceof OidPath) {
                     OidPath p = (OidPath) i;
-                    oid = new Oid(p.getRoot(), p.getComponents(), null, false);
+                    oid = new Oid(p.getRoot(), p.getComponents(), null);
                 } else if (i instanceof Symbol) {
                     Symbol s =  (Symbol) i;
                     oid = buildOids.get(s);
@@ -325,19 +337,18 @@ public class MibLoader {
                     Map<String, Object> attributes = e.getValue();
                     Syntax type = (Syntax) attributes.get("SYNTAX");
                     String hint = (String) attributes.get("DISPLAY-HINT");
-                    boolean resolved = type.resolve(types);
-                    if (resolved) {
+                    try {
+                        type.resolve(types);
+                        TextualConvention tc = type.getTextualConvention(hint, type);
+                        types.put(s, tc);
+                    } catch (MibException | MibException.NonCheckedMibException ex) {
+                        MIBPARSINGLOGGER.warn("Invalid textual convention %s: %s", s, ex.getMessage());
+                    } finally {
                         notDone.remove(s);
                         resolvCount++;
-                        try {
-                            TextualConvention tc = type.getTextualConvention(hint, type);
-                            types.put(s, tc);
-                        } catch (MibException | MibException.NonCheckedMibException ex) {
-                            MIBPARSINGLOGGER.warn("Invalid textual convention  %s %s", s, ex.getMessage());
-                        }
-                        if (resolvCount == textualConventions.size()) {
-                            break;
-                        }
+                    }
+                    if (resolvCount == textualConventions.size()) {
+                        break;
                     }
                 }
             }
@@ -347,7 +358,7 @@ public class MibLoader {
         }
     }
 
-    private void sortdOids() {
+    private Set<Oid> sortdOids() {
         Set<Oid> sortedoid = new TreeSet<>(new Comparator<Oid>() {
 
             @Override
@@ -379,9 +390,19 @@ public class MibLoader {
         });
 
         allOids.forEach( i-> {
+            // the table entry status needs to be memoried, the oid hash and equality is changed after getPath
+            // So it needs to be put again in tableEntryOid
+            boolean isTableEntry = MibLoader.this.tableEntryOid.contains(i);
             try {
-                if (! i.getPath(buildOids).isEmpty()) {
-                    sortedoid.add(i);
+                List<Integer> path = i.getPath(buildOids);
+                if (! path.isEmpty()) {
+                    Oid newi = new Oid(i.getPath(buildOids), i.getName());
+                    sortedoid.add(newi);
+                    if (isTableEntry) {
+                        MibLoader.this.tableEntryOid.add(newi);
+                    }
+                } else {
+                    MIBPARSINGLOGGER.warn("Can't resolve OID %s path", i);
                 }
             } catch (MibException | MibException.NonCheckedMibException e) {
                 MIBPARSINGLOGGER.error("Can't add new OID %s: %s", i, e.getMessage());
@@ -392,21 +413,28 @@ public class MibLoader {
                 } catch (MibException e1) {
                     MIBPARSINGLOGGER.error("Second failure: can't add new OID %s: %s", i, e.getMessage());
                 }
-
+            }
+            if (isTableEntry) {
+                MibLoader.this.tableEntryOid.add(i);
             }
         });
-        allOids = sortedoid;
+        return sortedoid;
     }
 
-    void resolve(Syntax syntax) {
+    void resolve(Syntax syntax) throws MibException {
         syntax.resolve(types);
     }
 
     OidTreeNode resolveNode(Symbol s) {
-        if (buildOids.containsKey(s)) {
-            Oid o = buildOids.get(s);
-            return nodes.get(o);
-        } else {
+        try {
+            if (buildOids.containsKey(s)) {
+                Oid o = buildOids.get(s);
+                return nodes.get(o.getPath(buildOids));
+            } else {
+                return null;
+            }
+        } catch (MibException e) {
+            MIBPARSINGLOGGER.error("Can't resolve node from symbol %s: %s", s, e.getMessage());
             return null;
         }
     }
@@ -478,8 +506,11 @@ public class MibLoader {
                 allOids.add(i);
             }
         });
-        Oid oid = new Oid(p.getRoot(), p.getComponents(), s.name, tableEntry);
+        Oid oid = new Oid(p.getRoot(), p.getComponents(), s.name);
         allOids.add(oid);
+        if (tableEntry) {
+            tableEntryOid.add(oid);
+        }
         if (!buildOids.containsKey(s)) {
             buildOids.put(s, oid);
         } else {

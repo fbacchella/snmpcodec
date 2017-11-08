@@ -41,17 +41,17 @@ public class Referenced extends Syntax implements SyntaxContainer {
 
     @Override
     public Variable getVariable(Object source) {
-        return ref.getVariable(source);
+        return ref !=null ? ref.getVariable(source) : null;
     }
 
     @Override
     public Variable getVariable() {
-        return ref.getVariable();
+        return ref !=null ? ref.getVariable() : null;
     }
 
     @Override
     public Constraint getConstrains() {
-        return ref.getConstrains();
+        return ref !=null ? ref.getConstrains() : null;
     }
 
     @Override
@@ -66,19 +66,21 @@ public class Referenced extends Syntax implements SyntaxContainer {
 
     @Override
     public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
-        return ref.getTextualConvention(hint, type);
+        return ref != null ? ref.getTextualConvention(hint, type) : null;
     }
 
     @Override
-    public boolean resolve(Map<Symbol, Syntax> types) {
-        if (ref != null) {
-            return true;
-        } else if (types.containsKey(symbol)) {
-            ref = types.get(symbol);
-            symbol = null;
-            return true;
-        } else {
-            return false;
+    public void resolve(Map<Symbol, Syntax> types) throws MibException {
+        if (symbol != null) {
+            //Resolution was not done, try it
+            if (types.containsKey(symbol)) {
+                ref = types.get(symbol);
+                symbol = null;
+            } else {
+                Symbol oldsymbol = symbol;
+                symbol = null;
+                throw new MibException("Missing " +  oldsymbol + " from MIB");
+            }
         }
     }
 

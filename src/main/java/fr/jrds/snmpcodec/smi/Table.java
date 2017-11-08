@@ -45,9 +45,4 @@ public class Table extends Syntax {
         return row;
     }
 
-    @Override
-    public boolean resolve(Map<Symbol, Syntax> types) {
-        return true;
-    }
-
 }

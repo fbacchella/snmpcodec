@@ -79,7 +79,7 @@ public class OidPath extends ArrayList<OidPath.OidComponent> {
                 List<OidPath.OidComponent> newPath = new ArrayList<>(stack.size());
                 stack.add(i);
                 newPath.addAll(stack);
-                return new Oid(root, newPath, i.name, false);
+                return new Oid(root, newPath, i.name);
             } catch (MibException e) {
                 throw e.getNonChecked();
             }

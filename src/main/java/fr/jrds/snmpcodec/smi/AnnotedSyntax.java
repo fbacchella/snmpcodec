@@ -67,8 +67,8 @@ public class AnnotedSyntax extends Syntax implements SyntaxContainer {
     }
 
     @Override
-    public boolean resolve(Map<Symbol, Syntax> types) {
-        return syntax.resolve(types);
+    public void resolve(Map<Symbol, Syntax> types) throws MibException {
+        syntax.resolve(types);
     }
 
 }

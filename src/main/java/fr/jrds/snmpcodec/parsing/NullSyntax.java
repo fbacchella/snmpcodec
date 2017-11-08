@@ -39,8 +39,7 @@ public class NullSyntax extends Syntax {
     }
 
     @Override
-    public boolean resolve(Map<Symbol, Syntax> types) {
-        return false;
+    public void resolve(Map<Symbol, Syntax> types) {
     }
 
 }

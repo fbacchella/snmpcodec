@@ -3,6 +3,7 @@ package fr.jrds.snmpcodec.parsing;
 import java.util.List;
 import java.util.Map;
 
+import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.smi.Index;
 import fr.jrds.snmpcodec.smi.ObjectType;
 import fr.jrds.snmpcodec.smi.Symbol;
@@ -26,7 +27,7 @@ public class ObjectTypeBuilder {
         }
     }
 
-    ObjectType resolve(MibLoader loader) {
+    ObjectType resolve(MibLoader loader) throws MibException {
         loader.resolve(syntax);
         Index newIndex = index != null ? index.resolve(loader) : null;
         return new ObjectType(syntax, indexed, newIndex);

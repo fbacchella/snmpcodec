@@ -592,12 +592,6 @@ public abstract class SmiType extends Syntax {
         return AbstractVariable.getSyntaxString(getSyntaxString());
     }
 
-
-    @Override
-    public boolean resolve(Map<Symbol, Syntax> types) {
-        return true;
-    }
-
     @Override
     public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
         return null;

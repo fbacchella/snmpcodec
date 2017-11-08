@@ -12,18 +12,29 @@ public class Oid {
 
     private final Symbol root;
     private final List<OidComponent> components;
-    private final boolean tableEntry;
     private List<Integer> path = null;
     private final String name;
+    private final boolean pathfirst;
 
-    public Oid(Symbol root, List<OidComponent> components, String name, boolean tableEntry) throws MibException {
+    public Oid(Symbol root, List<OidComponent> components, String name) throws MibException {
         if (components.size() == 0 && root == null) {
             throw new MibException("Creating empty OID " + components);
         }
         this.root = root;
         this.components = components;
-        this.tableEntry = tableEntry;
         this.name = name;
+        this.pathfirst = false;
+    }
+
+    public Oid(List<Integer> path, String name) throws MibException {
+        if (path == null || path.size() == 0) {
+            throw new MibException("Creating empty OID " + name);
+        }
+        this.path = path;
+        this.root = null;
+        this.components = null;
+        this.name = name;
+        this.pathfirst = true;
     }
 
     public int getNativeSize() {
@@ -51,7 +62,7 @@ public class Oid {
                 path = new ArrayList<>();
             }
             components.forEach( i-> {
-                path.add(i.number);
+                path.add(Integer.valueOf(i.number));
             });
         }
         return path;
@@ -73,13 +84,6 @@ public class Oid {
     }
 
     /**
-     * @return the tableEntry
-     */
-    public boolean isTableEntry() {
-        return tableEntry;
-    }
-
-    /**
      * @return the name
      */
     public String getName() {
@@ -90,7 +94,7 @@ public class Oid {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        if (path != null) {
+        if (pathfirst) {
             result = prime * result + ((path == null) ? 0 : path.hashCode());
             result = prime * result + ((name == null) ? 0 : name.hashCode());
         } else {
@@ -110,7 +114,7 @@ public class Oid {
             return false;
         }
         Oid other = (Oid) obj;
-        if (path != null) {
+        if (pathfirst) {
             return path.equals(other.path) && name.equals(other.name);
         } else {
             if (root == null) {
