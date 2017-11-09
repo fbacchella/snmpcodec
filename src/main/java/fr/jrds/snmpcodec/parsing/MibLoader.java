@@ -201,6 +201,7 @@ public class MibLoader {
     }
 
     public MibStore buildTree() {
+        MIBPARSINGLOGGER.debug("Starting to build the MIB");
         newStore = new MibStoreImpl(top, modules, names, _syntaxes, _objects, resolvedTraps);
 
         // Check in provides symbolsalias.txt for known problems or frequent problems in mibs files
@@ -217,6 +218,7 @@ public class MibLoader {
         } catch (IOException e) {
             throw new UncheckedIOException("Invalid symbols aliases file: " + e.getMessage(), e);
         }
+        MIBPARSINGLOGGER.debug("Creating the aliases for bad symbols");
         props.entrySet().iterator().forEachRemaining( i -> {
             Symbol bad = new Symbol(i.getKey().toString());
             Symbol good = new Symbol(i.getValue().toString());
@@ -234,8 +236,10 @@ public class MibLoader {
                 textualConventions.put(bad, textualConventions.get(good));
             }
         });
+        MIBPARSINGLOGGER.debug("Sorting the OID");
         Set<Oid> sortedOid = sortdOids();
         allOids.clear();
+        MIBPARSINGLOGGER.debug("Building the OID tree");
         sortedOid.forEach(oid -> {
             try {
                 int[] content = oid.getPath(buildOids).stream().mapToInt(Integer::intValue).toArray();
@@ -253,6 +257,7 @@ public class MibLoader {
             }
         });
 
+        MIBPARSINGLOGGER.debug("Resolving the types");
         types.entrySet().stream()
         .filter(i -> i.getValue() != null)
         .filter( i-> {
@@ -260,31 +265,34 @@ public class MibLoader {
                 i.getValue().resolve(types);
                 return false;
             } catch (MibException e2) {
+                MIBPARSINGLOGGER.warn("failed resolution: %s", e2.getMessage());
                 return true;
             }
         })
         .forEach( i-> MIBPARSINGLOGGER.warn("Can't resolve type %s", i.getKey()));
+        MIBPARSINGLOGGER.debug("Resolving the textual conventions");
         resolveTextualConventions();
-        // Replace some eventually defined TextualConvention with the smarter version
-        Symbol dateAndTime = new Symbol("SNMPv2-TC", "DateAndTime");
-        if (types.containsKey(dateAndTime)) {
-            types.put(dateAndTime, new TextualConvention.DateAndTime());
-        }
-        Symbol displayString = new Symbol("SNMPv2-TC", "DisplayString");
-        if (types.containsKey(displayString)) {
-            types.put(displayString, new TextualConvention.DisplayString());
-        }
         types.forEach((i,j) -> _syntaxes.put(i.name, j));
+        MIBPARSINGLOGGER.debug("Building the objects");
         buildObjects.forEach((k,v) -> {
-            OidTreeNode node;
+            int[] components = null;
+            OidTreeNode node = null;
             try {
-                node = top.find(k.getPath(buildOids).stream().mapToInt(Integer::intValue).toArray());
+                components = k.getPath(buildOids).stream().mapToInt(Integer::intValue).toArray();
+                node = top.find(components);
                 ObjectType object = v.resolve(this);
                 _objects.put(node, object);
             } catch (MibException e) {
-                MIBPARSINGLOGGER.error("Incomplete OID %s: %s", k, e.getMessage());
+                String objectname = null;
+                if (node != null) {
+                    objectname = node.getSymbol();
+                } else {
+                    objectname = "OID " + k.toString();
+                }
+                MIBPARSINGLOGGER.error("Incomplete OID %s: %s", objectname, e.getMessage());
             }
         });
+        MIBPARSINGLOGGER.debug("Building the SNMPv1 traps");
         buildTraps.forEach((i,j) -> {
             try {
                 Oid oid;
@@ -355,6 +363,15 @@ public class MibLoader {
         }
         if (notDone.size() > 0) {
             MIBPARSINGLOGGER.debug("missing textual convention %d", notDone.size());
+        }
+        // Replace some eventually defined TextualConvention with the smarter version
+        Symbol dateAndTime = new Symbol("SNMPv2-TC", "DateAndTime");
+        if (types.containsKey(dateAndTime)) {
+            types.put(dateAndTime, new TextualConvention.DateAndTime());
+        }
+        Symbol displayString = new Symbol("SNMPv2-TC", "DisplayString");
+        if (types.containsKey(displayString)) {
+            types.put(displayString, new TextualConvention.DisplayString());
         }
     }
 
