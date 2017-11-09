@@ -77,11 +77,13 @@ public class Referenced extends Syntax implements SyntaxContainer {
                 ref = types.get(symbol);
                 symbol = null;
             } else {
-                Symbol oldsymbol = symbol;
-                symbol = null;
-                throw new MibException("Missing " +  oldsymbol + " from MIB");
+                throw new MibException.MissingSymbol("Missing " +  symbol + " from MIB");
             }
         }
+    }
+    
+    public Symbol getSymbol() {
+        return symbol;
     }
 
 };

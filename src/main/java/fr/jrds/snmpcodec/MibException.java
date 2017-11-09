@@ -60,6 +60,13 @@ public class MibException extends Exception {
         }
     }
 
+    public static class MissingSymbol extends MibException {
+
+        public MissingSymbol(String message) {
+            super(message);
+        }
+    }
+
     public MibException(String message) {
         super(message);
     }

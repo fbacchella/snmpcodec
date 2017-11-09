@@ -30,8 +30,10 @@ import fr.jrds.snmpcodec.MibException.NonCheckedMibException;
 import fr.jrds.snmpcodec.MibStore;
 import fr.jrds.snmpcodec.OidTreeNode;
 import fr.jrds.snmpcodec.log.LogAdapter;
+import fr.jrds.snmpcodec.smi.AnnotedSyntax;
 import fr.jrds.snmpcodec.smi.ObjectType;
 import fr.jrds.snmpcodec.smi.Oid;
+import fr.jrds.snmpcodec.smi.Referenced;
 import fr.jrds.snmpcodec.smi.Symbol;
 import fr.jrds.snmpcodec.smi.Syntax;
 import fr.jrds.snmpcodec.smi.TextualConvention;
@@ -289,7 +291,7 @@ public class MibLoader {
                 } else {
                     objectname = "OID " + k.toString();
                 }
-                MIBPARSINGLOGGER.error("Incomplete OID %s: %s", objectname, e.getMessage());
+                MIBPARSINGLOGGER.error("Incomplete %s: %s", objectname, e.getMessage());
             }
         });
         MIBPARSINGLOGGER.debug("Building the SNMPv1 traps");
@@ -349,12 +351,27 @@ public class MibLoader {
                         type.resolve(types);
                         TextualConvention tc = type.getTextualConvention(hint, type);
                         types.put(s, tc);
+                    } catch (MibException.MissingSymbol ex) {
+                        Syntax invalidType = type;
+                        if (invalidType instanceof AnnotedSyntax) {
+                            invalidType = ((AnnotedSyntax)invalidType).getSyntax();
+                        }
+                        if (invalidType instanceof Referenced) {
+                            Symbol ref = ((Referenced)invalidType).getSymbol();
+                            if (textualConventions.containsKey(ref)) {
+                                // Not a real error, just a non processed textual convention
+                                // To be tried again
+                                continue;
+                            }
+                        } else {
+                            System.out.println(type.getClass());
+                        }
+                        MIBPARSINGLOGGER.warn("Invalid textual convention %s: %s", s, ex.getMessage());
                     } catch (MibException | MibException.NonCheckedMibException ex) {
                         MIBPARSINGLOGGER.warn("Invalid textual convention %s: %s", s, ex.getMessage());
-                    } finally {
-                        notDone.remove(s);
-                        resolvCount++;
                     }
+                    notDone.remove(s);
+                    resolvCount++;
                     if (resolvCount == textualConventions.size()) {
                         break;
                     }
