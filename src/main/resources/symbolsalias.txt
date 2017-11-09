@@ -50,3 +50,7 @@ CYRUS-MASTER-MIB.TimeTicks=SNMPv2-SMI.TimeTicks
 CYRUS-MASTER-MIB.Gauge32=SNMPv2-SMI.Gauge32
 DHCP-MIB.IpAddress=RFC1155-SMI.IpAddress
 CPQHOST2-MIB.IpAddress=RFC1155-SMI.IpAddress
+TANDEM-EMS-MIB.DisplayString=SNMPv2-TC.DisplayString
+CISCO-TC.Unsigned32=SNMPv2-SMI.Unsigned32
+# hides RFC1155-SMI.NetworkAddress, it's a choice (not managed type) with a single value
+RFC1155-SMI.NetworkAddress=RFC1155-SMI.IpAddress
