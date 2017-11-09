@@ -9,3 +9,14 @@ TEST-MIB.my = skip
 rfc1592.txt = skip
 rfc1227.txt = skip
 rfc1228.txt = skip
+# Some random files found from some modules repositories
+dpi20ref.txt = skip
+Gbe2 mib descriptions.txt = skip
+GbE mib descriptions.txt = skip
+dpi11.txt = skip
+Makefile.mib = skip
+notifications.txt = skip
+smux.txt = skip
+readme.txt = skip
+README-MIB.txt = skip
+RFC-1215\nRFC1215\nRFC-1213.mib = skip
