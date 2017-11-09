@@ -266,16 +266,13 @@ public class MibLoader {
         MIBPARSINGLOGGER.debug("Resolving the types");
         types.entrySet().stream()
         .filter(i -> i.getValue() != null)
-        .filter( i-> {
+        .forEach( i-> {
             try {
                 i.getValue().resolve(types);
-                return false;
-            } catch (MibException e2) {
-                MIBPARSINGLOGGER.warn("failed resolution: %s", e2.getMessage());
-                return true;
+            } catch (MibException e) {
+                MIBPARSINGLOGGER.warn("Can't resolve type %s: %s", i.getKey(), e.getMessage());
             }
-        })
-        .forEach( i-> MIBPARSINGLOGGER.warn("Can't resolve type %s", i.getKey()));
+        });
         MIBPARSINGLOGGER.debug("Resolving the textual conventions");
         resolveTextualConventions();
         types.forEach((i,j) -> _syntaxes.put(i.name, j));
