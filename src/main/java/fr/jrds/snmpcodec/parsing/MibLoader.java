@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -179,16 +180,19 @@ public class MibLoader {
     public void load(String encoding, Path... sources) {
         Stream<CharStream> antltrstream = Arrays.stream(sources)
                 .map(i -> {
+                    String moduleencoding = encoding;
+                    if (moduleencoding == null) {
+                        String filename = i.getFileName().toString();
+                        moduleencoding = encodings.getProperty(filename, "ASCII");
+                    }
+                    if ("skip".equals(moduleencoding)) {
+                        return null;
+                    }
                     try {
-                        String moduleencoding = encoding;
-                        if (moduleencoding == null) {
-                            String filename = i.getFileName().toString();
-                            moduleencoding = encodings.getProperty(filename, "ASCII");
-                        }
-                        if ("skip".equals(moduleencoding)) {
-                            return null;
-                        }
                         return CharStreams.fromPath(i, Charset.forName(moduleencoding));
+                    } catch (IllegalCharsetNameException e) {
+                        MIBPARSINGLOGGER.error("Invalid charset for %s: %s", i, moduleencoding);
+                        return null;
                     } catch (IOException e) {
                         MIBPARSINGLOGGER.error("Invalid MIB source %s: %s", i, e.getMessage());
                         return null;
@@ -363,8 +367,6 @@ public class MibLoader {
                                 // To be tried again
                                 continue;
                             }
-                        } else {
-                            System.out.println(type.getClass());
                         }
                         MIBPARSINGLOGGER.warn("Invalid textual convention %s: %s", s, ex.getMessage());
                     } catch (MibException | MibException.NonCheckedMibException ex) {
