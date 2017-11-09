@@ -125,7 +125,7 @@ public class MibLoader {
             try {
                 return i.fileContent();
             } catch (WrappedException e) {
-                MIBPARSINGLOGGER.error("Not a valid module: " + e.getMessage() + " "+ e.getLocation());
+                MIBPARSINGLOGGER.warn("Not a valid module: " + e.getMessage() + " "+ e.getLocation());
                 return null;
             }
         })
@@ -292,7 +292,7 @@ public class MibLoader {
                 } else {
                     objectname = "OID " + k.toString();
                 }
-                MIBPARSINGLOGGER.error("Incomplete %s: %s", objectname, e.getMessage());
+                MIBPARSINGLOGGER.warn("Incomplete %s: %s", objectname, e.getMessage());
             }
         });
         MIBPARSINGLOGGER.debug("Building the SNMPv1 traps");
@@ -438,13 +438,13 @@ public class MibLoader {
                     MIBPARSINGLOGGER.warn("Can't resolve OID %s path", i);
                 }
             } catch (MibException | MibException.NonCheckedMibException e) {
-                MIBPARSINGLOGGER.error("Can't add new OID %s: %s", i, e.getMessage());
+                MIBPARSINGLOGGER.warn("Can't add new OID %s: %s", i, e.getMessage());
                 try {
                     if (! i.getPath(buildOids).isEmpty()) {
                         sortedoid.add(i);
                     }
                 } catch (MibException e1) {
-                    MIBPARSINGLOGGER.error("Second failure: can't add new OID %s: %s", i, e.getMessage());
+                    MIBPARSINGLOGGER.warn("Second failure: can't add new OID %s: %s", i, e.getMessage());
                 }
             }
             if (isTableEntry) {
@@ -467,7 +467,7 @@ public class MibLoader {
                 return null;
             }
         } catch (MibException e) {
-            MIBPARSINGLOGGER.error("Can't resolve node from symbol %s: %s", s, e.getMessage());
+            MIBPARSINGLOGGER.warn("Can't resolve node from symbol %s: %s", s, e.getMessage());
             return null;
         }
     }
