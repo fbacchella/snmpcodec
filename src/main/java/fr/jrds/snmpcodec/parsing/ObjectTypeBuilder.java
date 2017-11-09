@@ -15,11 +15,11 @@ public class ObjectTypeBuilder {
     private final boolean indexed;
     private final IndexBuilder index;
 
-    @SuppressWarnings("unchecked")
     ObjectTypeBuilder(Map<String, Object> attributes) {
         syntax = (Syntax) attributes.remove("SYNTAX");
         indexed = attributes.containsKey("INDEX");
         if (indexed) {
+            @SuppressWarnings("unchecked")
             List<Symbol> indexSymbols = (List<Symbol>)attributes.remove("INDEX");
             index = new IndexBuilder(indexSymbols);
         } else {

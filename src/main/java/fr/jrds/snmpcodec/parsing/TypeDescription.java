@@ -17,10 +17,6 @@ public class TypeDescription {
     Map<Number, String> names;
     Constraint constraints = null;
 
-    @Override
-    public String toString() {
-        return "" + type + (typeDescription != null ? " " + typeDescription : "");
-    }
     public Syntax getSyntax(ModuleListener listener) {
         Syntax trySyntax;
         switch (type) {
@@ -65,5 +61,11 @@ public class TypeDescription {
             return trySyntax;
         }
     }
+
+    @Override
+    public String toString() {
+        return "" + type + (typeDescription != null ? " " + typeDescription : "");
+    }
+
 
 }

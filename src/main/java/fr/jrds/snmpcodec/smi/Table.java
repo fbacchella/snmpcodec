@@ -1,7 +1,5 @@
 package fr.jrds.snmpcodec.smi;
 
-import java.util.Map;
-
 import org.snmp4j.smi.Variable;
 
 public class Table extends Syntax {
