@@ -582,10 +582,10 @@ public class ModuleListener extends ASNBaseListener {
     @Override
     public void enterSequenceType(SequenceTypeContext ctx) {
         TypeDescription td = (TypeDescription) stack.peek();
-        Map<Symbol, Syntax> content = new LinkedHashMap<>();
+        Map<String, Syntax> content = new LinkedHashMap<>();
         td.type = Asn1Type.sequenceType;
         ctx.namedType().forEach( i -> {
-            content.put(resolveSymbol(i.IDENTIFIER().getText()), null);
+            content.put(i.IDENTIFIER().getText(), null);
         });
         td.typeDescription = content;
     }
@@ -601,7 +601,7 @@ public class ModuleListener extends ASNBaseListener {
         TypeDescription td = (TypeDescription) stack.peek();
 
         @SuppressWarnings("unchecked")
-        Map<Symbol, Syntax> content = (Map<Symbol, Syntax>) td.typeDescription;
+        Map<String, Syntax> content = (Map<String, Syntax>) td.typeDescription;
         content.keySet().forEach( name -> {
             content.put(name, nt.get(i.getAndDecrement()).getSyntax(this));
         });
