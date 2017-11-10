@@ -16,17 +16,17 @@ public class Symbol {
     public Symbol(String name) {
         int separator = name.indexOf('.');
         if (separator > 0) {
-            this.module = name.substring(0, separator);
+            this.module = name.substring(0, separator).intern();
         } else {
             this.module = null;
         }
         // If '.' is not found, separator = -1 +1 it return 0, hence the start
-        this.name = name.substring(separator + 1);
+        this.name = name.substring(separator + 1).intern();
     }
 
     @Override
     public String toString() {
-        return (module != null ? module  +".": "") + name;
+        return ((module != null ? module  +".": "") + name).intern();
     }
 
     @Override
