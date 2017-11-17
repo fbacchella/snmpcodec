@@ -96,13 +96,13 @@ public class ModuleListener extends ASNBaseListener {
         Number finalV = null;
         int bitLength = v.bitLength();
         if (bitLength < 7) {
-            finalV = new Byte((byte) v.intValue());
+            finalV = Byte.valueOf((byte) v.intValue());
         } else if (bitLength < 15) {
-            finalV = new Short((short)v.intValue());
+            finalV = Short.valueOf((short)v.intValue());
         } else if (bitLength < 31) {
-            finalV = new Integer((int)v.intValue());
+            finalV = Integer.valueOf((int)v.intValue());
         } else if (bitLength < 63) {
-            finalV = new Long((long)v.longValue());
+            finalV = Long.valueOf((long)v.longValue());
         } else {
             finalV = v;
         }
