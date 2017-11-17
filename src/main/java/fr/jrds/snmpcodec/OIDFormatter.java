@@ -27,6 +27,9 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
     static public final String MIBDIRSPROPERTY = "snmpcodec.mibdirs";
     static public final String MIBDIRSPROPERTY_DEFAULT = "/usr/share/snmp/mibs";
 
+    static private final Pattern OIDWITSUFFIX = Pattern.compile("(?<prefix>\\p{L}(?:\\p{L}|\\d)+)(?:\\.(?<oids>\\d+(?:\\.\\d*)*))?");
+
+
     public final MibStore store;
     private OIDTextFormat previous;
     private VariableTextFormat previousVar;
@@ -126,8 +129,6 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
     public String formatForRoundTrip(int[] value) {
         return format(value);
     }
-
-    Pattern OIDWITSUFFIX = Pattern.compile("(?<prefix>\\p{L}(?:\\p{L}|\\d)+)(?:\\.(?<oids>\\d+(?:\\.\\d*)*))?");
 
     @Override
     public int[] parse(String text) throws ParseException {
