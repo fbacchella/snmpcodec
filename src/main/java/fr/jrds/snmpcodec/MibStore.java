@@ -63,7 +63,9 @@ public abstract class MibStore {
                     // Hey of course it was not a table, it was a oid value
                     return Collections.singletonMap(found.getSymbol(), found.getSymbol());
                 } else {
-                    return Collections.singletonMap(found.getSymbol(), Arrays.copyOfRange(oid, foundOID.length, oid.length));
+                    //Don't throw uncompleted OID, store it as [String, [x, ...]]
+                    int[] numberPart = Arrays.copyOfRange(oid, foundOID.length, oid.length);
+                    return Collections.singletonMap(found.getSymbol(),new Object[] {found.getSymbol(), numberPart});
                 }
             }
             parts = new LinkedHashMap<>();

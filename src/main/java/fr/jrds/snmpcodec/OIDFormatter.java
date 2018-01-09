@@ -9,6 +9,7 @@ import java.text.ParseException;
 import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.snmp4j.SNMP4JSettings;
@@ -117,9 +118,18 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
     public String format(int[] value) {
         Object[] parsed = store.parseIndexOID(value).values().toArray();
         if(parsed != null && parsed.length > 0) {
-            StringBuffer buffer = new StringBuffer(parsed[0].toString());
-            IntStream.range(1, parsed.length).forEach(i -> buffer.append("[" + parsed[i] + "]"));
-            return buffer.toString();
+            // The content is in the form of [String, [x, ...]], it's a uncompleted OID
+            if(parsed.length == 1 && parsed[0].getClass().isArray()) {
+                Object[] content = (Object[]) parsed[0];
+                String prefix = (String)content[0];
+                int[] numberPart = (int[]) content[1];
+                String suffix = String.join(".", Arrays.stream(numberPart).mapToObj( i -> Integer.toString(i)).collect(Collectors.toList()));
+                return prefix + "." + suffix;
+            } else {
+                StringBuffer buffer = new StringBuffer(parsed[0].toString());
+                IntStream.range(1, parsed.length).forEach(i -> buffer.append("[" + parsed[i] + "]"));
+                return buffer.toString();
+            }
         } else {
             return previous.format(value);
         }
