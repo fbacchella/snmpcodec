@@ -44,11 +44,6 @@
             <artifactId>antlr4-runtime</artifactId>
             <version>${antlr}</version>
         </dependency>
-        <dependency>
-            <groupId>org.anarres.graphviz</groupId>
-            <artifactId>graphviz-builder</artifactId>
-            <version>1.0.5</version>
-        </dependency>
     </dependencies>
 
     <build>
