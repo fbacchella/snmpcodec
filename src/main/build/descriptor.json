@@ -17,9 +17,7 @@
     "attributes": []
   },
   "version": {
-    "name": "${project.version}",
-    "released": "${build.timestamp}",
-    "gpgSign": false
+    "name": "${project.version}"
   },
   "files": [
     {
