@@ -7,7 +7,7 @@ cache:
   - $HOME/.m2
 deploy:
     provider: bintray
-    file: "descriptor.json"
+    file: "target/descriptor.json"
     user: "fbacchella"
     skip_cleanup: true # to upload artifacts created during the build  
     key:
