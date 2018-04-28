@@ -25,10 +25,10 @@
     {
       "includePattern": "target/(.*\\.jar)",
       "uploadPattern": "/fr/jrds/snmpcodec/${project.version}/$1"
-    }
+    },
     {
       "includePattern": "pom.xml",
-      "uploadPattern": "/fr/jrds/snmpcodec/${project.version}/snmpcodec-${project.version}.pom "
+      "uploadPattern": "/fr/jrds/snmpcodec/${project.version}/snmpcodec-${project.version}.pom"
     }
   ],
   "publish": true
