@@ -23,7 +23,7 @@
   },
   "files": [
     {
-      "includePattern": "target/(.*.jar)",
+      "includePattern": "target/(.*.jar|*.pom)",
       "uploadPattern": "/fr/jrds/snmpcodec/0.0.2/$1"
     }
   ],

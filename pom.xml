@@ -6,9 +6,6 @@
     <artifactId>snmpcodec</artifactId>
     <version>0.0.2</version>
     <packaging>jar</packaging>
-    <prerequisites>
-        <maven>3.0</maven>
-    </prerequisites>
 
     <name>snmpcodec</name>
     <url>http://maven.apache.org</url>
