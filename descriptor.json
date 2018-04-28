@@ -17,14 +17,18 @@
     "attributes": []
   },
   "version": {
-    "name": "0.0.2",
-    "released": "2018-04-28",
+    "name": "${project.version}",
+    "released": "${build.timestamp}",
     "gpgSign": false
   },
   "files": [
     {
-      "includePattern": "target/(.*.jar|.*.pom)",
-      "uploadPattern": "/fr/jrds/snmpcodec/0.0.2/$1"
+      "includePattern": "target/(.*\\.jar)",
+      "uploadPattern": "/fr/jrds/snmpcodec/${project.version}/$1"
+    }
+    {
+      "includePattern": "pom.xml",
+      "uploadPattern": "/fr/jrds/snmpcodec/${project.version}/snmpcodec-${project.version}.pom "
     }
   ],
   "publish": true
