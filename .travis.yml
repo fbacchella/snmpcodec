@@ -4,7 +4,7 @@ jdk:
     - oraclejdk9
 deploy:
     provider: bintray
-    file: "pom.xml"
+    file: "descriptor.json"
     user: "fbacchella"
     skip_cleanup: true # to upload artifacts created during the build  
     key:

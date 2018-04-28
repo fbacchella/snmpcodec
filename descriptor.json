@@ -1,0 +1,27 @@
+{    "package": {
+        "name": "snmpcodec",
+        "repo": "maven",
+        "subject": "fbacchella",
+        "desc": "Snmpcodec is a resilient snmp parser and formater.",
+        "website_url": "https://github.com/fbacchella/snmpcodec",
+        "issue_tracker_url": "https://github.com/fbacchella/snmpcodec/issues",
+        "vcs_url": "https://github.com/fbacchella/snmpcodec.git",
+        "github_use_tag_release_notes": false,
+        "licenses": ["Apache License 2.0"],
+        "labels": [],
+        "public_download_numbers": true,
+        "public_stats": trye,
+        "attributes": []
+    },
+
+    "version": {
+        "name": "0.0.2",
+        "released": "2018-04-28",
+        "gpgSign": false
+    },
+    "files":
+        [
+        {"includePattern": "target/(.*).jar","uploadPattern": "/$1"}
+        ],
+    "publish": true
+}
