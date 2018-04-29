@@ -16,6 +16,7 @@ import java.util.stream.IntStream;
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.parsing.ASNParser.AccessContext;
@@ -235,7 +236,7 @@ public class ModuleListener extends ASNBaseListener {
         while ( ! (stack.peek() instanceof ModuleIdentityObject)) {
             stack.pop();
         }
-        ModuleIdentityObject mi = (ModuleIdentityObject) stack.pop();;
+        ModuleIdentityObject mi = (ModuleIdentityObject) stack.pop();
         Symbol s = (Symbol) stack.pop();
         mi.values.put("revisions", revisions);
         try {
@@ -332,7 +333,8 @@ public class ModuleListener extends ASNBaseListener {
                 } else {
                     v = BigInteger.valueOf(0);
                 }
-            } else if (ctx.binaryNumber() != null) {
+            } else {
+                //Binary number case
                 String binarynumber = ctx.binaryNumber().BINARYNUMBER().getText();
                 binarynumber = binarynumber.substring(1, binarynumber.length() - 2);
                 if (! binarynumber.isEmpty()) {
@@ -341,10 +343,10 @@ public class ModuleListener extends ASNBaseListener {
                     v = BigInteger.valueOf(0);
                 }
             }
+            stack.push(new ValueType.IntegerValue(fitNumber(v)));
         } catch (Exception e) {
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
-        stack.push(new ValueType.IntegerValue(fitNumber(v)));
 
     }
 
@@ -386,16 +388,16 @@ public class ModuleListener extends ASNBaseListener {
             }
             value = objects;
         } else if (ctx.groups() != null) {
-            value = ctx.groups().IDENTIFIER().stream().map( i -> i.getText()).collect(ArrayList::new, ArrayList::add,
+            value = ctx.groups().IDENTIFIER().stream().map(TerminalNode::getText).collect(ArrayList::new, ArrayList::add,
                     ArrayList::addAll);
         } else if (ctx.variables() != null) {
-            value = ctx.variables().IDENTIFIER().stream().map( i -> i.getText()).collect(ArrayList::new, ArrayList::add,
+            value = ctx.variables().IDENTIFIER().stream().map(TerminalNode::getText).collect(ArrayList::new, ArrayList::add,
                     ArrayList::addAll);
         } else if (ctx.notifications() != null) {
-            value = ctx.notifications().IDENTIFIER().stream().map( i -> i.getText()).collect(ArrayList::new, ArrayList::add,
+            value = ctx.notifications().IDENTIFIER().stream().map(TerminalNode::getText).collect(ArrayList::new, ArrayList::add,
                     ArrayList::addAll);
         } else if (ctx.augments() != null) {
-            value = ctx.augments().IDENTIFIER().stream().map( i -> i.getText()).collect(ArrayList::new, ArrayList::add,
+            value = ctx.augments().IDENTIFIER().stream().map(TerminalNode::getText).collect(ArrayList::new, ArrayList::add,
                     ArrayList::addAll);
         } else if (ctx.index() != null) {
             LinkedList<Symbol> types = new LinkedList<>();
@@ -521,7 +523,6 @@ public class ModuleListener extends ASNBaseListener {
                 break;
             default:
                 throw new ParseCancellationException();
-                //throw new ModuleException("Unsupported ASN.1 type", parser.getInputStream().getSourceName(), ctx.start);
             }
         } else if (ctx.referencedType() != null) {
             td.type = Asn1Type.referencedType;
@@ -584,9 +585,7 @@ public class ModuleListener extends ASNBaseListener {
         TypeDescription td = (TypeDescription) stack.peek();
         Map<String, Syntax> content = new LinkedHashMap<>();
         td.type = Asn1Type.sequenceType;
-        ctx.namedType().forEach( i -> {
-            content.put(i.IDENTIFIER().getText(), null);
-        });
+        ctx.namedType().forEach( i -> content.put(i.IDENTIFIER().getText(), null));
         td.typeDescription = content;
     }
 
@@ -602,9 +601,7 @@ public class ModuleListener extends ASNBaseListener {
 
         @SuppressWarnings("unchecked")
         Map<String, Syntax> content = (Map<String, Syntax>) td.typeDescription;
-        content.keySet().forEach( name -> {
-            content.put(name, nt.get(i.getAndDecrement()).getSyntax(this));
-        });
+        content.keySet().forEach( name -> content.put(name, nt.get(i.getAndDecrement()).getSyntax(this)));
     }
 
     @Override
@@ -619,9 +616,7 @@ public class ModuleListener extends ASNBaseListener {
         TypeDescription td = (TypeDescription) stack.peek();
         Map<String, Syntax> content = new LinkedHashMap<>();
         td.type = Asn1Type.choiceType;
-        ctx.namedType().forEach( i -> {
-            content.put(i.IDENTIFIER().getText(), null);
-        });
+        ctx.namedType().forEach( i -> content.put(i.IDENTIFIER().getText(), null));
         td.typeDescription = content;
         stack.push("CHOICE");
     }
@@ -637,9 +632,7 @@ public class ModuleListener extends ASNBaseListener {
         TypeDescription td = (TypeDescription) stack.peek();
         @SuppressWarnings("unchecked")
         Map<String, Syntax> content = (Map<String, Syntax>) td.typeDescription;
-        content.keySet().forEach( name -> {
-            content.put(name, nt.get(i).getSyntax(this));
-        });
+        content.keySet().forEach( name -> content.put(name, nt.get(i).getSyntax(this)));
     }
 
     @Override

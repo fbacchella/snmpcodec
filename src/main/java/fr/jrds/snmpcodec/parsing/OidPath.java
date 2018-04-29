@@ -83,7 +83,7 @@ public class OidPath extends ArrayList<OidPath.OidComponent> {
             } catch (MibException e) {
                 throw e.getNonChecked();
             }
-        }).limit(this.size() - 1);
+        }).limit(size() - 1L);
     }
 
 }
