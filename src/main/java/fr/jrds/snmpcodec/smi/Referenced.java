@@ -81,9 +81,9 @@ public class Referenced extends Syntax implements SyntaxContainer {
             }
         }
     }
-    
+
     public Symbol getSymbol() {
         return symbol;
     }
 
-};
+}

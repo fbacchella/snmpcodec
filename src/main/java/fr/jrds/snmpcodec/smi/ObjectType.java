@@ -34,7 +34,7 @@ public class ObjectType {
         return syntax.getVariable();
     }
 
-    public Object convert(Variable v) {
+    public Object convert() {
         return null;
     }
 

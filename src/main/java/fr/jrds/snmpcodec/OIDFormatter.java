@@ -25,10 +25,10 @@ import fr.jrds.snmpcodec.smi.SmiType;
 
 public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
 
-    static public final String MIBDIRSPROPERTY = "snmpcodec.mibdirs";
-    static public final String MIBDIRSPROPERTY_DEFAULT = "/usr/share/snmp/mibs";
+    public static final String MIBDIRSPROPERTY = "snmpcodec.mibdirs";
+    public static final String MIBDIRSPROPERTY_DEFAULT = "/usr/share/snmp/mibs";
 
-    static private final Pattern OIDWITSUFFIX = Pattern.compile("(?<prefix>\\p{L}(?:\\p{L}|\\d)+)(?:\\.(?<oids>\\d+(?:\\.\\d*)*))?");
+    private static final Pattern OIDWITSUFFIX = Pattern.compile("(?<prefix>\\p{L}(?:\\p{L}|\\d)+)(?:\\.(?<oids>\\d+(?:\\.\\d*)*))?");
 
 
     public final MibStore store;
@@ -60,7 +60,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
     public static OIDFormatter register(String... mibdirs) {
         MibLoader loader = new MibLoader();
         Arrays.stream(mibdirs)
-        .map(i -> Paths.get(i))
+        .map(Paths::get)
         .filter( i-> {
             try {
                 File dest = i.toRealPath().toFile();
@@ -124,10 +124,10 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
                 Object[] content = (Object[]) parsed[0];
                 String prefix = (String)content[0];
                 int[] numberPart = (int[]) content[1];
-                String suffix = String.join(".", Arrays.stream(numberPart).mapToObj( i -> Integer.toString(i)).collect(Collectors.toList()));
+                String suffix = String.join(".", Arrays.stream(numberPart).mapToObj(Integer::toString).collect(Collectors.toList()));
                 return prefix + "." + suffix;
             } else {
-                StringBuffer buffer = new StringBuffer(parsed[0].toString());
+                StringBuilder buffer = new StringBuilder(parsed[0].toString());
                 IntStream.range(1, parsed.length).forEach(i -> buffer.append("[" + parsed[i] + "]"));
                 return buffer.toString();
             }
@@ -150,7 +150,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
             if (prefix != null) {
                 int[] parsed;
                 if (m.group("oids") != null) {
-                    String oids[] = m.group("oids").split("\\.");
+                    String[] oids = m.group("oids").split("\\.");
                     parsed = new int[prefix.length + oids.length];
                     System.arraycopy(prefix, 0, parsed, 0, prefix.length);
                     for(int i = prefix.length , j=0; i < parsed.length ; i++, j++) {

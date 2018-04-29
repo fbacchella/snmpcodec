@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
 import java.util.stream.Stream;
@@ -29,19 +30,19 @@ public class Check {
     public static void main(String[] args) throws IOException {
         LogFactory.setLogFactory(new ConsoleLogFactory());
         LogAdapter.getLogger("fr.jrds.snmpcodec").setLogLevel(LogLevel.WARN);
-        logger = LogAdapter.getLogger(Check.class);;
+        logger = LogAdapter.getLogger(Check.class);
 
         MibStore store = load(args).buildTree();
         int numoid = countOid(store.top);
         int numnames = store.names.size();
         AtomicInteger duplicates = new AtomicInteger();
-        store.names.values().stream().map( i -> i.size()).filter(i -> i > 1).forEach( i-> duplicates.addAndGet(i));
+        store.names.values().stream().map(List::size).filter(i -> i > 1).forEach( i-> duplicates.addAndGet(i));
         int numduplicates = duplicates.get();
-        System.out.format("%d differents OID, %d differents names, %d names collisions\n", numoid, numnames, numduplicates);
+        System.out.format("%d differents OID, %d differents names, %d names collisions%n", numoid, numnames, numduplicates);
         AtomicInteger trapsCount = new AtomicInteger(1);
         store.resolvedTraps.forEach((i,j) -> trapsCount.addAndGet(j.size()));
-        System.out.format("%d v1 trap, %d values\n", store.resolvedTraps.size(), trapsCount.get());
-        System.out.format("%d modules\n", store.modules.size());
+        System.out.format("%d v1 trap, %d values%n", store.resolvedTraps.size(), trapsCount.get());
+        System.out.format("%d modules%n", store.modules.size());
     }
 
     private static MibLoader load(String[] args) throws IOException {
@@ -64,7 +65,7 @@ public class Check {
 
     public static void loadpath(MibLoader loader, Path mibs) throws IOException {
         BiPredicate<Path,BasicFileAttributes> matcher = (i,j) -> {
-            if (Files.isDirectory(i)) {
+            if (i.toFile().isDirectory()) {
                 return false;
             }
             String file = i.getFileName().toString();

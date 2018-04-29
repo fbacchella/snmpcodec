@@ -90,12 +90,7 @@ public abstract class MibStore {
     }
 
     public int[] getFromName(String text) {
-        if (names.containsKey(text)) {
-            for(OidTreeNode s: names.get(text)) {
-                return s.getElements();
-            }
-        }
-        return null;
+        return names.get(text).stream().findFirst().map(i -> i.getElements()).orElseGet(null);
     }
 
     public String format(OID instanceOID, Variable variable) {

@@ -5,6 +5,11 @@ import java.util.stream.Collectors;
 
 public class Utils {
 
+    // Private constructor, not instance ever used
+    private Utils() {
+
+    }
+
     public static String dottedNotation(int[] elements){
         // SimpleOIDTextFormat does masking too
         return Arrays.stream(elements).mapToObj(i -> Long.toString(i & 0xFFFFFFFFL)).collect(Collectors.joining("."));
@@ -22,6 +27,7 @@ public class Utils {
             return (byte) l;
         }
 
+        @Override
         public short shortValue() {
             return (short) l;
         }
@@ -66,4 +72,5 @@ public class Utils {
     public static Utils.UnsignedLong getUnsigned(long l) {
         return new Utils.UnsignedLong(l);
     }
+
 }

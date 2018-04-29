@@ -165,7 +165,7 @@ public class ModuleListener extends ASNBaseListener {
         Symbol s = (Symbol) stack.pop();
         macro.value = value;
         try {
-            store.addMacroValue(s, macro.name, macro.values, macro.value.value);
+            store.addMacroValue(s, macro.values, macro.value.value);
         } catch (MibException e) {
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
@@ -240,7 +240,7 @@ public class ModuleListener extends ASNBaseListener {
         Symbol s = (Symbol) stack.pop();
         mi.values.put("revisions", revisions);
         try {
-            store.addModuleIdentity(s, mi.values, vt.value);
+            store.addModuleIdentity(s, vt.value);
         } catch (MibException e) {
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
@@ -260,12 +260,14 @@ public class ModuleListener extends ASNBaseListener {
     @Override
     public void exitValueAssignment(ValueAssignmentContext ctx) {
         ValueType<?> vt = (ValueType<?>) stack.pop();
-        TypeDescription td = (TypeDescription) stack.pop();
+        
+        // Removed the unused TypeDescription
+        stack.pop();
         Symbol s = (Symbol) stack.pop();
         try {
             if (vt.value instanceof OidPath) {
                 OidPath path = (OidPath) vt.value;
-                store.addValue(s, td.getSyntax(this), path);
+                store.addValue(s, path);
             }
         } catch (MibException e) {
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
@@ -479,7 +481,7 @@ public class ModuleListener extends ASNBaseListener {
         }
         Symbol s = (Symbol) stack.pop();
         try {
-            store.addMacroValue(s, "MODULE-COMPLIANCE", Collections.emptyMap(), value.value);
+            store.addMacroValue(s, Collections.emptyMap(), value.value);
         } catch (MibException e) {
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }

@@ -10,11 +10,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
@@ -68,7 +68,6 @@ public class MibLoader {
     private final Map<String, Syntax> _syntaxes = new HashMap<>();
     private final Map<OidTreeNode, ObjectType> _objects = new HashMap<>();
     private final Map<OidTreeNode, Map<Integer,Trap>> resolvedTraps = new HashMap<>();
-    private MibStore newStore = null;
 
     public MibLoader() {
         try {
@@ -113,7 +112,7 @@ public class MibLoader {
             lexer.addErrorListener(errorListener);
             return lexer;
         })
-        .map(i -> new CommonTokenStream(i))
+        .map(CommonTokenStream::new)
         .map(i -> {
             ASNParser parser = new ASNParser(i);
             parser.removeErrorListeners();
@@ -198,7 +197,7 @@ public class MibLoader {
                         return null;
                     }
                 })
-                .filter( i-> i != null);
+                .filter(Objects::nonNull);
         load(antltrstream);
     }
 
@@ -208,7 +207,7 @@ public class MibLoader {
 
     public MibStore buildTree() {
         MIBPARSINGLOGGER.debug("Starting to build the MIB");
-        newStore = new MibStoreImpl(top, modules, names, _syntaxes, _objects, resolvedTraps);
+        MibStore newStore = new MibStoreImpl(top, modules, names, _syntaxes, _objects, resolvedTraps);
 
         // Check in provides symbolsalias.txt for known problems or frequent problems in mibs files
         Properties props = new Properties();
@@ -316,7 +315,7 @@ public class MibLoader {
                 if (path == null) {
                     throw new MibException("Can't resolve path " + oid);
                 }
-                oidPath = path.stream().mapToInt( k -> k.intValue()).toArray();
+                oidPath = path.stream().mapToInt(Integer::intValue).toArray();
                 OidTreeNode node = top.find(oidPath);
                 Map<Integer, Trap> traps = new HashMap<>(j.size());
                 j.forEach((k,l) -> {
@@ -326,7 +325,7 @@ public class MibLoader {
                         MIBPARSINGLOGGER.warn("Invalid trap: %s", e.getMessage());
                     }
                 });
-                resolvedTraps.computeIfAbsent(node, k -> new HashMap<Integer, Trap>()).putAll(traps);;
+                resolvedTraps.computeIfAbsent(node, k -> new HashMap<Integer, Trap>()).putAll(traps);
             } catch (MibException e1) {
                 MIBPARSINGLOGGER.warn("Invalid trap: %s", e1.getMessage());
             }
@@ -377,7 +376,7 @@ public class MibLoader {
                 }
             }
         }
-        if (notDone.size() > 0) {
+        if (notDone.isEmpty()) {
             MIBPARSINGLOGGER.debug("missing textual convention %d", notDone.size());
         }
         // Replace some eventually defined TextualConvention with the smarter version
@@ -392,34 +391,29 @@ public class MibLoader {
     }
 
     private Set<Oid> sortdOids() {
-        Set<Oid> sortedoid = new TreeSet<>(new Comparator<Oid>() {
-
-            @Override
-            public int compare(Oid o1, Oid o2) {
-                try {
-                    int sorted = Integer.compare(o1.getPath(buildOids).size(), o2.getPath(buildOids).size());
-                    if (sorted == 0) {
-                        List<Integer> l1 = o1.getPath(buildOids);
-                        List<Integer> l2 = o2.getPath(buildOids);
-                        int length = l1.size();
-                        for (int i = 0 ; i < length ; i++) {
-                            int v1 = l1.get(i);
-                            int v2 = l2.get(i);
-                            sorted = Integer.compare(v1, v2);
-                            if (sorted != 0) {
-                                break;
-                            }
+        Set<Oid> sortedoid = new TreeSet<>((o1, o2) -> {
+            try {
+                int sorted = Integer.compare(o1.getPath(buildOids).size(), o2.getPath(buildOids).size());
+                if (sorted == 0) {
+                    List<Integer> l1 = o1.getPath(buildOids);
+                    List<Integer> l2 = o2.getPath(buildOids);
+                    int length = l1.size();
+                    for (int i = 0 ; i < length ; i++) {
+                        int v1 = l1.get(i);
+                        int v2 = l2.get(i);
+                        sorted = Integer.compare(v1, v2);
+                        if (sorted != 0) {
+                            break;
                         }
                     }
-                    if (sorted == 0) {
-                        sorted = String.CASE_INSENSITIVE_ORDER.compare(o1.getName(), o2.getName());
-                    }
-                    return sorted;
-                } catch (MibException e) {
-                    throw e.getNonChecked();
                 }
+                if (sorted == 0) {
+                    sorted = String.CASE_INSENSITIVE_ORDER.compare(o1.getName(), o2.getName());
+                }
+                return sorted;
+            } catch (MibException e) {
+                throw e.getNonChecked();
             }
-
         });
 
         allOids.forEach( i-> {
@@ -486,7 +480,7 @@ public class MibLoader {
     }
 
 
-    void addMacroValue(Symbol s, String name, Map<String, Object> attributes, OidPath value) throws MibException {
+    void addMacroValue(Symbol s, Map<String, Object> attributes, OidPath value) throws MibException {
         addOid(s, value, false);
     }
 
@@ -512,7 +506,7 @@ public class MibLoader {
         textualConventions.put(s, attributes);
     }
 
-    public void addModuleIdentity(Symbol s, Map<String, Object> attributes, OidPath value) throws MibException {
+    public void addModuleIdentity(Symbol s, OidPath value) throws MibException {
         addOid(s, value, false);
     }
 
@@ -529,7 +523,7 @@ public class MibLoader {
         types.put(s, type);
     }
 
-    public void addValue(Symbol s, Syntax syntax, OidPath value) throws MibException {
+    public void addValue(Symbol s, OidPath value) throws MibException {
         addOid(s, value, false);
     }
 

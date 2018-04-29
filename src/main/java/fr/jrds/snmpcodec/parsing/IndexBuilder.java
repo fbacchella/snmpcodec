@@ -17,7 +17,7 @@ class IndexBuilder {
 
     Index resolve(MibLoader loader) {
         List<OidTreeNode> indexes = indexesSymbol.stream()
-                .map( i -> loader.resolveNode(i))
+                .map(i -> loader.resolveNode(i))
                 .collect(ArrayList::new, ArrayList::add, ArrayList::addAll);
         return new Index(indexes);
     }

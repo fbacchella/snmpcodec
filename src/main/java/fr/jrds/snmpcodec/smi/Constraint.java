@@ -49,19 +49,20 @@ public class Constraint {
         Parsed tryExtract = new Parsed();
         if (! size) {
             tryExtract.content = Arrays.copyOf(oidElements, 1);
-            if(oidElements.length > 1) {
+            if (oidElements.length > 1) {
                 tryExtract.next = Arrays.copyOfRange(oidElements, 1, oidElements.length);
             }
         } else {
             for(ConstraintElement i: ranges) {
-                if(variableSize) {
+                if (variableSize) {
                     int size = oidElements[0];
-                    if(size == 0) {
+                    if (size == 0) {
                         tryExtract.content = new int[0];
                         tryExtract.next = oidElements;
-                    } if(oidElements.length >= size) {
+                    }
+                    if (oidElements.length >= size) {
                         tryExtract.content = Arrays.copyOfRange(oidElements, 1, size + 1);
-                        if(size + 1 <= oidElements.length) {
+                        if (size + 1 <= oidElements.length) {
                             tryExtract.next = Arrays.copyOfRange(oidElements, size + 1, oidElements.length);
                         } else {
                             tryExtract.next = null;
