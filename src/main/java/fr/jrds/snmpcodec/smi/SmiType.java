@@ -318,8 +318,7 @@ public abstract class SmiType extends Syntax {
     };
 
     /**
-     * From SNMPv2-SMI, defined as [APPLICATION 1]<p>
-     * -- this wraps <p>
+     * <p>From SNMPv2-SMI, defined as [APPLICATION 1]</p>
      * <ul>
      * <li>{@link #getVariable()} return an empty {@link org.snmp4j.smi.Counter32} variable.</li>
      * <li>{@link #convert(Variable)} return the value stored in a {@link java.lang.Long}.</li>

@@ -54,6 +54,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
     /**
      * <p>Register in SNMP4J a default {@link MibStore}. The modules folders are explicitly given.</p>
      * <p>If called many times, formatters and parsers are chained.</p>
+     * @param mibdirs folders that contains MIB modules.
      * @return the new OIDFormatter
      */
     public static OIDFormatter register(String... mibdirs) {

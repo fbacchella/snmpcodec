@@ -43,8 +43,8 @@ public abstract class MibStore {
      * the table name, followed by column name. The values are the current column name followed by the index
      * values.</p>
      * If the OID is a single value, both the map's key and value contains the name of the OID.
-     * @param oid
-     * @return
+     * @param oid to parse
+     * @return The description of the OID.
      */
     public Map<String, Object> parseIndexOID(int[] oid) {
         OidTreeNode found = top.search(oid);
