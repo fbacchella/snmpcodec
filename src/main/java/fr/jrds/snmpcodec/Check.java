@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiPredicate;
+import java.util.stream.Stream;
 
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.snmp4j.log.ConsoleLogFactory;
@@ -23,12 +24,12 @@ import fr.jrds.snmpcodec.parsing.WrappedException;
 
 public class Check {
 
-    private final static LogAdapter logger = LogAdapter.getLogger(Check.class);
+    private static LogAdapter logger;
 
     public static void main(String[] args) throws IOException {
         LogFactory.setLogFactory(new ConsoleLogFactory());
-        LogAdapter logger = LogAdapter.getLogger("fr.jrds.snmpcodec");
-        logger.setLogLevel(LogLevel.WARN);
+        LogAdapter.getLogger("fr.jrds.snmpcodec").setLogLevel(LogLevel.WARN);
+        logger = LogAdapter.getLogger(Check.class);;
 
         MibStore store = load(args).buildTree();
         int numoid = countOid(store.top);
@@ -70,25 +71,29 @@ public class Check {
             return (file.toLowerCase().endsWith(".mib") || file.toLowerCase().endsWith(".txt") || file.toLowerCase().endsWith(".my"));
         };
 
-        Files.find(Paths.get(mibs.toUri()), 10, matcher).forEach(i -> {
-            try {
-                loader.load(i);
-            } catch (WrappedException e) {
+        try (Stream<Path> foundStream = Files.find(Paths.get(mibs.toUri()), 10, matcher)) {
+            foundStream.forEach(i -> {
                 try {
-                    throw e.getRootException();
-                } catch (DuplicatedModuleException e1) {
-                    // Many of them, ignore
-                } catch (Exception e1) {
-                    logger.error("broken module: %s at %s\n", e.getMessage(), e.getLocation());
+                    loader.load(i);
+                } catch (WrappedException e) {
+                    try {
+                        throw e.getRootException();
+                    } catch (DuplicatedModuleException e1) {
+                        // Many of them, ignore
+                    } catch (Exception e1) {
+                        logger.error("broken module: %s at %s", e.getMessage(), e.getLocation());
+                    }
+                } catch (ParseCancellationException e) {
+                    logger.error("Broken module %s: runnaway string", i);
+                } catch (StringIndexOutOfBoundsException e) {
+                    // bug https://github.com/antlr/antlr4/issues/1949
+                    logger.error("Broken module %s: %s", i, e.getMessage());
+                } catch (Exception e) {
+                    logger.error("Broken module %s parsing : %s", i, e.getMessage());
+                    e.printStackTrace(System.err);
                 }
-            } catch (ParseCancellationException e) {
-                logger.error("Broken module %s: %s\n", i, e.getMessage());
-            } catch (Exception e) {
-                logger.error("Broken module %s parsing : %s\n", i, e.getMessage());
-                e.printStackTrace(System.err);
-            }
-
-        });
+            });
+        }
     }
 
     private static int countOid(OidTreeNode level) {
