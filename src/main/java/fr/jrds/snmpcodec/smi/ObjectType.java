@@ -15,11 +15,7 @@ public class ObjectType {
     }
 
     public String format(Variable v) {
-        if (syntax.isNamed()) {
-            return syntax.getNameFromNumer(v.toInt());
-        } else {
-            return syntax.format(v);
-        }
+        return syntax.format(v);
     }
 
     public Variable parse(String text) {

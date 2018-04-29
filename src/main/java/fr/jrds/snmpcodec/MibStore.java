@@ -99,19 +99,19 @@ public abstract class MibStore {
     }
 
     public String format(OID instanceOID, Variable variable) {
-        OidTreeNode s = top.find(instanceOID.getValue());
-        if (s == null) {
+        OidTreeNode node = top.search(instanceOID.getValue());
+        if (node == null) {
             return null;
         }
-        else if (resolvedTraps.containsKey(s)) {
-            Trap trap = resolvedTraps.get(s).get(variable.toInt());
+        else if (resolvedTraps.containsKey(node)) {
+            Trap trap = resolvedTraps.get(node).get(variable.toInt());
             if (trap == null) {
                 return null;
             } else {
                 return trap.name;
             }
-        } else if (objects.containsKey(s)) {
-            ObjectType ot = objects.get(s);
+        } else if (objects.containsKey(node)) {
+            ObjectType ot = objects.get(node);
             return ot.format(variable);
         }
         return null;
@@ -123,6 +123,9 @@ public abstract class MibStore {
             return null;
         } else if (syntaxes.containsKey(node.getSymbol())) {
             return syntaxes.get(node.getSymbol()).parse(text);
+        } else if (objects.containsKey(node)) {
+            Syntax s = objects.get(node).getSyntax();
+            return s.parse(text);
         }
         return null;
     }
