@@ -4,11 +4,8 @@
 
     <groupId>fr.jrds</groupId>
     <artifactId>snmpcodec</artifactId>
-    <version>0.0.4-SNAPSHOT</version>
+    <version>0.0.5-SNAPSHOT</version>
     <packaging>jar</packaging>
-
-    <name>snmpcodec</name>
-    <url>http://maven.apache.org</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -90,30 +87,6 @@
                 <version>2.6</version>
             </plugin>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <version>2.6</version>
-                <configuration>
-                    <descriptorRefs>
-                        <descriptorRef>jar-with-dependencies</descriptorRef>
-                    </descriptorRefs>
-                    <archive>
-                        <manifest>
-                            <mainClass>fr.jrds.snmpcodec.Check</mainClass>
-                        </manifest>
-                    </archive>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>simple-command</id>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>attached</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.1</version>
@@ -150,10 +123,17 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <links>
+                        <link>http://www.snmp4j.org/doc/</link>
+                    </links>
+                    <keywords>true</keywords>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-source-plugin</artifactId>
+                <version>2.4</version>
                 <executions>
                     <execution>
                         <id>attach-source</id>
@@ -167,11 +147,6 @@
         </plugins>
         <pluginManagement>
             <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-source-plugin</artifactId>
-                    <version>2.4</version>
-                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-deploy-plugin</artifactId>
@@ -208,7 +183,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.7.5.201505241946</version>
+                <version>0.8.1</version>
                 <configuration>
                     <output>file</output>
                     <append>true</append>
@@ -230,6 +205,9 @@
             </plugin>
         </plugins>
     </reporting>
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>snmpcodec is a  free and opensource implementation of OIDTextFormat and VariableTextFormat for SNMP4J.</description>
+    <url>https://github.com/fbacchella/snmpcodec</url>
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
@@ -237,12 +215,14 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
-    <repositories>
-        <repository>
-            <id>snmp4j</id>
-            <url>https://oosnmp.net/dist/release</url>
-        </repository>
-    </repositories>
+    <developers>
+        <developer>
+            <name>Fabrice Bacchella</name>
+            <email>fabrice.bacchella@orange.fr</email>
+            <id>fbacchella</id>
+            <url>https://github.com/fbacchella</url>
+        </developer>
+    </developers>
     <distributionManagement>
         <repository>
             <id>bintray-fbacchella-maven</id>
@@ -250,4 +230,17 @@
             <url>https://api.bintray.com/maven/fbacchella/maven/snmpcodec/</url>
         </repository>
     </distributionManagement>
+    <ciManagement>
+        <system>Travis CI</system>
+        <url>https://travis-ci.org/fbacchella/snmpcodec</url>
+    </ciManagement>
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/fbacchella/snmpcodec/issues</url>
+    </issueManagement>
+    <scm>
+        <url>https://github.com/fbacchella/snmpcodec.git</url>
+        <connection>scm:git:git://github.com/fbacchella/snmpcodec.git</connection>
+        <developerConnection>scm:git:ssh://github.com/fbacchella/snmpcodec.git</developerConnection>
+    </scm>
 </project>

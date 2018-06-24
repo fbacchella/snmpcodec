@@ -1,7 +1,15 @@
 language: java
 jdk:
-    - oraclejdk8
-    - oraclejdk9
+  - oraclejdk8
+  - oraclejdk9
+  - oraclejdk10
 cache:
   directories:
   - $HOME/.m2
+script:
+  - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package sonar:sonar
+addons:
+  sonarcloud:
+    organization: "fbacchella-github"
+    token:
+      secure: "Kkf2EkHf53GPThDAkjE+5ujx/4fEoDLsTDB8EQOEp2ZlBdB/4GjbVzEcKyTaIkwWS69kUFfFjWrsqOXktzJ6iOovDHATje7A52LH5Lu3RuJ7yWUaPWVeimevqAeyF7JVznNNUpJq8rSIHpYdOfbEEQzBlDNC++MII9/uHhMGlvy9E4tZaaO1gtCth/mPjPwzHq0Mm1blRPV1gU9pbrWaMpRQxh7nCwcdXd3yJyDlcJgikXYFWKFP73wAvXy6+nDsMnqYj70urPdoJZCNaI2rN8/iL+fnv1AMQYVQTKUS9oPnfiMtnjORww5wSg6SvN9yud912dpX+wUqAocSD97t+J7BJFsj0qWVJOVOFzVYGuF6tuyr8+elxQ+inbRnY1H/0zewH7weliCJnJ/F2WAPk++TXnyB5jcqFOrfV+HopGI1+zkZ1XeOEe8lsmBWO2sIrDKPv39YNlq4nIsPedAq8X5YAPcDOo39pXrF/qETECqzRTiV3twMizhknbZcrbZ8dbhvluEro7YAwWHs6/sYWAZfAnXJV3mq0O8tB//Dct51EboDPdGpyD5d5ZSca2Cvbd+fn8sDnmqNdiOAO1g5W5r8UmEgx9clZfa1VWP8jF65c9xF4vxP+GJKP7HPflLtwiDz3mmEloMUMmlTLM38aWh8gTb1l1/GnTyR80eqOWs="
