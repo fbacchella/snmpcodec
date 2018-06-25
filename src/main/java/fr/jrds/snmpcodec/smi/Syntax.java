@@ -24,7 +24,7 @@ public abstract class Syntax {
             this.fromname = new HashMap<>(names.size());
             names.entrySet().forEach(e -> {
                 String name = e.getValue();
-                Integer val = new Integer(e.getKey().intValue());
+                Integer val = e.getKey().intValue();
                 toname.put(val, name);
                 fromname.put(name, val);
             });
@@ -82,9 +82,7 @@ public abstract class Syntax {
     @Override
     public String toString() {
         StringBuilder buffer = new StringBuilder();
-        toname.forEach((i,j) -> {
-            buffer.append(String.format("%s (%d) ", j, i));
-        });
+        toname.forEach((i,j) -> buffer.append(String.format("%s (%d) ", j, i)));
         if (constraints != null) {
             buffer.append(constraints.toString());
         }

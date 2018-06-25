@@ -27,7 +27,7 @@ public class Oid {
     }
 
     public Oid(List<Integer> path, String name) throws MibException {
-        if (path == null || path.size() == 0) {
+        if (path == null || path.isEmpty()) {
             throw new MibException("Creating empty OID " + name);
         }
         this.path = path;
@@ -61,9 +61,7 @@ public class Oid {
             if (path == null) {
                 path = new ArrayList<>();
             }
-            components.forEach( i-> {
-                path.add(Integer.valueOf(i.number));
-            });
+            components.forEach( i-> path.add(Integer.valueOf(i.number)));
         }
         return path;
     }

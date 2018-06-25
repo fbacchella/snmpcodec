@@ -25,10 +25,10 @@ public class ParserTest {
     public void checkCodecs() throws URISyntaxException, IOException {
 
         MibStore store = Tasks.load(false, 
-                Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-CONF.txt").toURI()).toString(),
-                Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-MIB.txt").toURI()).toString(),
-                Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-SMI.txt").toURI()).toString(),
-                Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-TC.txt").toURI()).toString(),
+                Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-CONF.txt").toURI()).toString(),
+                Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-MIB.txt").toURI()).toString(),
+                Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-SMI.txt").toURI()).toString(),
+                Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-TC.txt").toURI()).toString(),
                 Paths.get(getClass().getClassLoader().getResource("custommib.txt").toURI()).toString()
                 ).buildTree();
         Assert.assertTrue(store.modules.contains("SNMPv2-CONF"));

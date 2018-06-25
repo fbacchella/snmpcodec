@@ -44,10 +44,11 @@ class LogString implements CharSequence, Serializable {
                 .map(i -> i instanceof long[] ? Arrays.toString((long[])i):i)
                 .map(i -> i instanceof byte[] ? Arrays.toString((byte[])i):i)
                 .toArray();
-        return formatted = String.format(format, mapped);
+        formatted = String.format(format, mapped);
+        return formatted;
     }
 
-    public final static LogString make(String format, Object...objects) {
+    public static final LogString make(String format, Object...objects) {
         return new LogString(format, objects);
     }
 

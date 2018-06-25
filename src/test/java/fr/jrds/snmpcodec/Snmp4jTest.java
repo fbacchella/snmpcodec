@@ -16,6 +16,7 @@ import org.snmp4j.PDUv1;
 import org.snmp4j.SNMP4JSettings;
 import org.snmp4j.smi.Integer32;
 import org.snmp4j.smi.OID;
+import org.snmp4j.smi.OctetString;
 import org.snmp4j.smi.VariableBinding;
 
 import fr.jrds.snmpcodec.parsing.MibLoader;
@@ -45,24 +46,24 @@ public class Snmp4jTest {
     public void testparseetree() throws InterruptedException, IOException, MibException, URISyntaxException, ParseException {
 
         MibLoader loader = new MibLoader();
-        loader.load(Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-CONF.txt").toURI()));
-        loader.load(Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-MIB.txt").toURI()));
-        loader.load(Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-SMI.txt").toURI()));
-        loader.load(Paths.get(getClass().getClassLoader().getResource("rfc-modules/SNMPv2-TC.txt").toURI()));
+        loader.load(Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-CONF.txt").toURI()));
+        loader.load(Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-MIB.txt").toURI()));
+        loader.load(Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-SMI.txt").toURI()));
+        loader.load(Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-TC.txt").toURI()));
         loader.load(Paths.get(getClass().getClassLoader().getResource("custommib.txt").toURI()));
 
         MibStore resolver = loader.buildTree();
-
         OIDFormatter formatter = new OIDFormatter(resolver);
+
         SNMP4JSettings.setOIDTextFormat(formatter);
         SNMP4JSettings.setVariableTextFormat(formatter);
 
         Assert.assertEquals("iso", new OID("iso").format());
         Assert.assertEquals("sysDescr", new OID("sysDescr").format());
-        Assert.assertEquals("enabled", resolver.format(new OID("snmpEnableAuthenTraps"), new Integer32(1)));
+        Assert.assertEquals("enabled(1)", resolver.format(new OID("snmpEnableAuthenTraps"), new Integer32(1)));
 
         VariableBinding vb = new VariableBinding(new OID("snmpEnableAuthenTraps"), new Integer32(1));
-        Assert.assertEquals("enabled", vb.toValueString());
+        Assert.assertEquals("enabled(1)", vb.toValueString());
 
         PDUv1 trap = new PDUv1();
 
@@ -79,11 +80,53 @@ public class Snmp4jTest {
 
     @Test
     public void defaultRegister() throws URISyntaxException {
-        String rfcmodules = getClass().getClassLoader().getResource("rfc-modules").toURI().getPath();
+        String rfcmodules = getClass().getClassLoader().getResource("modules").toURI().getPath();
         String custommodule = getClass().getClassLoader().getResource("custommib.txt").toURI().getPath();
         System.setProperty(OIDFormatter.MIBDIRSPROPERTY, rfcmodules + File.pathSeparatorChar + custommodule);
         OIDFormatter.register();
         Assert.assertEquals("snmpcodec", new OID("snmpcodec").format());
+    }
+
+    @Test
+    public void varfromFAQ1() throws ParseException, URISyntaxException {
+        MibLoader loader = new MibLoader();
+        loader.load(Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-CONF.txt").toURI()));
+        loader.load(Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-MIB.txt").toURI()));
+        loader.load(Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-SMI.txt").toURI()));
+        loader.load(Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-TC.txt").toURI()));
+        loader.load(Paths.get(getClass().getClassLoader().getResource("modules/IF-MIB.txt").toURI()));
+        loader.load(Paths.get(getClass().getClassLoader().getResource("modules/IANAifType-MIB.txt").toURI()));
+
+        MibStore resolver = loader.buildTree();
+
+        OIDFormatter formatter = new OIDFormatter(resolver);
+        SNMP4JSettings.setOIDTextFormat(formatter);
+        SNMP4JSettings.setVariableTextFormat(formatter);
+        OID ifAdminStatus = new OID(resolver.getFromName("ifAdminStatus"));
+        ifAdminStatus= ifAdminStatus.append(4);
+        VariableBinding vbEnum = new VariableBinding(ifAdminStatus, "down(2)");
+        Assert.assertEquals(new VariableBinding(new OID(new int[] { 1,3,6,1,2,1,2,2,1,7,4 }), new Integer32(2)), vbEnum);
+        Assert.assertEquals("down(2)", vbEnum.toValueString());
+    }
+
+    @Test
+    public void varfromFAQ2() throws ParseException, URISyntaxException {
+        MibLoader loader = new MibLoader();
+        loader.load(Paths.get(getClass().getClassLoader().getResource("modules/NOTIFICATION-LOG-MIB.txt").toURI()));
+        loader.load(Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-SMI.txt").toURI()));
+        loader.load(Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-TC.txt").toURI()));
+        loader.load(Paths.get(getClass().getClassLoader().getResource("modules/SNMP-FRAMEWORK-MIB.txt").toURI()));
+
+        MibStore resolver = loader.buildTree();
+
+        OIDFormatter formatter = new OIDFormatter(resolver);
+        SNMP4JSettings.setOIDTextFormat(formatter);
+        SNMP4JSettings.setVariableTextFormat(formatter);
+
+        OID nlmLogDateAndTime = new OID("nlmLogDateAndTime");
+        nlmLogDateAndTime.append(1);
+        VariableBinding vbDateAndTime = new VariableBinding(nlmLogDateAndTime,"2015-10-13,12:45:53.8,+2:0");
+        Assert.assertEquals(new VariableBinding(new OID(new int[] { 1,3,6,1,2,1,92,1,3,1,1,3,1 }), OctetString.fromHexString("07:df:0a:0d:0c:2d:35:08:2b:02:00")), vbDateAndTime);
     }
 
 }

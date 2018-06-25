@@ -18,7 +18,8 @@ public class AnnotedSyntax extends Syntax implements SyntaxContainer {
     @Override
     public String format(Variable v) {
         if (isNamed()) {
-            return getNameFromNumer(v.toInt());
+            int value = v.toInt();
+            return String.format("%s(%d)", getNameFromNumer(value), value);
         } else {
             return syntax.format(v);
         }
@@ -35,7 +36,7 @@ public class AnnotedSyntax extends Syntax implements SyntaxContainer {
 
     @Override
     public Variable parse(String text) {
-        if (this.isNamed()) {
+        if (isNamed()) {
             return syntax.getVariable(getNumberFromName(text));
         } else {
             return syntax.parse(text);

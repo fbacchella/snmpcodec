@@ -56,7 +56,6 @@ public class Tasks {
                     String resolved = i.toAbsolutePath().normalize().toString().intern();
                     if (! done.contains(resolved)) {
                         done.add(resolved);
-                        System.out.println(resolved);
                         Tasks.loadpath(loader, i);
                     }
                 } catch (IOException e) {

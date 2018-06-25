@@ -43,8 +43,8 @@ public abstract class MibStore {
      * the table name, followed by column name. The values are the current column name followed by the index
      * values.</p>
      * If the OID is a single value, both the map's key and value contains the name of the OID.
-     * @param oid
-     * @return
+     * @param oid to parse
+     * @return The description of the OID.
      */
     public Map<String, Object> parseIndexOID(int[] oid) {
         OidTreeNode found = top.search(oid);
@@ -90,28 +90,23 @@ public abstract class MibStore {
     }
 
     public int[] getFromName(String text) {
-        if (names.containsKey(text)) {
-            for(OidTreeNode s: names.get(text)) {
-                return s.getElements();
-            }
-        }
-        return null;
+        return names.get(text).stream().findFirst().map(i -> i.getElements()).orElseGet(null);
     }
 
     public String format(OID instanceOID, Variable variable) {
-        OidTreeNode s = top.find(instanceOID.getValue());
-        if (s == null) {
+        OidTreeNode node = top.search(instanceOID.getValue());
+        if (node == null) {
             return null;
         }
-        else if (resolvedTraps.containsKey(s)) {
-            Trap trap = resolvedTraps.get(s).get(variable.toInt());
+        else if (resolvedTraps.containsKey(node)) {
+            Trap trap = resolvedTraps.get(node).get(variable.toInt());
             if (trap == null) {
                 return null;
             } else {
                 return trap.name;
             }
-        } else if (objects.containsKey(s)) {
-            ObjectType ot = objects.get(s);
+        } else if (objects.containsKey(node)) {
+            ObjectType ot = objects.get(node);
             return ot.format(variable);
         }
         return null;
@@ -123,6 +118,9 @@ public abstract class MibStore {
             return null;
         } else if (syntaxes.containsKey(node.getSymbol())) {
             return syntaxes.get(node.getSymbol()).parse(text);
+        } else if (objects.containsKey(node)) {
+            Syntax s = objects.get(node).getSyntax();
+            return s.parse(text);
         }
         return null;
     }

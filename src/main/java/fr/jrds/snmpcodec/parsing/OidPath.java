@@ -11,7 +11,7 @@ import fr.jrds.snmpcodec.smi.Oid;
 
 public class OidPath extends ArrayList<OidPath.OidComponent> {
 
-    static public class OidComponent {
+    public static class OidComponent {
         public final int number;
         public final String name;
         public OidComponent(String name, int number) {
@@ -34,19 +34,19 @@ public class OidPath extends ArrayList<OidPath.OidComponent> {
         }
         @Override
         public boolean equals(Object obj) {
-            if(this == obj)
+            if (this == obj)
                 return true;
-            if(obj == null)
+            if (obj == null)
                 return false;
-            if(getClass() != obj.getClass())
+            if (getClass() != obj.getClass())
                 return false;
             OidComponent other = (OidComponent) obj;
-            if(name == null) {
-                if(other.name != null)
+            if (name == null) {
+                if (other.name != null)
                     return false;
-            } else if(!name.equals(other.name))
+            } else if (!name.equals(other.name))
                 return false;
-            if(number != other.number)
+            if (number != other.number)
                 return false;
             return true;
         }
@@ -61,7 +61,7 @@ public class OidPath extends ArrayList<OidPath.OidComponent> {
     @Override
     public String toString() {
         return (root != null ? root  + "." : "")
-                + stream().map( i -> i.toString()).collect(Collectors.joining("."));
+                + stream().map(OidComponent::toString).collect(Collectors.joining("."));
     }
 
     Symbol getRoot() {
@@ -83,7 +83,7 @@ public class OidPath extends ArrayList<OidPath.OidComponent> {
             } catch (MibException e) {
                 throw e.getNonChecked();
             }
-        }).limit(this.size() - 1);
+        }).limit(size() - 1L);
     }
 
 }

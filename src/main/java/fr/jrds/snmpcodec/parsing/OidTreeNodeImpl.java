@@ -2,7 +2,6 @@ package fr.jrds.snmpcodec.parsing;
 
 import java.util.Arrays;
 
-import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.OidTreeNode;
 
 public class OidTreeNodeImpl extends OidTreeNode {
@@ -19,9 +18,8 @@ public class OidTreeNodeImpl extends OidTreeNode {
      * Added a new node at the right place in the tree
      * @param symbol
      * @param isTableEntry 
-     * @throws MibException 
      */
-    OidTreeNode add(int[] oidElements, String symbol, boolean isTableEntry) throws MibException {
+    OidTreeNode add(int[] oidElements, String symbol, boolean isTableEntry) {
         OidTreeNode found = find(oidElements);
         if ( found != null) {
             //already exists, don't add

@@ -19,7 +19,7 @@ abstract class MibObject {
             return "Imported from " + name;
         }
 
-    };
+    }
 
     static class MappedObject extends MibObject {
         String name;

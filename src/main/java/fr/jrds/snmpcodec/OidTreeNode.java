@@ -12,7 +12,7 @@ public abstract class OidTreeNode {
 
     private final String name;
     protected int[] oidElements;
-    private final NavigableMap<Integer, OidTreeNode> childs = new TreeMap<Integer, OidTreeNode>();
+    private final NavigableMap<Integer, OidTreeNode> childs = new TreeMap<>();
     protected final OidTreeNode root;
     private final boolean isTableEntry;
     private final OidTreeNode parent;
@@ -47,10 +47,6 @@ public abstract class OidTreeNode {
     }
 
     public OidTreeNode search(int[] oid) {
-        return search(oid, false);
-    }
-
-    private OidTreeNode search(int[] oid, boolean Strict) {
         if (root.childs.containsKey(oid[0])) {
             return root.childs.get(oid[0]).search(oid, 1);
         } else {
@@ -72,7 +68,7 @@ public abstract class OidTreeNode {
     }
 
     public OidTreeNode find(int[] oid) {
-        OidTreeNode found = search(oid, true);
+        OidTreeNode found = search(oid);
         if (found != null && found.oidEquals(oid)) {
             return found;
         } else {
@@ -82,7 +78,7 @@ public abstract class OidTreeNode {
 
     @Override
     public String toString() {
-        return (oidElements != null ? Utils.dottedNotation(oidElements) : "" )+ "=" + (name !=null ? name.toString() : "");
+        return (oidElements != null ? Utils.dottedNotation(oidElements) : "" )+ "=" + (name !=null ? name : "");
     }
 
     public int[] getElements() {

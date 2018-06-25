@@ -63,9 +63,9 @@ public abstract class SmiType extends Syntax {
                 int l = BER.decodeLength(beris);
                 if(t1 == TAG1) {
                     if(t2 == TAG_FLOAT && l == 4)
-                        value = new Float(bais.getFloat());
+                        value = bais.getFloat();
                     else if(t2 == TAG_DOUBLE && l == 8)
-                        value = new Double(bais.getDouble());
+                        value = bais.getDouble();
                 }
             } catch (IOException e) {
                 logger.error(var.toString());
@@ -98,7 +98,7 @@ public abstract class SmiType extends Syntax {
         @Override
         public Object convert(Variable v) {
             org.snmp4j.smi.OctetString octetVar = (org.snmp4j.smi.OctetString)v;
-            //It might be a C string, try to remove the last 0;
+            //It might be a C string, try to remove the last 0.
             //But only if the new string is printable
             int length = octetVar.length();
             if(length > 1 && octetVar.get(length - 1) == 0) {
@@ -318,8 +318,7 @@ public abstract class SmiType extends Syntax {
     };
 
     /**
-     * From SNMPv2-SMI, defined as [APPLICATION 1]<p>
-     * -- this wraps <p>
+     * <p>From SNMPv2-SMI, defined as [APPLICATION 1]</p>
      * <ul>
      * <li>{@link #getVariable()} return an empty {@link org.snmp4j.smi.Counter32} variable.</li>
      * <li>{@link #convert(Variable)} return the value stored in a {@link java.lang.Long}.</li>
@@ -570,10 +569,12 @@ public abstract class SmiType extends Syntax {
 
     public String format(Variable v) {
         return v.toString();
-    };
+    }
+
     public Variable parse(String text) {
         return null;
     };
+
     public abstract Object convert(Variable v);
     public abstract int getSyntaxString();
     public Object make(int[] in){
