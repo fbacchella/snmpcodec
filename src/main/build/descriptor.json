@@ -21,12 +21,8 @@
   },
   "files": [
     {
-      "includePattern": "target/(.*\\.jar)",
-      "uploadPattern": "/fr/jrds/snmpcodec/${project.version}/$1"
-    },
-    {
-      "includePattern": "pom.xml",
-      "uploadPattern": "/fr/jrds/snmpcodec/${project.version}/snmpcodec-${project.version}.pom"
+      "includePattern": "target/deploy/(fr/jrds/snmpcodec/${project.version}/.*)",
+      "uploadPattern": "$1"
     }
   ],
   "publish": true

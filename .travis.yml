@@ -1,9 +1,11 @@
 language: java
 jdk:
-    - oraclejdk9
+  - oraclejdk10
 cache:
   directories:
   - $HOME/.m2
+before_deploy:
+  - mvn deploy -Dmaven.test.skip=true -Dmaven.install.skip=true -DaltDeploymentRepository=travis::default::file:target/deploy
 deploy:
     provider: bintray
     file: "target/descriptor.json"
