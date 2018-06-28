@@ -234,7 +234,7 @@ notifications:
     ;
 
 augments:
-    '{' IDENTIFIER (',' IDENTIFIER)* ','? '}'
+    '{' IDENTIFIER '}'
     ;
 
 index:

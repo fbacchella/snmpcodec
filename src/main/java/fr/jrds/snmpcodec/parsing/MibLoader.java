@@ -276,14 +276,19 @@ public class MibLoader {
         resolveTextualConventions();
         types.forEach((i,j) -> _syntaxes.put(i.name, j));
         MIBPARSINGLOGGER.debug("Building the objects");
+        Map<OidTreeNode, ObjectTypeBuilder> augmenters = new HashMap<>();
         buildObjects.forEach((k,v) -> {
             int[] components = null;
             OidTreeNode node = null;
             try {
                 components = k.getPath(buildOids).stream().mapToInt(Integer::intValue).toArray();
                 node = top.find(components);
-                ObjectType object = v.resolve(this);
-                _objects.put(node, object);
+                if (v.isAugmenter()) {
+                    augmenters.put(node, v);
+                } else {
+                    ObjectType object = v.resolve(this);
+                    _objects.put(node, object);
+                }
             } catch (MibException e) {
                 String objectname = null;
                 if (node != null) {
@@ -292,6 +297,17 @@ public class MibLoader {
                     objectname = "OID " + k.toString();
                 }
                 MIBPARSINGLOGGER.warn("Incomplete %s: %s", objectname, e.getMessage());
+            }
+        });
+        augmenters.forEach((k,v) -> {
+            Symbol augmented = v.getAugmented();
+            Oid oidAugmented = buildOids.get(augmented);
+            ObjectTypeBuilder builderAugmented = buildObjects.get(oidAugmented);
+            try {
+                ObjectType object = v.resolve(this, builderAugmented);
+                _objects.put(k, object);
+            } catch (MibException e) {
+                MIBPARSINGLOGGER.warn("Incomplete OID %s: %s", k, e.getMessage());
             }
         });
         MIBPARSINGLOGGER.debug("Building the SNMPv1 traps");
