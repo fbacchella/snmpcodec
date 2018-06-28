@@ -26,3 +26,13 @@ To use it, just call
 
 It will then used the property `snmpcodec.mibdirssnmpcodec.mibdirs` formatted as path using the JVM's path separator. If this property is not set, modules
 are searched in `/usr/share/snmp/mibs/usr/share/snmp/mibs`.
+
+It's available in Maven, just add in your dependencies:
+
+```
+<dependency>
+    <groupId>fr.jrds</groupId>
+    <artifactId>snmpcodec</artifactId>
+    <version>0.0.5</version>
+</dependency>
+```

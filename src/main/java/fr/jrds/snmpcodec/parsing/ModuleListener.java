@@ -399,8 +399,7 @@ public class ModuleListener extends ASNBaseListener {
             value = ctx.notifications().IDENTIFIER().stream().map(TerminalNode::getText).collect(ArrayList::new, ArrayList::add,
                     ArrayList::addAll);
         } else if (ctx.augments() != null) {
-            value = ctx.augments().IDENTIFIER().stream().map(TerminalNode::getText).collect(ArrayList::new, ArrayList::add,
-                    ArrayList::addAll);
+            value = resolveSymbol(ctx.augments().IDENTIFIER().getText());
         } else if (ctx.index() != null) {
             LinkedList<Symbol> types = new LinkedList<>();
             while (stack.peek() instanceof TypeDescription) {

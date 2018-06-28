@@ -13,11 +13,14 @@ public class ObjectTypeBuilder {
 
     private final Syntax syntax;
     private final boolean indexed;
+    private final boolean augments;
     private final IndexBuilder index;
+    private final Symbol augmentedEntry;
 
     ObjectTypeBuilder(Map<String, Object> attributes) {
         syntax = (Syntax) attributes.remove("SYNTAX");
         indexed = attributes.containsKey("INDEX");
+        augments = attributes.containsKey("AUGMENTS");
         if (indexed) {
             @SuppressWarnings("unchecked")
             List<Symbol> indexSymbols = (List<Symbol>)attributes.remove("INDEX");
@@ -25,16 +28,43 @@ public class ObjectTypeBuilder {
         } else {
             index = null;
         }
+        if (augments) {
+            augmentedEntry = (Symbol) attributes.remove("AUGMENTS");
+        } else {
+            augmentedEntry = null;
+        }
     }
 
     ObjectType resolve(MibLoader loader) throws MibException {
         loader.resolve(syntax);
-        Index newIndex = index != null ? index.resolve(loader) : null;
+        Index newIndex = null;
+        if (index != null) {
+            newIndex = index.resolve(loader);
+        } else if (augments) {
+            System.out.println(loader.resolveNode(augmentedEntry).getTableEntry());
+        }
         return new ObjectType(syntax, indexed, newIndex);
     }
 
+    ObjectType resolve(MibLoader loader, ObjectTypeBuilder augmented) throws MibException {
+        loader.resolve(syntax);
+        Index newIndex = null;
+        if (augmented.index != null) {
+            newIndex = augmented.index.resolve(loader);
+        }
+        return new ObjectType(syntax, augments, newIndex);
+    }
+
     boolean isIndexed() {
-        return indexed;
+        return indexed || augments;
+    }
+
+    boolean isAugmenter() {
+        return augments;
+    }
+
+    Symbol getAugmented() {
+        return augmentedEntry;
     }
 
 }
