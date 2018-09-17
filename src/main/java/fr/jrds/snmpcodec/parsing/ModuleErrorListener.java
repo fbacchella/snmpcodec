@@ -19,7 +19,7 @@ public class ModuleErrorListener extends BaseErrorListener {
     public void syntaxError(Recognizer<?, ?> recognizer,
             Object offendingSymbol, int line, int charPositionInLine,
             String msg, RecognitionException e) {
-        LogLevel loggerLevel = MibLoader.MIBPARSINGLOGGER.getEffectiveLogLevel();
+        LogLevel loggerLevel = MibLoader.MIBPARSINGLOGGERERROR.getEffectiveLogLevel();
         LogLevel usedLevel = LogLevel.INFO;
 
         if (e instanceof WrappedException) {
@@ -32,14 +32,14 @@ public class ModuleErrorListener extends BaseErrorListener {
             }
         }
         if (modulelistener.firstError && usedLevel.getLevel() >= loggerLevel.getLevel()) {
-            MibLoader.MIBPARSINGLOGGER.info(recognizer.getInputStream().getSourceName());
+            MibLoader.MIBPARSINGLOGGERERROR.info(recognizer.getInputStream().getSourceName());
             modulelistener.firstError = false;
         }
 
         if (usedLevel.getLevel() == LogLevel.LEVEL_DEBUG) {
-            MibLoader.MIBPARSINGLOGGER.debug("    line %s:%s: %s", line, charPositionInLine, msg);
+            MibLoader.MIBPARSINGLOGGERERROR.debug("    line %s:%s: %s", line, charPositionInLine, msg);
         } else if (usedLevel.getLevel() == LogLevel.LEVEL_INFO) {
-            MibLoader.MIBPARSINGLOGGER.info("    line %s:%s: %s", line, charPositionInLine, msg);
+            MibLoader.MIBPARSINGLOGGERERROR.info("    line %s:%s: %s", line, charPositionInLine, msg);
         }
     }
 
