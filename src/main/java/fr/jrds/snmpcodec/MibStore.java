@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.snmp4j.smi.OID;
@@ -90,7 +91,7 @@ public abstract class MibStore {
     }
 
     public int[] getFromName(String text) {
-        return names.get(text).stream().findFirst().map(i -> i.getElements()).orElseGet(null);
+        return Optional.ofNullable(names.get(text)).map(i -> i.stream().findFirst().map(j -> j.getElements()).orElseGet(null)).orElse(new int[] {});
     }
 
     public String format(OID instanceOID, Variable variable) {
@@ -123,6 +124,10 @@ public abstract class MibStore {
             return s.parse(text);
         }
         return null;
+    }
+
+    public boolean isEmpty() {
+        return modules.isEmpty();
     }
 
 }
