@@ -146,8 +146,11 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
 
     @Override
     public int[] parse(String text) throws ParseException {
+        if (text == null || store.isEmpty()) {
+            return previous.parse(text);
+        }
         Matcher m = OIDWITSUFFIX.matcher(text);
-        if (!store.isEmpty() && m.matches()) {
+        if (m.matches()) {
             String prefixString = m.group("prefix");
             int[] prefix = store.getFromName(prefixString);
             if (prefix != null) {
