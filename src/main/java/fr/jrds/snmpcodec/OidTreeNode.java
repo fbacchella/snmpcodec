@@ -47,7 +47,7 @@ public abstract class OidTreeNode {
     }
 
     public OidTreeNode search(int[] oid) {
-        if (root.childs.containsKey(oid[0])) {
+        if (oid.length > 0 && root.childs.containsKey(oid[0])) {
             return root.childs.get(oid[0]).search(oid, 1);
         } else {
             return null;

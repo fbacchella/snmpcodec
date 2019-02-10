@@ -1,5 +1,6 @@
 package fr.jrds.snmpcodec.smi;
 
+import org.snmp4j.smi.Null;
 import org.snmp4j.smi.Variable;
 
 public class ObjectType {
@@ -15,7 +16,11 @@ public class ObjectType {
     }
 
     public String format(Variable v) {
-        return syntax.format(v);
+        if (v instanceof Null) {
+            return null;
+        } else {
+            return syntax.format(v);
+        }
     }
 
     public Variable parse(String text) {

@@ -117,6 +117,9 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
 
     @Override
     public String format(int[] value) {
+        if (store.isEmpty()) {
+            return previous.format(value);
+        }
         Object[] parsed = store.parseIndexOID(value).values().toArray();
         if(parsed != null && parsed.length > 0) {
             // The content is in the form of [String, [x, ...]], it's a uncompleted OID
@@ -143,6 +146,9 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
 
     @Override
     public int[] parse(String text) throws ParseException {
+        if (text == null || store.isEmpty()) {
+            return previous.parse(text);
+        }
         Matcher m = OIDWITSUFFIX.matcher(text);
         if (m.matches()) {
             String prefixString = m.group("prefix");
