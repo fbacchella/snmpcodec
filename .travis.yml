@@ -7,10 +7,11 @@ cache:
     - '$HOME/.m2/repository'
 install: true
 script:
-  - mvn clean verify site -Dmaven.test.skip=true -Djdk.compile.home=$(jdk_switcher home openjdk8)
+  - mvn clean verify site -Dmaven.test.skip=true -Dcompile.boot.classpath=$(jdk_switcher home openjdk8)/jre/lib/rt.jar
   - jdk_switcher use openjdk8
-  - mvn test -Dmaven.main.skip -Djdk.compile.home=$JAVA_HOME
+  - mvn test -Dmaven.main.skip
 before_deploy:
+  - jdk_switcher use openjdk11
   - mvn deploy -Dmaven.test.skip=true -Dmaven.main.skip -Dmaven.install.skip=true -DaltDeploymentRepository=travis::default::file:target/deploy
 deploy:
   provider: bintray
