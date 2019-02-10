@@ -11,8 +11,7 @@ script:
   - jdk_switcher use openjdk8
   - mvn test -Dmaven.main.skip
 before_deploy:
-  - jdk_switcher use openjdk11
-  - mvn deploy -Dmaven.test.skip=true -Dmaven.main.skip -Dmaven.install.skip=true -DaltDeploymentRepository=travis::default::file:target/deploy
+  - JAVA_HOME=$($HOME/openjdk11) mvn deploy -Dmaven.test.skip=true -Dmaven.main.skip -Dmaven.install.skip=true -DaltDeploymentRepository=travis::default::file:target/deploy
 deploy:
   provider: bintray
   file: target/descriptor.json
