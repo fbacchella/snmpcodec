@@ -1,16 +1,15 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <groupId>fr.jrds</groupId>
     <artifactId>snmpcodec</artifactId>
-    <version>0.0.6</version>
+    <version>0.0.7</version>
     <packaging>jar</packaging>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <source>1.8</source>
-        <target>1.8</target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <mavenSurefirePlugin>2.19.1</mavenSurefirePlugin>
         <javadoc>2.10.3</javadoc>
         <antlr>4.7.1</antlr>
@@ -80,6 +79,16 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.0</version>
+                <configuration>
+                    <compilerArgs>
+                        <arg>-Xbootclasspath:${jdk.compile.home}/jre/lib/rt.jar</arg>
+                    </compilerArgs>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${mavenSurefirePlugin}</version>
                 <configuration>
@@ -97,22 +106,13 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.3</version>
-                <configuration>
-                    <source>${source}</source>
-                    <target>${target}</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>2.6</version>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.1</version>
+                <version>0.8.2</version>
                 <configuration>
                     <output>file</output>
                     <append>true</append>
@@ -151,6 +151,8 @@
                         <link>http://www.snmp4j.org/doc/</link>
                     </links>
                     <keywords>true</keywords>
+                    <bootclasspath>${jdk.compile.home}/jre/lib/rt.jar</bootclasspath>
+                    <source>${maven.compiler.source}</source>
                 </configuration>
             </plugin>
             <plugin>
@@ -201,6 +203,8 @@
                         <link>http://www.snmp4j.org/doc/</link>
                     </links>
                     <keywords>true</keywords>
+                    <bootclasspath>${jdk.compile.home}/jre/lib/rt.jar</bootclasspath>
+                    <source>${maven.compiler.source}</source>
                 </configuration>
             </plugin>
             <plugin>
@@ -248,10 +252,15 @@
     </developers>
     <distributionManagement>
         <repository>
-            <id>bintray-fbacchella-maven</id>
-            <name>fbacchella-maven</name>
-            <url>https://api.bintray.com/maven/fbacchella/maven/snmpcodec/</url>
+            <id>sonatype-nexus-staging</id>
+            <name>Nexus Release Repository</name>
+            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
+        <snapshotRepository>
+            <id>sonatype-nexus-snapshots</id>
+            <name>Sonatype Nexus Snapshots</name>
+            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
+        </snapshotRepository>
     </distributionManagement>
     <ciManagement>
         <system>Travis CI</system>
