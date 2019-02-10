@@ -1,14 +1,14 @@
 language: java
 sudo: false
 jdk:
-  - openjdk11
+  - openjdk8
 cache:
   directories:
     - '$HOME/.m2/repository'
 install:
-  - $HOME/bin/install-jdk.sh --target "/usr/lib/jvm/java-8-openjdk-amd64" --workspace "/home/travis/.cache/install-jdk" --feature "8" --license "GPL" --cacerts
+  - $HOME/bin/install-jdk.sh --target "/usr/lib/jvm/java-11-openjdk-amd64" --workspace "/home/travis/.cache/install-jdk" --feature "11" --license "GPL" --cacerts
 script:
-  - mvn clean verify site -Dmaven.test.skip=true -Djdk.compile.home=/usr/lib/jvm/java-8-openjdk-amd64 && JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 mvn test -Dmaven.main.skip -Djdk.compile.home=/usr/lib/jvm/java-8-openjdk-amd64
+  - JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64 mvn clean verify site -Dmaven.test.skip=true -Djdk.compile.home=/usr/lib/jvm/java-8-openjdk-amd64 && JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64 mvn test -Dmaven.main.skip -Djdk.compile.home=/usr/lib/jvm/java-8-openjdk-amd64
 before_deploy:
   - mvn deploy -Dmaven.test.skip=true -Dmaven.main.skip -Dmaven.install.skip=true -DaltDeploymentRepository=travis::default::file:target/deploy
 deploy:
