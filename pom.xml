@@ -14,6 +14,9 @@
         <surefire.version>3.0.0-M5</surefire.version>
         <snmp4j.version>2.8.10</snmp4j.version>
         <antlr.version>4.9.3</antlr.version>
+        <!-- Indirection needed to keep optional jacoco settings and external argument lines-->
+        <arg.line></arg.line>
+        <argLine>${arg.line}</argLine>
     </properties>
 
     <dependencies>
@@ -242,6 +245,39 @@
             </plugin>
         </plugins>
     </reporting>
+
+    <profiles>
+        <profile>
+            <id>sonar</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.sonarsource.scanner.maven</groupId>
+                        <artifactId>sonar-maven-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.jacoco</groupId>
+                        <artifactId>jacoco-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>prepare-agent</id>
+                                <goals>
+                                    <goal>prepare-agent</goal>
+                                </goals>
+                            </execution>
+                            <execution>
+                                <id>report</id>
+                                <goals>
+                                    <goal>report</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
     <name>${project.groupId}:${project.artifactId}</name>
     <description>snmpcodec is a  free and opensource implementation of OIDTextFormat and VariableTextFormat for SNMP4J.</description>
     <url>https://github.com/fbacchella/snmpcodec</url>
