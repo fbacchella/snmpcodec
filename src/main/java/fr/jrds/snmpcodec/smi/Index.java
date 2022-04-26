@@ -82,7 +82,7 @@ public class Index {
         }
         if (oidParsed != null) {
             String traillings = Arrays.stream(oidParsed).mapToObj(Integer::toString).collect(Collectors.joining("."));
-            throw new RuntimeException("Trailing elements in index: " + traillings);
+            throw new IllegalArgumentException("Trailing elements in index: " + traillings);
         }
         logger.debug("will resolve %s to %s", oid, indexesValues);
         return indexesValues;

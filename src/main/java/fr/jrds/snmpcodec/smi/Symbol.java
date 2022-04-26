@@ -7,7 +7,7 @@ public class Symbol {
 
     public Symbol(String module, String name) {
         if (name == null) {
-            throw new RuntimeException("Invalid symbol");
+            throw new IllegalArgumentException("Invalid symbol");
         }
         this.module = module.intern();
         this.name = name.intern();
