@@ -10,7 +10,6 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.plugin.javadoc.version>3.0.1</maven.plugin.javadoc.version>
-        <maven.compiler.release>8</maven.compiler.release>
         <surefire.version>3.0.0-M5</surefire.version>
         <snmp4j.version>2.8.10</snmp4j.version>
         <antlr.version>4.9.3</antlr.version>
@@ -295,6 +294,25 @@
                     </plugin>
                 </plugins>
             </reporting>
+        </profile>
+        <profile>
+            <id>java8</id>
+            <activation>
+                <jdk>1.8</jdk>
+            </activation>
+            <properties>
+                <maven.compiler.source>1.8</maven.compiler.source>
+                <maven.compiler.target>1.8</maven.compiler.target>
+            </properties>
+        </profile>
+        <profile>
+            <id>notjava8</id>
+            <activation>
+                <jdk>!1.8</jdk>
+            </activation>
+            <properties>
+                <maven.compiler.release>8</maven.compiler.release>
+            </properties>
         </profile>
     </profiles>
 
