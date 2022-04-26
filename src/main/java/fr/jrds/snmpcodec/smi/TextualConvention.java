@@ -100,7 +100,7 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
             Matcher match = HINTREGEX.matcher(text);
             if (!match.find()) {
                 return null;
-            };
+            }
             ByteBuffer buffer = ByteBuffer.allocate(11);
             buffer.order(ByteOrder.BIG_ENDIAN);
             buffer.putShort(Short.parseShort(match.group(1))); // year
@@ -116,7 +116,7 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
             return OctetString.fromByteArray(buffer.array());
         }
 
-    };
+    }
 
     private static abstract class NumberDisplayHint<V extends Variable> extends AbstractPatternDisplayHint<V> {
         private static final Pattern floatPattern = Pattern.compile("(?<radix>d|x|o|b)(?:-(?<float>\\d+))?");

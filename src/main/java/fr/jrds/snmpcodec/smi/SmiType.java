@@ -573,7 +573,7 @@ public abstract class SmiType extends Syntax {
 
     public Variable parse(String text) {
         return null;
-    };
+    }
 
     public abstract Object convert(Variable v);
     public abstract int getSyntaxString();
