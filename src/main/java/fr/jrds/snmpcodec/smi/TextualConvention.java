@@ -3,6 +3,7 @@ package fr.jrds.snmpcodec.smi;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -213,8 +214,6 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
 
     public static class PatternDisplayHint extends AbstractPatternDisplayHint<OctetString> {
         private static final Pattern element = Pattern.compile("(.*?)(\\*?)(\\d*)([dxatobh])([^\\d\\*-]?)(-\\d+)?");
-        private static final Charset ASCII = Charset.forName("US-ASCII");
-        private static final Charset UTF8 = Charset.forName("UTF-8");
         private final String[] paddings;
         private final Character[] stars;
         private final Integer[] sizes;
@@ -319,7 +318,7 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
                     case 't':
                         byte[] sub =new byte[sizes[i]];
                         buffer.get(sub);
-                        formatted.append(new String(sub, formats[i] == 'a' ? ASCII : UTF8));
+                        formatted.append(new String(sub, formats[i] == 'a' ? StandardCharsets.US_ASCII : StandardCharsets.UTF_8));
                         break;
                     case 'h':
                     }
@@ -344,14 +343,12 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
 
     }
 
-
     public static class DisplayString extends AbstractPatternDisplayHint<OctetString> {
         private final static Constraint Constraint255a = new Constraint(true);
         static {
             Constraint255a.add(new ConstraintElement(255));
         }
         private final static AnnotedSyntax localsyntax = new AnnotedSyntax(SmiType.OctetString, null, Constraint255a);
-        static private final Charset USASCII = Charset.forName("US-ASCII");
 
         public DisplayString() {
             super(localsyntax, "255a", null, null);
@@ -360,7 +357,7 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
         @Override
         public String patternFormat(OctetString v) {
             if (v.isPrintable()) {
-                return new String(v.getValue(), USASCII);
+                return new String(v.getValue(), StandardCharsets.US_ASCII);
             } else {
                 return v.toHexString();
             }
@@ -368,7 +365,7 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
 
         @Override
         public Variable patternParse(String text) {
-            return new OctetString(text.getBytes(USASCII));
+            return new OctetString(text.getBytes(StandardCharsets.US_ASCII));
         }
 
         @Override
