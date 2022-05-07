@@ -33,12 +33,12 @@ public abstract class MibStore {
     public final Set<String> modules;
 
     protected MibStore(OidTreeNode top, Set<String> modules,
-            Map<String, List<OidTreeNode>> names, Map<String, Syntax> syntaxes, Map<OidTreeNode, ObjectType> objects, 
-            Map<OidTreeNode, Map<Integer, Trap>> _resolvedTraps) {
+            Map<String, List<OidTreeNode>> names, Map<String, Syntax> syntaxes, Map<OidTreeNode, ObjectType> objects,
+            Map<OidTreeNode, Map<Integer, Trap>> resolvedTraps) {
 
         this.syntaxes = Collections.unmodifiableMap(syntaxes);
         this.objects = Collections.unmodifiableMap(objects);
-        this.resolvedTraps = Collections.unmodifiableMap(_resolvedTraps);
+        this.resolvedTraps = Collections.unmodifiableMap(resolvedTraps);
         this.modules = Collections.unmodifiableSet(modules);
         this.names = Collections.unmodifiableMap(names);
 
@@ -97,16 +97,24 @@ public abstract class MibStore {
         return names.containsKey(text);
     }
 
+    /**
+     * Try to parse the text and return it's OID if it's found. Or else return an empty array.
+     * @param text
+     * @return the OID or an empty array.
+     */
     public int[] getFromName(String text) {
-        return Optional.ofNullable(names.get(text)).map(i -> i.stream().findFirst().map(j -> j.getElements()).orElseGet(null)).orElse(new int[] {});
+        return Optional.ofNullable(names.get(text))
+                       .map(i -> i.stream().findFirst()
+                                  .map(OidTreeNode::getElements)
+                                  .orElseGet(() -> new int[] {}))
+                       .orElseGet(() -> new int[] {});
     }
 
     public String format(OID instanceOID, Variable variable) {
         OidTreeNode node = top.search(instanceOID.getValue());
         if (node == null) {
             return null;
-        }
-        else if (resolvedTraps.containsKey(node)) {
+        } else if (resolvedTraps.containsKey(node)) {
             Trap trap = resolvedTraps.get(node).get(variable.toInt());
             if (trap == null) {
                 return null;
@@ -116,8 +124,9 @@ public abstract class MibStore {
         } else if (objects.containsKey(node)) {
             ObjectType ot = objects.get(node);
             return ot.format(variable);
+        } else {
+            return null;
         }
-        return null;
     }
 
     public Variable parse(OID instanceOID, String text) {
@@ -129,8 +138,9 @@ public abstract class MibStore {
         } else if (objects.containsKey(node)) {
             Syntax s = objects.get(node).getSyntax();
             return s.parse(text);
+        } else {
+            return null;
         }
-        return null;
     }
 
     public boolean isEmpty() {
