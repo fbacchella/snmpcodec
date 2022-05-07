@@ -1,10 +1,6 @@
 package fr.jrds.snmpcodec;
 
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.regex.Matcher;
@@ -20,7 +16,6 @@ import org.snmp4j.smi.VariableBinding;
 import org.snmp4j.util.OIDTextFormat;
 import org.snmp4j.util.VariableTextFormat;
 
-import fr.jrds.snmpcodec.parsing.MibLoader;
 import fr.jrds.snmpcodec.smi.SmiType;
 
 public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
@@ -58,39 +53,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
      * @return the new OIDFormatter
      */
     public static OIDFormatter register(String... mibdirs) {
-        MibLoader loader = new MibLoader();
-        Arrays.stream(mibdirs)
-        .map(Paths::get)
-        .filter( i-> {
-            try {
-                File dest = i.toRealPath().toFile();
-                return dest.isDirectory() || dest.isFile();
-            } catch (IOException e) {
-                return false;
-            }
-        })
-        .map( i -> {
-            try {
-                if (i.toRealPath().toFile().isDirectory()) {
-                    return Files.list(i).filter(j -> {
-                        try {
-                            return j.toRealPath().toFile().isFile();
-                        } catch (IOException e1) {
-                            return false;
-                        }
-                    }).toArray(j -> new Path[j]);
-                } else {
-                    return new Path[] {i};
-                }
-            } catch (IOException e1) {
-                return null;
-            }
-        })
-        .filter(i -> i != null)
-        .forEach( i-> loader.load(i));
-
-        MibStore resolver = loader.buildTree();
-
+        MibStore resolver = MibStore.load(mibdirs);
         return register(resolver);
     }
 

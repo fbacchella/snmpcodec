@@ -1,5 +1,11 @@
 package fr.jrds.snmpcodec;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -11,6 +17,7 @@ import java.util.Set;
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.Variable;
 
+import fr.jrds.snmpcodec.parsing.MibLoader;
 import fr.jrds.snmpcodec.smi.Index;
 import fr.jrds.snmpcodec.smi.ObjectType;
 import fr.jrds.snmpcodec.smi.Syntax;
@@ -128,6 +135,47 @@ public abstract class MibStore {
 
     public boolean isEmpty() {
         return modules.isEmpty();
+    }
+
+    /**
+     * Load a mibstore using the given paths. If a file is given, it will be load. If it's a directory, all non hidden
+     * files will be loaded
+     * @param mibdirs a list of directory where
+     * @return a new {@link MibStore}
+     */
+    public static MibStore load(String... mibdirs) {
+        MibLoader loader = new MibLoader();
+        Arrays.stream(mibdirs)
+                .map(Paths::get)
+                .filter(i -> {
+                    try {
+                        File dest = i.toRealPath().toFile();
+                        return dest.isDirectory() || dest.isFile();
+                    } catch (IOException e) {
+                        return false;
+                    }
+                })
+                .map(i -> {
+                    try {
+                        if (i.toRealPath().toFile().isDirectory()) {
+                            return Files.list(i).filter(j -> {
+                                try {
+                                    File f = j.toRealPath(LinkOption.NOFOLLOW_LINKS).toFile();
+                                    return f.isFile() && ! f.isHidden();
+                                } catch (IOException e) {
+                                    return false;
+                                }
+                            }).toArray(Path[]::new);
+                        } else {
+                            return new Path[] {i};
+                        }
+                    } catch (IOException e) {
+                        return new Path[] {};
+                    }
+                })
+                .forEach(loader::load);
+
+        return loader.buildTree();
     }
 
 }
