@@ -143,7 +143,7 @@ jobs:
                     JAVA_HOME: /usr/local/openjdk-17
                     MAVEN_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.plugins.shade=ERROR -Xmx2048m"
             - store_artifacts:
-                path: target/snmpcodec-*.jar
+                path: /home/circleci/.m2/repository/fr/jrds/snmpcodec
             - persist_to_workspace:
                 root: /
                 paths:
