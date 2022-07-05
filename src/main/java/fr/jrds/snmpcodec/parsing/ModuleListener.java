@@ -15,6 +15,7 @@ import java.util.stream.IntStream;
 
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
@@ -110,6 +111,20 @@ public class ModuleListener extends ASNBaseListener {
         return finalV;
     }
 
+    @SuppressWarnings("unchecked")
+    private <T> T checkedPop(ParserRuleContext ctx, Class<T> expected) {
+        if (stack.isEmpty()) {
+            return null;
+        } else if (! expected.isAssignableFrom(stack.peek().getClass())) {
+            stack.clear();
+            RecognitionException ex = new RecognitionException("Inconsistent parsing stack", parser, parser.getInputStream(), ctx);
+            parser.notifyErrorListeners(ctx.start, ex.getMessage(), ex);
+            return null;
+        } else {
+            return (T) stack.pop();
+        }
+    }
+
     @Override
     public void enterModuleDefinition(ModuleDefinitionContext ctx) {
         currentModule = ctx.IDENTIFIER().getText();
@@ -160,9 +175,12 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitComplexAssignement(ComplexAssignementContext ctx) {
-        OidValue value = (OidValue) stack.pop();
-        OtherMacroObject macro = (OtherMacroObject) stack.pop();
-        Symbol s = (Symbol) stack.pop();
+        OidValue value = checkedPop(ctx, OidValue.class);
+        OtherMacroObject macro = checkedPop(ctx, OtherMacroObject.class);
+        Symbol s = checkedPop(ctx, Symbol.class);
+        if (value == null || macro == null || s == null) {
+            return;
+        }
         macro.value = value;
         try {
             store.addMacroValue(s, macro.values, macro.value.value);
@@ -178,10 +196,12 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitTrapTypeAssignement(TrapTypeAssignementContext ctx) {
-        @SuppressWarnings("unchecked")
-        ValueType<Number> value = (ValueType<Number>) stack.pop();
-        TrapTypeObject macro = (TrapTypeObject) stack.pop();
-        Symbol s = (Symbol) stack.pop();
+        ValueType<Number> value = checkedPop(ctx, ValueType.class);
+        TrapTypeObject macro = checkedPop(ctx, TrapTypeObject.class);
+        Symbol s = checkedPop(ctx, Symbol.class);
+        if (value == null || macro == null || s == null) {
+            return;
+        }
         try {
             if (macro.enterprise != null) {
                 store.addTrapType(s, macro.enterprise, macro.values, value.value);
@@ -198,9 +218,12 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitObjectTypeAssignement(ObjectTypeAssignementContext ctx) {
-        OidValue vt = (OidValue) stack.pop();
-        ObjectTypeObject macro = (ObjectTypeObject) stack.pop();
-        Symbol s = (Symbol) stack.pop();
+        OidValue vt = checkedPop(ctx, OidValue.class);
+        ObjectTypeObject macro = checkedPop(ctx, ObjectTypeObject.class);
+        Symbol s = checkedPop(ctx, Symbol.class);
+        if (vt == null || macro == null || s == null) {
+            return;
+        }
         try {
             store.addObjectType(s, macro.values, vt.value);
         } catch (MibException e) {
@@ -215,8 +238,11 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitTextualConventionAssignement(TextualConventionAssignementContext ctx) {
-        TextualConventionObject tc = (TextualConventionObject) stack.pop();
-        Symbol s = (Symbol) stack.pop();
+        TextualConventionObject tc = checkedPop(ctx, TextualConventionObject.class);
+        Symbol s = checkedPop(ctx, Symbol.class);
+        if (tc == null || s == null) {
+            return;
+        }
         try {
             store.addTextualConvention(s, tc.values);
         } catch (MibException e) {
@@ -231,8 +257,11 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitModuleIdentityAssignement(ModuleIdentityAssignementContext ctx) {
-        OidValue vt = (OidValue) stack.pop();
-        Object revisions = stack.pop();
+        OidValue vt = checkedPop(ctx, OidValue.class);
+        Object revisions = checkedPop(ctx, Object.class);
+        if (vt == null || revisions == null) {
+            return;
+        }
         while ( ! (stack.peek() instanceof ModuleIdentityObject)) {
             stack.pop();
         }
@@ -248,8 +277,11 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitTypeAssignment(TypeAssignmentContext ctx) {
-        TypeDescription td = (TypeDescription) stack.pop();
-        Symbol s = (Symbol) stack.pop();
+        TypeDescription td = checkedPop(ctx, TypeDescription.class);
+        Symbol s = checkedPop(ctx, Symbol.class);
+        if (td == null || s == null) {
+            return;
+        }
         try {
             store.addType(s, td.getSyntax(this));
         } catch (MibException e) {
@@ -259,11 +291,13 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitValueAssignment(ValueAssignmentContext ctx) {
-        ValueType<?> vt = (ValueType<?>) stack.pop();
-        
+        ValueType<?> vt = checkedPop(ctx, ValueType.class);
         // Removed the unused TypeDescription
-        stack.pop();
-        Symbol s = (Symbol) stack.pop();
+        checkedPop(ctx, Object.class);
+        Symbol s = checkedPop(ctx, Symbol.class);
+        if (vt == null || s == null) {
+            return;
+        }
         try {
             if (vt.value instanceof OidPath) {
                 OidPath path = (OidPath) vt.value;
@@ -272,6 +306,11 @@ public class ModuleListener extends ASNBaseListener {
         } catch (MibException e) {
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
+    }
+
+    @Override
+    public void exitAssignmentList(ASNParser.AssignmentListContext ctx) {
+        stack.clear();
     }
 
     /****************************************
@@ -460,8 +499,11 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitModuleRevision(ModuleRevisionContext ctx) {
-        StringValue description = (StringValue)stack.pop();
-        StringValue revision = (StringValue)stack.pop();
+        StringValue description = checkedPop(ctx, StringValue.class);
+        StringValue revision= checkedPop(ctx, StringValue.class);
+        if (description == null || revision == null) {
+            return;
+        }
         @SuppressWarnings("unchecked")
         List<Revision> revisions = (List<Revision>) stack.peek();
         revisions.add(new Revision(description.value, revision.value));
@@ -474,11 +516,17 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitModuleComplianceAssignement(ModuleComplianceAssignementContext ctx) {
-        OidValue value = (OidValue) stack.pop();
-        while(! (stack.peek() instanceof Symbol)) {
-            stack.pop().getClass();
+        OidValue value = checkedPop(ctx, OidValue.class);
+        if (value == null) {
+            return;
         }
-        Symbol s = (Symbol) stack.pop();
+        while(! (stack.peek() instanceof Symbol)) {
+            stack.pop();
+        }
+        Symbol s = checkedPop(ctx, Symbol.class);
+        if (s == null) {
+            return;
+        }
         try {
             store.addMacroValue(s, Collections.emptyMap(), value.value);
         } catch (MibException e) {
@@ -607,7 +655,10 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitSequenceOfType(SequenceOfTypeContext ctx) {
-        TypeDescription seqtd = (TypeDescription) stack.pop();
+        TypeDescription seqtd = checkedPop(ctx, TypeDescription.class);
+        if (seqtd == null) {
+            return;
+        }
         TypeDescription td = (TypeDescription) stack.peek();
         td.typeDescription = seqtd;
     }
