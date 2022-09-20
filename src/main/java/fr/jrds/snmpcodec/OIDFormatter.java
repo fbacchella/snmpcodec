@@ -73,7 +73,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
             formatter.previous = ((OIDFormatter) previousTextFormat).previous;
         }
         if (previousVarFormat instanceof OIDFormatter) {
-            formatter.previousVar = ((OIDFormatter) previousTextFormat).previousVar;
+            formatter.previousVar = ((OIDFormatter) previousVarFormat).previousVar;
         }
         return formatter;
     }
