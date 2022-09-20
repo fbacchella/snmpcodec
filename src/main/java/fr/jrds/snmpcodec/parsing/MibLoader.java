@@ -309,12 +309,16 @@ public class MibLoader {
         augmenters.forEach((k,v) -> {
             Symbol augmented = v.getAugmented();
             Oid oidAugmented = buildOids.get(augmented);
-            ObjectTypeBuilder builderAugmented = buildObjects.get(oidAugmented);
-            try {
-                ObjectType object = v.resolve(this, builderAugmented);
-                _objects.put(k, object);
-            } catch (MibException e) {
-                MIBPARSINGLOGGERERROR.warn("Incomplete OID %s: %s", k, e.getMessage());
+            if (oidAugmented == null) {
+                MIBPARSINGLOGGERERROR.warn("Unknown reference from %s: %s", k, augmented);
+            } else {
+                ObjectTypeBuilder builderAugmented = buildObjects.get(oidAugmented);
+                try {
+                    ObjectType object = v.resolve(this, builderAugmented);
+                    _objects.put(k, object);
+                } catch (MibException e) {
+                    MIBPARSINGLOGGERERROR.warn("Incomplete OID %s: %s", k, e.getMessage());
+                }
             }
         });
         MIBPARSINGLOGGER.debug("Building the SNMPv1 traps");
