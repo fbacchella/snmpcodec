@@ -4,7 +4,7 @@ For this taks, it uses the excelent ANLTR parser generator that recover from man
 
 It can process table index
 
-    MibTree resolver = new MibTree();
+    MibStore resolver = MibStore.load(mibpath);
     OID vacmAccessContextMatch = new OID("1.3.6.1.6.3.16.1.4.1.4.7.118.51.103.114.111.117.112.0.3.1");
     Map<String, Object> parts = resolver.parseIndexOID(vacmAccessContextMatch.getValue());
     parts.forEach( (i,j)-> System.out.format("%s '%s' %s\n", i, j, j.getClass().getName()));
@@ -24,8 +24,8 @@ To use it, just call
 
         OIDFormatter.register()
 
-It will then used the property `snmpcodec.mibdirssnmpcodec.mibdirs` formatted as path using the JVM's path separator. If this property is not set, modules
-are searched in `/usr/share/snmp/mibs/usr/share/snmp/mibs`.
+It will then use the property `snmpcodec.mibdirssnmpcodec.mibdirs` formatted as a path using the JVM's path separator. If this property is not set, modules
+are searched in `/usr/share/snmp/mibs`.
 
 It's available in Maven, just add in your dependencies:
 
