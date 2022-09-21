@@ -44,7 +44,7 @@ public abstract class SmiType extends Syntax {
         @Override
         public Variable getVariable(Object source) {
             if (! (source instanceof byte[])) {
-                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+                throw resolveInvalidObject(source, "byte[]");
             }
             byte[] a = (byte[]) source;
             return new org.snmp4j.smi.Opaque(a);
@@ -61,11 +61,13 @@ public abstract class SmiType extends Syntax {
                 byte t1 = bais.get();
                 byte t2 = bais.get();
                 int l = BER.decodeLength(beris);
-                if(t1 == TAG1) {
-                    if(t2 == TAG_FLOAT && l == 4)
+                if (t1 == TAG1) {
+                    if (t2 == TAG_FLOAT && l == 4) {
                         value = bais.getFloat();
-                    else if(t2 == TAG_DOUBLE && l == 8)
+                    }
+                    else if (t2 == TAG_DOUBLE && l == 8) {
                         value = bais.getDouble();
+                    }
                 }
             } catch (IOException e) {
                 logger.error(opaqueVar.toString());
@@ -90,7 +92,7 @@ public abstract class SmiType extends Syntax {
         @Override
         public Variable getVariable(Object source) {
             if (! (source instanceof byte[])) {
-                throw new IllegalArgumentException("Given a variable of type " + source.getClass().getName() +" instead of byt[]");
+                throw resolveInvalidObject(source, "byte[]");
             }
             byte[] a = (byte[]) source;
             return new org.snmp4j.smi.OctetString(a);
@@ -143,7 +145,7 @@ public abstract class SmiType extends Syntax {
         @Override
         public Variable getVariable(Object source) {
             if (! (source instanceof Number)) {
-                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+                throw resolveInvalidObject(source, "Number");
             }
             Number n = (Number) source;
             return new org.snmp4j.smi.UnsignedInteger32(n.longValue());
@@ -154,7 +156,7 @@ public abstract class SmiType extends Syntax {
         }
         @Override
         public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
-            return new TextualConvention.Unsigned32DisplayHint<UnsignedInteger32>(type, hint);
+            return new TextualConvention.Unsigned32DisplayHint<>(type, hint);
         }
         @Override
         public int getSyntaxString() {
@@ -173,9 +175,9 @@ public abstract class SmiType extends Syntax {
      *    and obsoleted by RFC 2578. Use OctetString (i.e. BITS syntax)
      *    instead.
      */
-    @Deprecated
+    @Deprecated(forRemoval=false)
     public static final SmiType BitString = new SmiType() {
-        @Override
+        @Override @SuppressWarnings("deprecation")
         public Variable getVariable() {
             return new org.snmp4j.smi.BitString();
         }
@@ -213,7 +215,7 @@ public abstract class SmiType extends Syntax {
         @Override
         public Variable getVariable(Object source) {
             if (! (source instanceof InetAddress) && ! (source instanceof String)) {
-                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+                throw resolveInvalidObject(source, "InetAddress or String");
             }
             if (source instanceof InetAddress) {
                 return new org.snmp4j.smi.IpAddress((InetAddress) source);
@@ -250,10 +252,10 @@ public abstract class SmiType extends Syntax {
             if (source instanceof int[]) {
                 int[] oid = (int[]) source;
                 return new org.snmp4j.smi.OID(oid);
-            } else if(source instanceof String) {
+            } else if (source instanceof String) {
                 return new org.snmp4j.smi.OID((String)source);
             } else {
-                throw new IllegalArgumentException("Given a variable of type  instead of OID");
+                throw resolveInvalidObject(source, "int[] or String");
             }
         }
         @Override
@@ -286,7 +288,7 @@ public abstract class SmiType extends Syntax {
         @Override
         public Variable getVariable(Object source) {
             if (! (source instanceof Number)) {
-                throw new IllegalArgumentException("Given a variable of type  " + source.getClass().getName() + " instead of type Number");
+                throw resolveInvalidObject(source, "Number");
             }
             Number n = (Number) source;
             return new org.snmp4j.smi.Integer32(n.intValue());
@@ -335,7 +337,7 @@ public abstract class SmiType extends Syntax {
         @Override
         public Variable getVariable(Object source) {
             if (! (source instanceof Number)) {
-                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+                throw resolveInvalidObject(source, "Number");
             }
             Number n = (Number) source;
             return new org.snmp4j.smi.Counter32(n.longValue());
@@ -385,7 +387,7 @@ public abstract class SmiType extends Syntax {
         @Override
         public Variable getVariable(Object source) {
             if (! (source instanceof Number)) {
-                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+                throw resolveInvalidObject(source, "Number");
             }
             Number n = (Number) source;
             return new org.snmp4j.smi.Counter64(n.longValue());
@@ -431,7 +433,7 @@ public abstract class SmiType extends Syntax {
         @Override
         public Variable getVariable(Object source) {
             if (! (source instanceof Number)) {
-                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+                throw resolveInvalidObject(source, "Number");
             }
             Number n = (Number) source;
             return new org.snmp4j.smi.Gauge32(n.longValue());
@@ -482,7 +484,7 @@ public abstract class SmiType extends Syntax {
         @Override
         public Variable getVariable(Object source) {
             if (! (source instanceof Number)) {
-                throw new IllegalArgumentException("Given a variable of type  instead of type OCTET STRING");
+                throw resolveInvalidObject(source, "Number");
             }
             Number n = (Number) source;
             return new TimeTicks(n.longValue());
@@ -583,10 +585,12 @@ public abstract class SmiType extends Syntax {
         v.fromSubIndex(oid, true);
         return convert(v);
     }
+
     @Override
     public Constraint getConstrains() {
         return null;
     }
+
     @Override
     public String toString() {
         return AbstractVariable.getSyntaxString(getSyntaxString());
@@ -595,6 +599,14 @@ public abstract class SmiType extends Syntax {
     @Override
     public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
         return null;
+    }
+
+    private static RuntimeException resolveInvalidObject(Object source, String expected) {
+        if (source == null) {
+            return new NullPointerException();
+        } else {
+            return new IllegalArgumentException("Given a variable of type " + source.getClass().getName() +" instead of " + expected);
+        }
     }
 
 }
