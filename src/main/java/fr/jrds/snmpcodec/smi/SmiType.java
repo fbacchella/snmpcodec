@@ -175,7 +175,7 @@ public abstract class SmiType extends Syntax {
      *    and obsoleted by RFC 2578. Use OctetString (i.e. BITS syntax)
      *    instead.
      */
-    @Deprecated(forRemoval=false)
+    @Deprecated
     public static final SmiType BitString = new SmiType() {
         @Override @SuppressWarnings("deprecation")
         public Variable getVariable() {
