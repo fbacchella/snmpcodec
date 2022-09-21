@@ -102,9 +102,9 @@ public class ModuleListener extends ASNBaseListener {
         } else if (bitLength < 15) {
             finalV = Short.valueOf((short)v.intValue());
         } else if (bitLength < 31) {
-            finalV = Integer.valueOf((int)v.intValue());
+            finalV = Integer.valueOf(v.intValue());
         } else if (bitLength < 63) {
-            finalV = Long.valueOf((long)v.longValue());
+            finalV = Long.valueOf(v.longValue());
         } else {
             finalV = v;
         }
@@ -340,8 +340,7 @@ public class ModuleListener extends ASNBaseListener {
                 name = i.identifier.getText();
             }
             number = Integer.parseInt(i.NUMBER().getText());
-            OidPath.OidComponent oidc = new OidPath.OidComponent(name, number);
-            return oidc;
+            return new OidPath.OidComponent(name, number);
         })
                 .collect(OidPath::new, OidPath::add,
                         OidPath::addAll);
@@ -362,7 +361,7 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterIntegerValue(IntegerValueContext ctx) {
-        BigInteger v = null;
+        BigInteger v;
         try {
             if (ctx.signedNumber() != null) {
                 v = new BigInteger(ctx.signedNumber().getText());
@@ -615,7 +614,7 @@ public class ModuleListener extends ASNBaseListener {
     @Override
     public void exitElements(ElementsContext ctx) {
         List<Number> values = new ArrayList<>(2);
-        while( stack.peek() instanceof ValueType.IntegerValue) {
+        while (stack.peek() instanceof ValueType.IntegerValue) {
             ValueType.IntegerValue val = (ValueType.IntegerValue) stack.pop();
             values.add(val.value);
         }
@@ -708,9 +707,7 @@ public class ModuleListener extends ASNBaseListener {
         if (ctx.bitsEnumeration() != null && ctx.bitsEnumeration().bitDescription() != null) {
             List<BitDescriptionContext> descriptions = ctx.bitsEnumeration().bitDescription();
             bits = new LinkedHashMap<>(descriptions.size());
-            IntStream.range(0, descriptions.size()).forEach( i-> {
-                bits.put(descriptions.get(i).IDENTIFIER().getText(), Integer.parseUnsignedInt(descriptions.get(i).NUMBER().getText()));
-            });
+            IntStream.range(0, descriptions.size()).forEach(i-> bits.put(descriptions.get(i).IDENTIFIER().getText(), Integer.parseUnsignedInt(descriptions.get(i).NUMBER().getText())));
         } else {
             bits = Collections.emptyMap();
         }

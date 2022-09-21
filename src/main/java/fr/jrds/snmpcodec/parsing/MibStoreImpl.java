@@ -13,9 +13,9 @@ import fr.jrds.snmpcodec.smi.Trap;
 class MibStoreImpl extends MibStore {
 
     public MibStoreImpl(OidTreeNode top, Set<String> modules, Map<String, List<OidTreeNode>> names,
-            Map<String, Syntax> syntaxes, Map<OidTreeNode, ObjectType> objects, Map<OidTreeNode, Map<Integer, Trap>> _resolvedTraps 
+            Map<String, Syntax> syntaxes, Map<OidTreeNode, ObjectType> objects, Map<OidTreeNode, Map<Integer, Trap>> resolvedTraps
             ) {
-        super(top, modules, names, syntaxes, objects, _resolvedTraps);
+        super(top, modules, names, syntaxes, objects, resolvedTraps);
     }
 
 }

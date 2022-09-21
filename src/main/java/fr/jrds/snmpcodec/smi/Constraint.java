@@ -55,15 +55,15 @@ public class Constraint {
         } else {
             for(ConstraintElement i: ranges) {
                 if (variableSize) {
-                    int size = oidElements[0];
-                    if (size == 0) {
+                    int elementSize = oidElements[0];
+                    if (elementSize == 0) {
                         tryExtract.content = new int[0];
                         tryExtract.next = oidElements;
                     }
-                    if (oidElements.length >= size) {
-                        tryExtract.content = Arrays.copyOfRange(oidElements, 1, size + 1);
-                        if (size + 1 <= oidElements.length) {
-                            tryExtract.next = Arrays.copyOfRange(oidElements, size + 1, oidElements.length);
+                    if (oidElements.length >= elementSize) {
+                        tryExtract.content = Arrays.copyOfRange(oidElements, 1, elementSize + 1);
+                        if (elementSize + 1 <= oidElements.length) {
+                            tryExtract.next = Arrays.copyOfRange(oidElements, elementSize + 1, oidElements.length);
                         } else {
                             tryExtract.next = null;
                         }

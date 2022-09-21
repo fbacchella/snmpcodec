@@ -43,7 +43,7 @@ import fr.jrds.snmpcodec.smi.Trap;
 
 public class MibLoader {
 
-    public static final LogAdapter MIBPARSINGLOGGER = LogAdapter.getLogger(MibStore.class.getName());
+    public static final LogAdapter MIBPARSINGLOGGER = LogAdapter.getLogger(MibStore.class);
     public static final LogAdapter MIBPARSINGLOGGERERROR = LogAdapter.getLogger(MibStore.class.getPackage().getName() + ".MibParsingError");
 
     private final ModuleListener modulelistener;
@@ -76,7 +76,8 @@ public class MibLoader {
             addRoot("iso", 1);
             addRoot("joint-iso-ccitt", 2);
             addRoot("broken-module", -1);
-        } catch (MibException e1) {
+        } catch (MibException ex) {
+            // Can't be thrown at startup
         }
 
         modulelistener = new ModuleListener(this);
@@ -129,7 +130,7 @@ public class MibLoader {
                 return null;
             }
         })
-        .filter(i -> i != null)
+        .filter(Objects::nonNull)
         .forEach(i -> {
             try {
                 ParseTreeWalker.DEFAULT.walk(modulelistener, i);
@@ -368,9 +369,7 @@ public class MibLoader {
             oldResolvCount = resolvCount;
             for (Map.Entry<Symbol, Map<String, Object>> e: textualConventions.entrySet()) {
                 Symbol s = e.getKey();
-                if (! notDone.contains(s)){
-                    continue;
-                } else {
+                if (notDone.contains(s)){
                     Map<String, Object> attributes = e.getValue();
                     Syntax type = (Syntax) attributes.get("SYNTAX");
                     String hint = (String) attributes.get("DISPLAY-HINT");
@@ -408,13 +407,9 @@ public class MibLoader {
         }
         // Replace some eventually defined TextualConvention with the smarter version
         Symbol dateAndTime = new Symbol("SNMPv2-TC", "DateAndTime");
-        if (types.containsKey(dateAndTime)) {
-            types.put(dateAndTime, new TextualConvention.DateAndTime());
-        }
+        types.computeIfPresent(dateAndTime, (k, v) -> new TextualConvention.DateAndTime());
         Symbol displayString = new Symbol("SNMPv2-TC", "DisplayString");
-        if (types.containsKey(displayString)) {
-            types.put(displayString, new TextualConvention.DisplayString());
-        }
+        types.computeIfPresent(displayString, (k, v) -> new TextualConvention.DisplayString());
     }
 
     private Set<Oid> sortdOids() {

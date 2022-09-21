@@ -19,8 +19,8 @@ public class Trap {
         name = s.name;
         if (details.containsKey("VARIABLES")) {
             @SuppressWarnings("unchecked")
-            List<String> variables = (List<String>) details.remove("VARIABLES");
-            this.variables = Collections.unmodifiableList(variables);
+            List<String> declaredVariables = (List<String>) details.remove("VARIABLES");
+            this.variables = Collections.unmodifiableList(declaredVariables);
         } else {
             this.variables = Collections.emptyList();
         }

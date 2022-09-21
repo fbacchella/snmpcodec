@@ -1,9 +1,8 @@
 package fr.jrds.snmpcodec;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,6 +13,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.BiPredicate;
+import java.util.stream.Stream;
 
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 
@@ -31,26 +31,32 @@ public class Tasks {
         Set<String> done = new HashSet<>();
         try {
             if (allmibs) {
-                Collections.list(Tasks.class.getClassLoader().getResources("allmibs.txt")).forEach( i -> {
-                    try {
-                        try(BufferedReader r = new BufferedReader(new InputStreamReader(i.openStream()))) {
-                            String line;
-                            while( (line = r.readLine()) != null) {
-                                Path module = Paths.get(line);
-                                String resolved = module.toAbsolutePath().normalize().toString().intern();
-                                if (! done.contains(resolved)) {
-                                    done.add(resolved);
-                                    Tasks.loadpath(loader, module);
-                                }
-                            }
-                        };
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
+                Collections.list(Tasks.class.getClassLoader().getResources("allmibs.txt"))
+                        .forEach(i -> {
+                    try (Stream<String> lines = Files.lines(Paths.get(i.toURI()))){
+                       lines.filter(l -> !l.startsWith("#"))
+                            .forEach(l -> {
+                                 System.out.println(l);
+                                 Path module = Paths.get(l);
+                                 String resolved = module.toAbsolutePath().normalize().toString().intern();
+                                 if (! done.contains(resolved)) {
+                                     done.add(resolved);
+                                     try {
+                                         Tasks.loadpath(loader, module);
+                                     } catch (IOException e) {
+                                         throw new UncheckedIOException(e);
+                                     }
+                                 }
+                             });
+                    } catch (IOException ex) {
+                        throw new UncheckedIOException(ex);
+                    } catch (URISyntaxException ex) {
+                        throw new RuntimeException(ex);
                     }
                 });
             }
             Arrays.stream(mibdirs)
-            .map( i -> Paths.get(i))
+            .map(Paths::get)
             .forEach(i -> {
                 try {
                     String resolved = i.toAbsolutePath().normalize().toString().intern();
@@ -66,7 +72,6 @@ public class Tasks {
             throw e.getCause();
         }
         return loader;
-
     }
 
     public static void loadpath(MibLoader loader, Path mibs) throws IOException {
@@ -77,6 +82,7 @@ public class Tasks {
             String file = i.getFileName().toString();
             switch (file) {
             //Non mib files
+            case "LICENSE.txt":
             case "README-MIB.txt":
             case "readme.txt":
             case "smux.txt":
@@ -105,25 +111,26 @@ public class Tasks {
             }
         };
 
-        Files.find(Paths.get(mibs.toUri()), 10, matcher).forEach(i -> {
-            try {
-                loader.load(i);
-            } catch (WrappedException e) {
+        try (Stream<Path> paths = Files.find(Paths.get(mibs.toUri()), 10, matcher)) {
+            paths.forEach(i -> {
                 try {
-                    throw e.getRootException();
-                } catch (DuplicatedModuleException e1) {
-                    // Many of them, ignore
-                } catch (Exception e1) {
-                    logger.error("broken module: %s at %s\n", e.getMessage(), e.getLocation());
+                    loader.load(i);
+                } catch (WrappedException e) {
+                    try {
+                        throw e.getRootException();
+                    } catch (DuplicatedModuleException e1) {
+                        // Many of them, ignore
+                    } catch (Exception e1) {
+                        logger.error("broken module: %s at %s\n", e.getMessage(), e.getLocation());
+                    }
+                } catch (ParseCancellationException e) {
+                    logger.error("Broken module %s: %s\n", i, e.getMessage());
+                } catch (Exception e) {
+                    logger.error("Broken module %s parsing : %s\n", i, e.getMessage());
+                    e.printStackTrace(System.err);
                 }
-            } catch (ParseCancellationException e) {
-                logger.error("Broken module %s: %s\n", i, e.getMessage());
-            } catch (Exception e) {
-                logger.error("Broken module %s parsing : %s\n", i, e.getMessage());
-                e.printStackTrace(System.err);
-            }
-
-        });
+            });
+        }
     }
 
     public static void dumpNode(OidTreeNode level) {
@@ -138,8 +145,7 @@ public class Tasks {
 
     public static int countOid(OidTreeNode level) {
         int count = 0;
-        Collection<OidTreeNode> childs = level.childs();
-        for (OidTreeNode i: childs) {
+        for (OidTreeNode i: level.childs()) {
             count += 1 + countOid(i);
         }
         return count;

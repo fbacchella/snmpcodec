@@ -17,7 +17,7 @@ public class Oid {
     private final boolean pathfirst;
 
     public Oid(Symbol root, List<OidComponent> components, String name) throws MibException {
-        if (components.size() == 0 && root == null) {
+        if (components.isEmpty() && root == null) {
             throw new MibException("Creating empty OID " + components);
         }
         this.root = root;
@@ -75,7 +75,7 @@ public class Oid {
     @Override
     public String toString() {
         if (path == null || path.isEmpty() || path.get(0) == -1) {
-            return (root != null ? root  + "." : "") + components.stream().map(i -> i.toString()).collect(Collectors.joining("."));
+            return (root != null ? root  + "." : "") + components.stream().map(OidComponent::toString).collect(Collectors.joining("."));
         } else {
             return path.stream().map(i -> i.toString()).collect(Collectors.joining("."));
         }

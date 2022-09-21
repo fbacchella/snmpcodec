@@ -5,7 +5,7 @@ import java.util.Map;
 
 import fr.jrds.snmpcodec.parsing.ValueType.OidValue;
 
-abstract class MibObject {
+class MibObject {
 
     static class Import extends MibObject {
         public final String name;
@@ -89,4 +89,7 @@ abstract class MibObject {
         }
     }
 
+    private MibObject() {
+        // Hides the constructor
+    }
 }

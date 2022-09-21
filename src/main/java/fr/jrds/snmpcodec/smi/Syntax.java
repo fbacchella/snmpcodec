@@ -18,7 +18,7 @@ public abstract class Syntax {
     private final Map<String, Integer> fromname;
     private final Map<Integer, String> toname;
 
-    public Syntax(Map<Number, String> names, Constraint constraints) {
+    protected Syntax(Map<Number, String> names, Constraint constraints) {
         if (names != null) {
             this.toname = new HashMap<>(names.size());
             this.fromname = new HashMap<>(names.size());
@@ -70,7 +70,6 @@ public abstract class Syntax {
             return null;
         }
     }
-
 
     public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
         throw new MibException("Can't provide textual convention");

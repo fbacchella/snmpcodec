@@ -2,7 +2,6 @@ package fr.jrds.snmpcodec.smi;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,7 +30,7 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
 
     }
 
-    public static abstract class AbstractPatternDisplayHint<V extends Variable> extends TextualConvention {
+    public abstract static class AbstractPatternDisplayHint<V extends Variable> extends TextualConvention {
 
         protected final String hint;
 
@@ -64,12 +63,13 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
     }
 
     public static class DateAndTime extends AbstractPatternDisplayHint<OctetString> {
-        private final static Constraint Constraint8or11 = new Constraint(true);
+        private static final Constraint Constraint8or11 = new Constraint(true);
         static {
             Constraint8or11.add(new ConstraintElement(8));
             Constraint8or11.add(new ConstraintElement(11));
         }
-        private final static AnnotedSyntax localsyntax = new AnnotedSyntax(SmiType.OctetString, null, Constraint8or11);
+
+        private static final AnnotedSyntax localsyntax = new AnnotedSyntax(SmiType.OctetString, null, Constraint8or11);
 
         private static final Pattern HINTREGEX = Pattern.compile("(\\d+)-(\\d+)-(\\d+),(\\d+):(\\d+):(\\d+).(\\d+),(\\+|-)(\\d+):(\\d+)");
 
@@ -118,7 +118,7 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
 
     }
 
-    private static abstract class NumberDisplayHint<V extends Variable> extends AbstractPatternDisplayHint<V> {
+    private abstract static class NumberDisplayHint<V extends Variable> extends AbstractPatternDisplayHint<V> {
         private static final Pattern floatPattern = Pattern.compile("(?<radix>d|x|o|b)(?:-(?<float>\\d+))?");
 
         protected final int fixedfloat;
@@ -344,11 +344,12 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
     }
 
     public static class DisplayString extends AbstractPatternDisplayHint<OctetString> {
-        private final static Constraint Constraint255a = new Constraint(true);
+        private static final Constraint Constraint255a = new Constraint(true);
         static {
             Constraint255a.add(new ConstraintElement(255));
         }
-        private final static AnnotedSyntax localsyntax = new AnnotedSyntax(SmiType.OctetString, null, Constraint255a);
+
+        private static final AnnotedSyntax localsyntax = new AnnotedSyntax(SmiType.OctetString, null, Constraint255a);
 
         public DisplayString() {
             super(localsyntax, "255a", null, null);

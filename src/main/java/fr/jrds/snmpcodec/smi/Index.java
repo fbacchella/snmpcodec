@@ -25,7 +25,7 @@ public class Index {
         }
     }
 
-    private final static LogAdapter logger = LogAdapter.getLogger(Constraint.class);
+    private static final LogAdapter logger = LogAdapter.getLogger(Index.class);
 
     private final List<OidTreeNode> indexes;
 
@@ -41,7 +41,7 @@ public class Index {
     public Map<String, Object> resolve(int[] oid, MibStore store) {
         Map<String, Object> indexesValues = new LinkedHashMap<>(indexes.size());
         int[] oidParsed = Arrays.copyOf(oid, oid.length);
-        for(OidTreeNode i: indexes) {
+        for (OidTreeNode i: indexes) {
             ObjectType column = store.objects.get(i);
             if(column == null) {
                 logger.error("index not found: %s", i);

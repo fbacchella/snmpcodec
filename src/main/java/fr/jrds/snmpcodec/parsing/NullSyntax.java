@@ -40,6 +40,7 @@ public class NullSyntax extends Syntax {
 
     @Override
     public void resolve(Map<Symbol, Syntax> types) {
+        // Nothing to resolve with null syntax
     }
 
 }

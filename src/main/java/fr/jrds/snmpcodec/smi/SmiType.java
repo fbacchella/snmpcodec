@@ -51,11 +51,11 @@ public abstract class SmiType extends Syntax {
         }
         @Override
         public Object convert(Variable v) {
-            org.snmp4j.smi.Opaque var = (org.snmp4j.smi.Opaque) v;
+            org.snmp4j.smi.Opaque opaqueVar = (org.snmp4j.smi.Opaque) v;
             //If not resolved, we will return the data as an array of bytes
-            Object value = var.getValue();
+            Object value = opaqueVar.getValue();
             try {
-                byte[] bytesArray = var.getValue();
+                byte[] bytesArray = opaqueVar.getValue();
                 ByteBuffer bais = ByteBuffer.wrap(bytesArray);
                 BERInputStream beris = new BERInputStream(bais);
                 byte t1 = bais.get();
@@ -68,7 +68,7 @@ public abstract class SmiType extends Syntax {
                         value = bais.getDouble();
                 }
             } catch (IOException e) {
-                logger.error(var.toString());
+                logger.error(opaqueVar.toString());
             }
             return value;
         }
@@ -555,15 +555,15 @@ public abstract class SmiType extends Syntax {
     };
 
     // Used to parse time ticks
-    static final private Pattern TimeTicksPattern = Pattern.compile("(?:(?<days>\\d+) days?, )?(?<hours>\\d+):(?<minutes>\\d+):(?<seconds>\\d+)(?:\\.(?<fraction>\\d+))?");
+    private static final Pattern TimeTicksPattern = Pattern.compile("(?:(?<days>\\d+) days?, )?(?<hours>\\d+):(?<minutes>\\d+):(?<seconds>\\d+)(?:\\.(?<fraction>\\d+))?");
 
-    static final private LogAdapter logger = LogAdapter.getLogger(SmiType.class);
+    private static final LogAdapter logger = LogAdapter.getLogger(SmiType.class);
 
-    static final private byte TAG1 = (byte) 0x9f;
-    static final private byte TAG_FLOAT = (byte) 0x78;
-    static final private byte TAG_DOUBLE = (byte) 0x79;
+    private static final byte TAG1 = (byte) 0x9f;
+    private static final byte TAG_FLOAT = (byte) 0x78;
+    private static final byte TAG_DOUBLE = (byte) 0x79;
 
-    public SmiType() {
+    protected SmiType() {
         super(null, null);
     }
 

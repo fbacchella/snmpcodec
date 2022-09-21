@@ -46,9 +46,7 @@ public class OidPath extends ArrayList<OidPath.OidComponent> {
                     return false;
             } else if (!name.equals(other.name))
                 return false;
-            if (number != other.number)
-                return false;
-            return true;
+            return number == other.number;
         }
     }
 

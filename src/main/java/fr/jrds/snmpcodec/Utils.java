@@ -23,6 +23,7 @@ public class Utils {
             this.l = l;
         }
 
+        @Override
         public byte byteValue() {
             return (byte) l;
         }
@@ -41,11 +42,11 @@ public class Utils {
         }
 
         public float floatValue() {
-            return (float) l;
+            return l;
         }
 
         public double doubleValue() {
-            return(double) l;
+            return l;
         }
 
         public String toString() {

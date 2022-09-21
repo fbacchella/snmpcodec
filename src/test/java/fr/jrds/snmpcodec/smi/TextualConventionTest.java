@@ -19,7 +19,7 @@ import fr.jrds.snmpcodec.smi.TextualConvention.Signed32DisplayHint;
 public class TextualConventionTest {
 
     @SuppressWarnings("rawtypes")
-    private void testhint(Symbol s, String displayHint, Variable v, String expected) throws MibException {
+    private void testHint(Symbol s, String displayHint, Variable v, String expected) throws MibException {
         Map<Symbol, TextualConvention> annotations = new HashMap<>();
         if (v instanceof UnsignedInteger32) {
             annotations.put(s, new Unsigned32DisplayHint(SmiType.Unsigned32, displayHint));
@@ -32,15 +32,15 @@ public class TextualConventionTest {
 
     }
     @Test
-    public void testpattern() throws MibException {
-        testhint(new Symbol("T11FabricIndex"), "d", new UnsignedInteger32(10), "10");
-        testhint(new Symbol("L2tpMilliSeconds"), "d-3", new Integer32(1234), "1.234");
-        testhint(new Symbol("L2tpMilliSeconds"), "d-3", new Integer32(123), ".123");
-        testhint(new Symbol("L2tpMilliSeconds"), "d-3", new Integer32(12), ".012");
-        testhint(new Symbol("L2tpMilliSeconds"), "d-3", new Integer32(1), ".001");
-        testhint(new Symbol("T11ZsZoneMemberType"), "x", new UnsignedInteger32(10), "a");
-        testhint(new Symbol("Ipv6AddressPrefix"), "2x", new OctetString(new byte[]{(byte)255,(byte)255}), "ffff");
-        testhint(new Symbol("MplsLdpIdentifier"), "1d.1d.1d.1d:2d:", new OctetString(new byte[]{(byte)1,(byte)2,(byte)3,(byte)4,(byte)5,(byte)6}), "1.2.3.4:1286:");
+    public void testPattern() throws MibException {
+        testHint(new Symbol("T11FabricIndex"), "d", new UnsignedInteger32(10), "10");
+        testHint(new Symbol("L2tpMilliSeconds"), "d-3", new Integer32(1234), "1.234");
+        testHint(new Symbol("L2tpMilliSeconds"), "d-3", new Integer32(123), ".123");
+        testHint(new Symbol("L2tpMilliSeconds"), "d-3", new Integer32(12), ".012");
+        testHint(new Symbol("L2tpMilliSeconds"), "d-3", new Integer32(1), ".001");
+        testHint(new Symbol("T11ZsZoneMemberType"), "x", new UnsignedInteger32(10), "a");
+        testHint(new Symbol("Ipv6AddressPrefix"), "2x", new OctetString(new byte[]{(byte)255,(byte)255}), "ffff");
+        testHint(new Symbol("MplsLdpIdentifier"), "1d.1d.1d.1d:2d:", new OctetString(new byte[]{(byte)1,(byte)2,(byte)3,(byte)4,(byte)5,(byte)6}), "1.2.3.4:1286:");
     }
 
     @Test

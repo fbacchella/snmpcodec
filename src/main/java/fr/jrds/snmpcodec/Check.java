@@ -36,7 +36,7 @@ public class Check {
         int numoid = countOid(store.top);
         int numnames = store.names.size();
         AtomicInteger duplicates = new AtomicInteger();
-        store.names.values().stream().map(List::size).filter(i -> i > 1).forEach( i-> duplicates.addAndGet(i));
+        store.names.values().stream().map(List::size).filter(i -> i > 1).forEach(duplicates::addAndGet);
         int numduplicates = duplicates.get();
         System.out.format("%d differents OID, %d differents names, %d names collisions%n", numoid, numnames, numduplicates);
         AtomicInteger trapsCount = new AtomicInteger(1);
@@ -49,7 +49,7 @@ public class Check {
         try {
             MibLoader loader = new MibLoader();
             Arrays.stream(args)
-            .map( i-> Paths.get(i))
+            .map(Paths::get)
             .forEach(i -> {
                 try {
                     loadpath(loader, i);

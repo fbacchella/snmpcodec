@@ -84,7 +84,7 @@ public abstract class MibStore {
                 if(parentCodec.isIndexed()) {
                     Index idx = parentCodec.getIndex();
                     int[] index = Arrays.copyOfRange(oid, foundOID.length, oid.length);
-                    idx.resolve(index, this).forEach((i,j) -> parts.put(i, j));
+                    parts.putAll(idx.resolve(index, this));
                 }
             }
         } else {
