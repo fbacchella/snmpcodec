@@ -20,3 +20,4 @@ smux.txt = skip
 readme.txt = skip
 README-MIB.txt = skip
 RFC-1215\nRFC1215\nRFC-1213.mib = skip
+LICENSE.txt = skip
