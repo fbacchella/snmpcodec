@@ -16,7 +16,7 @@ public class LogAdapter {
     }
 
     public static LogAdapter getLogger(String l) {
-        return loggercache.computeIfAbsent(l,  LogAdapter::new);
+        return loggercache.computeIfAbsent(l, LogAdapter::new);
     }
 
     private final org.snmp4j.log.LogAdapter adapter;
@@ -82,7 +82,7 @@ public class LogAdapter {
     }
 
     @SuppressWarnings("unchecked")
-    public Iterator<? extends Object> getLogHandler() {
+    public <T> Iterator<T> getLogHandler() {
         return adapter.getLogHandler();
     }
 
