@@ -11,6 +11,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 import org.antlr.v4.runtime.Parser;
@@ -62,6 +63,7 @@ import fr.jrds.snmpcodec.parsing.MibObject.TextualConventionObject;
 import fr.jrds.snmpcodec.parsing.MibObject.TrapTypeObject;
 import fr.jrds.snmpcodec.parsing.ValueType.OidValue;
 import fr.jrds.snmpcodec.parsing.ValueType.StringValue;
+import fr.jrds.snmpcodec.parsing.ValueType.IntegerValue;
 import fr.jrds.snmpcodec.smi.Constraint;
 import fr.jrds.snmpcodec.smi.Symbol;
 import fr.jrds.snmpcodec.smi.Syntax;
@@ -95,34 +97,45 @@ public class ModuleListener extends ASNBaseListener {
     }
 
     private Number fitNumber(BigInteger v) {
-        Number finalV = null;
+        Number finalV;
         int bitLength = v.bitLength();
         if (bitLength < 7) {
-            finalV = Byte.valueOf((byte) v.intValue());
+            finalV = (byte) v.intValue();
         } else if (bitLength < 15) {
-            finalV = Short.valueOf((short)v.intValue());
+            finalV = (short) v.intValue();
         } else if (bitLength < 31) {
-            finalV = Integer.valueOf(v.intValue());
+            finalV = v.intValue();
         } else if (bitLength < 63) {
-            finalV = Long.valueOf(v.longValue());
+            finalV = v.longValue();
         } else {
             finalV = v;
         }
         return finalV;
     }
 
-    @SuppressWarnings("unchecked")
-    private <T> T checkedPop(ParserRuleContext ctx, Class<T> expected) {
+    private <T> T checkedStackOption(ParserRuleContext ctx, Class<T> expected, Supplier<T> stackOp) {
         if (stack.isEmpty()) {
-            return null;
+            RecognitionException ex = new RecognitionException("Empty stack", parser, parser.getInputStream(), ctx);
+            parser.notifyErrorListeners(ctx.start, ex.getMessage(), ex);
+            throw new IllegalStateException("Inconsistent stack");
         } else if (! expected.isAssignableFrom(stack.peek().getClass())) {
             stack.clear();
             RecognitionException ex = new RecognitionException("Inconsistent parsing stack", parser, parser.getInputStream(), ctx);
             parser.notifyErrorListeners(ctx.start, ex.getMessage(), ex);
-            return null;
+            throw new IllegalStateException("Inconsistent stack");
         } else {
-            return (T) stack.pop();
+            return stackOp.get();
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T checkedPop(ParserRuleContext ctx, Class<T> expected) {
+           return checkedStackOption(ctx, expected, () -> (T) stack.pop());
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T checkedPeek(ParserRuleContext ctx, Class<T> expected) {
+        return checkedStackOption(ctx, expected, () -> (T) stack.peek());
     }
 
     @Override
@@ -148,13 +161,13 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterSymbolsFromModule(SymbolsFromModuleContext ctx) {
-        ctx.symbolList().symbol().stream()
-        .forEach( i->  {
-            String name = i.getText();
-            String module = ctx.globalModuleReference().getText();
-            importedFrom.put(name, module);
-            symbols.put(name, new Symbol(module, name));
-        });
+        ctx.symbolList().symbol()
+                        .forEach( i->  {
+                            String name = i.getText();
+                            String module = ctx.globalModuleReference().getText();
+                            importedFrom.put(name, module);
+                            symbols.put(name, new Symbol(module, name));
+                        });
     }
 
     /****************************************
@@ -196,7 +209,7 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitTrapTypeAssignement(TrapTypeAssignementContext ctx) {
-        ValueType<Number> value = checkedPop(ctx, ValueType.class);
+        IntegerValue value = checkedPop(ctx, IntegerValue.class);
         TrapTypeObject macro = checkedPop(ctx, TrapTypeObject.class);
         Symbol s = checkedPop(ctx, Symbol.class);
         if (value == null || macro == null || s == null) {
@@ -262,11 +275,11 @@ public class ModuleListener extends ASNBaseListener {
         if (vt == null || revisions == null) {
             return;
         }
-        while ( ! (stack.peek() instanceof ModuleIdentityObject)) {
+        while (! (stack.peek() instanceof ModuleIdentityObject) && ! stack.isEmpty()) {
             stack.pop();
         }
-        ModuleIdentityObject mi = (ModuleIdentityObject) stack.pop();
-        Symbol s = (Symbol) stack.pop();
+        ModuleIdentityObject mi = checkedPop(ctx, ModuleIdentityObject.class);
+        Symbol s = checkedPop(ctx, Symbol.class);
         mi.values.put("revisions", revisions);
         try {
             store.addModuleIdentity(s, vt.value);
@@ -319,7 +332,7 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitObjectIdentifierValue(ObjectIdentifierValueContext ctx) {
-        OidValue stackval = (OidValue) stack.peek();
+        OidValue stackval = checkedPeek(ctx, OidValue.class);
         OidPath oidParts = stackval.value;
         if (ctx.IDENTIFIER() != null) {
             String name = ctx.IDENTIFIER().getText();
@@ -349,12 +362,7 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterBooleanValue(BooleanValueContext ctx) {
-        boolean value;
-        if ("true".equalsIgnoreCase(ctx.getText())) {
-            value = true;
-        } else {
-            value = false;
-        }
+        boolean value = "true".equalsIgnoreCase(ctx.getText());
         ValueType.BooleanValue v = new ValueType.BooleanValue(value);
         stack.push(v);
     }
@@ -422,8 +430,8 @@ public class ModuleListener extends ASNBaseListener {
             value = resolveSymbol(ctx.IDENTIFIER().getText());
         } else if (ctx.objects() != null) {
             List<ValueType<?>> objects = new ArrayList<>();
-            while( (stack.peek() instanceof ValueType)) {
-                ValueType<?> vt = (ValueType<?>) stack.pop();
+            while (stack.peek() instanceof ValueType) {
+                ValueType<?> vt = checkedPop(ctx, ValueType.class);
                 objects.add(vt);
             }
             value = objects;
@@ -441,20 +449,20 @@ public class ModuleListener extends ASNBaseListener {
         } else if (ctx.index() != null) {
             LinkedList<Symbol> types = new LinkedList<>();
             while (stack.peek() instanceof TypeDescription) {
-                TypeDescription td = (TypeDescription) stack.pop();
+                TypeDescription td = checkedPop(ctx, TypeDescription.class);
                 if (td.typeDescription != null) {
                     types.addFirst(resolveSymbol(td.typeDescription.toString()));
                 }
             }
-            value = new ArrayList<Symbol>(types);
+            value = new ArrayList<>(types);
         } else if (stack.peek() instanceof ValueType) {
-            ValueType<?> vt = (ValueType<?>)stack.pop();
+            ValueType<?> vt = checkedPop(ctx, ValueType.class);
             value = vt.value;
         } else if (stack.peek() instanceof TypeDescription) {
-            value = ((TypeDescription)stack.pop()).getSyntax(this);
+            value = checkedPop(ctx, TypeDescription.class).getSyntax(this);
         }
 
-        MappedObject co = (MappedObject) stack.peek();
+        MappedObject co = checkedPeek(ctx, MappedObject.class);
         co.values.put(name.intern(), value);
     }
 
@@ -464,14 +472,14 @@ public class ModuleListener extends ASNBaseListener {
         if (ctx.IDENTIFIER() != null) {
             enterprise = resolveSymbol(ctx.IDENTIFIER().getText());
         } else if ( ctx.objectIdentifierValue() != null){
-            OidValue value = (OidValue) stack.pop();
+            OidValue value = checkedPop(ctx, OidValue.class);
             enterprise = value.value;
         } else {
             MibException e = new MibException("Invalid trap");
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
             return;
         }
-        TrapTypeObject co = (TrapTypeObject) stack.peek();
+        TrapTypeObject co = checkedPeek(ctx, TrapTypeObject.class);
         co.enterprise = enterprise;
     }
 
@@ -479,7 +487,7 @@ public class ModuleListener extends ASNBaseListener {
     public void exitAccess(AccessContext ctx) {
         String name = ctx.name.getText();
         String value = ctx.IDENTIFIER().getText().intern();
-        MappedObject co = (MappedObject) stack.peek();
+        MappedObject co = checkedPeek(ctx, MappedObject.class);
         co.values.put(name.intern(), value);
     }
 
@@ -487,7 +495,7 @@ public class ModuleListener extends ASNBaseListener {
     public void exitStatus(StatusContext ctx) {
         String name = ctx.name.getText();
         String value = ctx.IDENTIFIER().getText().intern();
-        MappedObject co = (MappedObject) stack.peek();
+        MappedObject co = checkedPeek(ctx, MappedObject.class);
         co.values.put(name.intern(), value);
     }
 
@@ -504,7 +512,7 @@ public class ModuleListener extends ASNBaseListener {
             return;
         }
         @SuppressWarnings("unchecked")
-        List<Revision> revisions = (List<Revision>) stack.peek();
+        List<Revision> revisions = checkedPeek(ctx, List.class);
         revisions.add(new Revision(description.value, revision.value));
     }
 
@@ -519,7 +527,7 @@ public class ModuleListener extends ASNBaseListener {
         if (value == null) {
             return;
         }
-        while(! (stack.peek() instanceof Symbol)) {
+        while(! (stack.peek() instanceof Symbol) && ! stack.isEmpty()) {
             stack.pop();
         }
         Symbol s = checkedPop(ctx, Symbol.class);
@@ -581,12 +589,11 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitType(TypeContext ctx) {
-        Constraint constrains = null;
         if (stack.peek() instanceof Constraint) {
-            constrains = (Constraint) stack.pop();
+            Constraint constrains = checkedPop(ctx, Constraint.class);
+            TypeDescription td = checkedPeek(ctx, TypeDescription.class);
+            td.constraints = constrains;
         }
-        TypeDescription td = (TypeDescription) stack.peek();
-        td.constraints = constrains;
     }
 
     @Override
@@ -596,7 +603,7 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitConstraint(ConstraintContext ctx) {
-        Constraint constrains = (Constraint) stack.peek();
+        Constraint constrains = checkedPeek(ctx, Constraint.class);
         constrains.finish();
     }
 
@@ -607,15 +614,15 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitSizeConstraint(SizeConstraintContext ctx) {
-        Constraint constrains = (Constraint) stack.peek();
+        Constraint constrains = checkedPeek(ctx, Constraint.class);
         constrains.finish();
     }
 
     @Override
     public void exitElements(ElementsContext ctx) {
         List<Number> values = new ArrayList<>(2);
-        while (stack.peek() instanceof ValueType.IntegerValue) {
-            ValueType.IntegerValue val = (ValueType.IntegerValue) stack.pop();
+        while (stack.peek() instanceof IntegerValue) {
+            IntegerValue val = checkedPop(ctx, IntegerValue.class);
             values.add(val.value);
         }
         Constraint.ConstraintElement c;
@@ -624,13 +631,13 @@ public class ModuleListener extends ASNBaseListener {
         } else {
             c = new Constraint.ConstraintElement(values.get(1), values.get(0));
         }
-        Constraint constrains = (Constraint) stack.peek();
+        Constraint constrains = checkedPeek(ctx, Constraint.class);
         constrains.add(c);
     }
 
     @Override
     public void enterSequenceType(SequenceTypeContext ctx) {
-        TypeDescription td = (TypeDescription) stack.peek();
+        TypeDescription td = checkedPeek(ctx, TypeDescription.class);
         Map<String, Syntax> content = new LinkedHashMap<>();
         td.type = Asn1Type.sequenceType;
         ctx.namedType().forEach( i -> content.put(i.IDENTIFIER().getText(), null));
@@ -642,10 +649,10 @@ public class ModuleListener extends ASNBaseListener {
         List<TypeDescription> nt = new ArrayList<>();
         int namedTypeCount = ctx.namedType().size();
         for (int i = 0; i < namedTypeCount; i++ ) {
-            nt.add((TypeDescription)stack.pop());
+            nt.add(checkedPop(ctx, TypeDescription.class));
         }
         AtomicInteger i = new AtomicInteger(nt.size() - 1);
-        TypeDescription td = (TypeDescription) stack.peek();
+        TypeDescription td = checkedPeek(ctx, TypeDescription.class);
 
         @SuppressWarnings("unchecked")
         Map<String, Syntax> content = (Map<String, Syntax>) td.typeDescription;
@@ -658,13 +665,13 @@ public class ModuleListener extends ASNBaseListener {
         if (seqtd == null) {
             return;
         }
-        TypeDescription td = (TypeDescription) stack.peek();
+        TypeDescription td = checkedPeek(ctx, TypeDescription.class);
         td.typeDescription = seqtd;
     }
 
     @Override
     public void enterChoiceType(ChoiceTypeContext ctx) {
-        TypeDescription td = (TypeDescription) stack.peek();
+        TypeDescription td = checkedPeek(ctx, TypeDescription.class);
         Map<String, Syntax> content = new LinkedHashMap<>();
         td.type = Asn1Type.choiceType;
         ctx.namedType().forEach( i -> content.put(i.IDENTIFIER().getText(), null));
@@ -675,12 +682,12 @@ public class ModuleListener extends ASNBaseListener {
     @Override
     public void exitChoiceType(ChoiceTypeContext ctx) {
         List<TypeDescription> nt = new ArrayList<>();
-        while ( ! ("CHOICE".equals(stack.peek()))) {
-            nt.add((TypeDescription)stack.pop());
+        while (! ("CHOICE".equals(stack.peek()))) {
+            nt.add(checkedPop(ctx, TypeDescription.class));
         }
         stack.pop();
         int i = nt.size() - 1;
-        TypeDescription td = (TypeDescription) stack.peek();
+        TypeDescription td = checkedPeek(ctx, TypeDescription.class);
         @SuppressWarnings("unchecked")
         Map<String, Syntax> content = (Map<String, Syntax>) td.typeDescription;
         content.keySet().forEach( name -> content.put(name, nt.get(i).getSyntax(this)));
@@ -688,7 +695,7 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterIntegerType(IntegerTypeContext ctx) {
-        TypeDescription td = (TypeDescription) stack.peek();
+        TypeDescription td = checkedPeek(ctx, TypeDescription.class);
         if (ctx.namedNumberList() != null) {
             Map<Number, String> names = new HashMap<>();
             ctx.namedNumberList().namedNumber().forEach( i -> {
@@ -702,7 +709,7 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterBitsType(BitsTypeContext ctx) {
-        TypeDescription td = (TypeDescription) stack.peek();
+        TypeDescription td = checkedPeek(ctx, TypeDescription.class);
         Map<String, Integer> bits;
         if (ctx.bitsEnumeration() != null && ctx.bitsEnumeration().bitDescription() != null) {
             List<BitDescriptionContext> descriptions = ctx.bitsEnumeration().bitDescription();
@@ -716,7 +723,7 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterReferencedType(ReferencedTypeContext ctx) {
-        TypeDescription td = (TypeDescription) stack.peek();
+        TypeDescription td = checkedPeek(ctx, TypeDescription.class);
         td.typeDescription = ctx.getText();
     }
 

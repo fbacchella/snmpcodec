@@ -107,7 +107,7 @@ public class MibLoader {
 
     private void load(Stream<CharStream> source) {
         source
-        .filter( i -> {modulelistener.firstError = true; return true;} )
+        .filter(i -> {modulelistener.firstError = true; return true;} )
         .map(i -> {
             ASNLexer lexer = new ASNLexer(i);
             lexer.removeErrorListeners();
@@ -134,6 +134,8 @@ public class MibLoader {
         .forEach(i -> {
             try {
                 ParseTreeWalker.DEFAULT.walk(modulelistener, i);
+            } catch (IllegalStateException e) {
+                // The stack was inconsistend during parsing, already handled
             } catch (NonCheckedMibException e) {
                 try {
                     throw e.getWrapper();
