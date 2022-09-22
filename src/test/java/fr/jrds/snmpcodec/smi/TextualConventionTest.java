@@ -1,5 +1,6 @@
 package fr.jrds.snmpcodec.smi;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,14 +34,24 @@ public class TextualConventionTest {
     }
     @Test
     public void testPattern() throws MibException {
+        testHint(new Symbol("T11FabricIndex"), "o", new UnsignedInteger32(10), "12");
         testHint(new Symbol("T11FabricIndex"), "d", new UnsignedInteger32(10), "10");
+        testHint(new Symbol("T11FabricIndex"), "b", new UnsignedInteger32(10), "1010");
         testHint(new Symbol("L2tpMilliSeconds"), "d-3", new Integer32(1234), "1.234");
         testHint(new Symbol("L2tpMilliSeconds"), "d-3", new Integer32(123), ".123");
         testHint(new Symbol("L2tpMilliSeconds"), "d-3", new Integer32(12), ".012");
         testHint(new Symbol("L2tpMilliSeconds"), "d-3", new Integer32(1), ".001");
         testHint(new Symbol("T11ZsZoneMemberType"), "x", new UnsignedInteger32(10), "a");
         testHint(new Symbol("Ipv6AddressPrefix"), "2x", new OctetString(new byte[]{(byte)255,(byte)255}), "ffff");
-        testHint(new Symbol("MplsLdpIdentifier"), "1d.1d.1d.1d:2d:", new OctetString(new byte[]{(byte)1,(byte)2,(byte)3,(byte)4,(byte)5,(byte)6}), "1.2.3.4:1286:");
+        testHint(new Symbol("Ipv6AddressPrefix"), "2o", new OctetString(new byte[]{(byte)255,(byte)255}), "177777");
+        testHint(new Symbol("MplsLdpIdentifier"), "1d.1d.1d.1d:2d:", new OctetString(new byte[]{(byte)1,(byte)2,(byte)3,(byte)4,(byte)5,(byte)6}), "1.2.3.4:1286");
+        testHint(new Symbol("SnmpUDPAddress"), "1d.1d.1d.1d/2d", new OctetString(new byte[]{(byte)1,(byte)2,(byte)3,(byte)4,(byte)5,(byte)6}), "1.2.3.4/1286");
+        testHint(new Symbol("TransportAddressIPv4NS"), "1d.1d.1d.1d:2d@*1t", new OctetString(new byte[]{(byte)1,(byte)2,(byte)3,(byte)4,(byte)5,(byte)6,(byte)2,(byte)'A', (byte)'B'}), "1.2.3.4:1286@AB");
+        testHint(new Symbol("DateAndTime"), "2d-1d-1d,1d:1d:1d.1d,1a1d:1d", new OctetString(new byte[]{(byte)0x07,(byte)0xe6,(byte)0x09,(byte)0x16,(byte)0x11,(byte)0x30,(byte)0x2b,(byte)0x00, (byte)0x2b, (byte)0x02, (byte)0x00}), "2022-9-22,17:48:43.0,+2:0");
+        testHint(new Symbol("DateAndTime"), "2d-1d-1d,1d:1d:1d.1d,1a1d:1d", new OctetString(new byte[]{(byte)0x07,(byte)0xe6,(byte)0x09,(byte)0x16,(byte)0x11,(byte)0x30,(byte)0x2b,(byte)0x00}), "2022-9-22,17:48:43.0");
+        testHint(new Symbol("UTF8OwnerString"), "127t", new OctetString("éœ€".getBytes(StandardCharsets.UTF_8)), "éœ€");
+        testHint(new Symbol("DisplayString"), "255a", new OctetString("123".getBytes(StandardCharsets.UTF_8)), "123");
+        testHint(new Symbol("CountryCode"), "2a", new OctetString("123".getBytes(StandardCharsets.UTF_8)), "12");
     }
 
     @Test

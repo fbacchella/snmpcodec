@@ -71,7 +71,7 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
 
         private static final AnnotedSyntax localsyntax = new AnnotedSyntax(SmiType.OctetString, null, Constraint8or11);
 
-        private static final Pattern HINTREGEX = Pattern.compile("(\\d+)-(\\d+)-(\\d+),(\\d+):(\\d+):(\\d+).(\\d+),(\\+|-)(\\d+):(\\d+)");
+        private static final Pattern HINTREGEX = Pattern.compile("(\\d+)-(\\d+)-(\\d+),(\\d+):(\\d+):(\\d+).(\\d+),(\\[+-])(\\d+):(\\d+)");
 
         public DateAndTime() {
             super(localsyntax, "2d-1d-1d,1d:1d:1d.1d,1a1d:1d", null, Constraint8or11);
@@ -119,7 +119,7 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
     }
 
     private abstract static class NumberDisplayHint<V extends Variable> extends AbstractPatternDisplayHint<V> {
-        private static final Pattern floatPattern = Pattern.compile("(?<radix>d|x|o|b)(?:-(?<float>\\d+))?");
+        private static final Pattern floatPattern = Pattern.compile("(?<length>\\d+)?(?<radix>[dxob])(?:-(?<float>\\d+))?");
 
         protected final int fixedfloat;
         protected final char radix;
@@ -137,11 +137,11 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
                         fixedfloat = Integer.parseInt(floatSuffix);
                     }
                 } else {
-                    throw new MibException("Invalid display hint " + hint);
+                    throw new MibException("Invalid display hint '" + hint + "'");
                 }
             } else {
                 fixedfloat = -1;
-                radix = '\0';
+                radix = Character.MIN_VALUE;
             }
         }
 
@@ -164,6 +164,8 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
                     return Long.toOctalString(l);
                 case 'b':
                     return Long.toBinaryString(l);
+                default:
+                    // not reachable
                 }
             } else {
                 char[] formatted = Long.toString(l).toCharArray();
@@ -212,67 +214,72 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
 
     }
 
-    public static class PatternDisplayHint extends AbstractPatternDisplayHint<OctetString> {
-        private static final Pattern element = Pattern.compile("(.*?)(\\*?)(\\d*)([dxatobh])([^\\d\\*-]?)(-\\d+)?");
-        private final String[] paddings;
-        private final Character[] stars;
-        private final Integer[] sizes;
-        private final Character[] formats;
-        private final Character[] separators;
-        private final Integer[] decimals;
-        private final Constraint constraint;
+    private static class DisplayHintClause {
+        private final boolean repeat;
+        private final int length;
+        private final char format;
+        private final char separator;
+        private final char terminator;
 
-        public PatternDisplayHint(Syntax syntax, String hint, Constraint constraint) {
+        public DisplayHintClause(boolean repeat, int length, char format, char separator, char terminator) {
+            this.repeat = repeat;
+            this.length = length;
+            this.format = format;
+            this.separator = separator;
+            this.terminator = terminator;
+        }
+
+        @Override
+        public String toString() {
+            return "DisplayHintClause{" + "repeat=" + repeat + ", length=" + length + ", format=" + format + ", separator=" + separator + ", terminator=" + terminator + '}';
+        }
+    }
+
+    public static class PatternDisplayHint extends AbstractPatternDisplayHint<OctetString> {
+        private static final Pattern element = Pattern.compile("(?<repeat>\\*)?(?<length>\\d*)(?<format>[xdoath])(?<separator>[^\\d\\*](?<terminator>[^\\d\\*])?)?");
+        private final DisplayHintClause[] clauses;
+
+        public PatternDisplayHint(Syntax syntax, String hint, Constraint constraint) throws MibException {
             super(syntax, hint, null, constraint);
-            this.constraint = constraint;
             if (hint != null) {
+                boolean repeat;
+                int length;
+                char format;
+                char separator;
+                char terminator;
+
                 Matcher m = element.matcher(hint);
-                List<String> paddings = new ArrayList<>();
-                List<Character> stars = new ArrayList<>();
-                List<Integer> sizes = new ArrayList<>();
-                List<Character> formats = new ArrayList<>();
-                List<Character> separators = new ArrayList<>();
-                List<Integer> decimals = new ArrayList<>();
-                int end = -1;
+                List<DisplayHintClause> currentClauses = new ArrayList<>();
                 while (m.find()) {
-                    paddings.add(m.group(1));
-                    if(!m.group(2).isEmpty()) {
-                        stars.add(m.group(2).charAt(0));
-                    }
-                    if(!m.group(3).isEmpty()) {
-                        sizes.add(Integer.parseInt(m.group(3)));
+                    if (m.group("repeat") != null) {
+                        repeat = true;
                     } else {
-                        sizes.add(1);
+                        repeat = false;
                     }
-                    formats.add(m.group(4).charAt(0));
-                    if(!m.group(5).isEmpty()) {
-                        separators.add(m.group(5).charAt(0));
+                    if (!m.group("length").isEmpty()) {
+                        length = Integer.parseInt(m.group("length"));
                     } else {
-                        separators.add(Character.MIN_VALUE);
+                        length = 0;
                     }
-                    if(m.group(6) != null) {
-                        decimals.add(Integer.parseInt(m.group(6).substring(1)));
+                    format = m.group("format").charAt(0);
+                    if (m.group("separator") != null) {
+                        separator = m.group("separator").charAt(0);
                     } else {
-                        decimals.add(0);
+                        separator = Character.MIN_VALUE;
                     }
-                    end = m.end();
+                    if (m.group("terminator") != null && repeat) {
+                        terminator = m.group("terminator").charAt(0);
+                    } else {
+                        terminator= Character.MIN_VALUE;
+                    }
+                    currentClauses.add(new DisplayHintClause(repeat, length, format, separator, terminator));
                 }
-                if(end >= 0) {
-                    paddings.add(hint.substring(end));
+                if (currentClauses.isEmpty()) {
+                    throw new MibException("Invalid display hint " + hint + " ");
                 }
-                this.paddings = paddings.toArray(new String[paddings.size()]);
-                this.stars = stars.toArray(new Character[stars.size()]);
-                this.sizes = sizes.toArray(new Integer[sizes.size()]);
-                this.formats = formats.toArray(new Character[formats.size()]);
-                this.separators = separators.toArray(new Character[separators.size()]);
-                this.decimals = decimals.toArray(new Integer[decimals.size()]);
+                this.clauses = currentClauses.stream().toArray(DisplayHintClause[]::new);
             } else {
-                this.paddings = null;
-                this.stars = null;
-                this.sizes = null;
-                this.formats = null;
-                this.separators = null;
-                this.decimals = null;
+                this.clauses = new DisplayHintClause[0];
             }
         }
 
@@ -284,50 +291,49 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
                 ByteBuffer buffer = ByteBuffer.wrap(os.toByteArray());
                 buffer.order(ByteOrder.BIG_ENDIAN);
                 StringBuilder formatted = new StringBuilder();
-                for (int i = 0 ; i < sizes.length; i++) {
-                    formatted.append(paddings[i]);
-                    int size = sizes[i];
-                    switch (formats[i]) {
-                    case 'd':
-                        switch (size) {
-                        case 1:
-                            formatted.append(buffer.get());
-                            break;
-                        case 2:
-                            formatted.append(buffer.getShort());
-                            break;
-                        case 4:
-                            formatted.append(buffer.getInt());
-                            break;
-                        }
+                for (DisplayHintClause clause: clauses) {
+                    if (! buffer.hasRemaining()) {
                         break;
-                    case 'x':
-                        switch (size) {
-                        case 1:
-                            formatted.append(String.format("%x", buffer.get()));
-                            break;
-                        case 2:
-                            formatted.append(String.format("%x", buffer.getShort()));
-                            break;
-                        case 4:
-                            formatted.append(String.format("%x", buffer.getInt()));
-                            break;
-                        }
-                        break;
-                    case 'a':
-                    case 't':
-                        byte[] sub =new byte[sizes[i]];
-                        buffer.get(sub);
-                        formatted.append(new String(sub, formats[i] == 'a' ? StandardCharsets.US_ASCII : StandardCharsets.UTF_8));
-                        break;
-                    case 'h':
                     }
-                    if (separators[i] != Character.MIN_VALUE) {
-                        formatted.append(separators[i]);
+                    int repeat = clause.repeat ? buffer.get() : 1;
+                    // Some modules forget the length, consume everything in one shot then
+                    int length = clause.length != 0 ? clause.length : buffer.remaining();
+                    for (int i = 0; i < repeat ; i++) {
+                        switch (clause.format) {
+                        case 'd':
+                        case 'x':
+                        case 'o':
+                            formatted.append(resolveNumerical("%" + clause.format, buffer, length));
+                            break;
+                        case 'a':
+                        case 't':
+                            byte[] sub = new byte[Math.min(clause.length, buffer.remaining())];
+                            buffer.get(sub);
+                            formatted.append(new String(sub, clause.format == 'a' ? StandardCharsets.US_ASCII : StandardCharsets.UTF_8));
+                            break;
+                        case 'h':
+                        default:
+                            //unreachable
+                        }
+                        if (clause.separator != Character.MIN_VALUE && buffer.hasRemaining()) {
+                            formatted.append(clause.separator);
+                        }
                     }
                 }
-                formatted.append(paddings[paddings.length - 1]);
                 return formatted.toString();
+            }
+        }
+
+        private String resolveNumerical(String numberFormatter, ByteBuffer buffer, int length) {
+            switch (length) {
+            case 1:
+                return String.format(numberFormatter, buffer.get());
+            case 2:
+                return String.format(numberFormatter, buffer.getShort());
+            case 4:
+                return String.format(numberFormatter, buffer.getInt());
+            default:
+                throw new IllegalArgumentException("Invalid length " + length);
             }
         }
 
