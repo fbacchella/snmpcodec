@@ -121,7 +121,7 @@ public abstract class SmiType extends Syntax {
             return org.snmp4j.smi.OctetString.fromByteArray(text.getBytes());
         }
         @Override
-        public TextualConvention getTextualConvention(String hint, Syntax type) {
+        public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
             return new PatternDisplayHint(type, hint, type.getConstrains());
         }
         @Override
@@ -307,7 +307,7 @@ public abstract class SmiType extends Syntax {
         }
         @Override
         public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
-            return new TextualConvention.Signed32DisplayHint<Integer32>(type, hint);
+            return new TextualConvention.Signed32DisplayHint<>(type, hint);
         }
         @Override
         public int getSyntaxString() {
