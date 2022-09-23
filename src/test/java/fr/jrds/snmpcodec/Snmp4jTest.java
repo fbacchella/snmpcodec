@@ -110,7 +110,7 @@ public class Snmp4jTest {
     }
 
     @Test
-    public void varfromFAQ2() throws ParseException, URISyntaxException {
+    public void varFromFAQ2() throws ParseException, URISyntaxException {
         MibLoader loader = new MibLoader();
         loader.load(Paths.get(getClass().getClassLoader().getResource("modules/NOTIFICATION-LOG-MIB.txt").toURI()));
         loader.load(Paths.get(getClass().getClassLoader().getResource("modules/SNMPv2-SMI.txt").toURI()));

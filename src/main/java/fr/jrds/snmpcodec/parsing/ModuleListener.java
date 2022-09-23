@@ -196,7 +196,7 @@ public class ModuleListener extends ASNBaseListener {
         }
         macro.value = value;
         try {
-            store.addMacroValue(s, macro.values, macro.value.value);
+            store.addMacroValue(s, macro.value.value);
         } catch (MibException e) {
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
@@ -535,7 +535,7 @@ public class ModuleListener extends ASNBaseListener {
             return;
         }
         try {
-            store.addMacroValue(s, Collections.emptyMap(), value.value);
+            store.addMacroValue(s, value.value);
         } catch (MibException e) {
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }

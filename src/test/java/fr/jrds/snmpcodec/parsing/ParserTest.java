@@ -11,7 +11,6 @@ import org.junit.Test;
 
 import fr.jrds.snmpcodec.LogUtils;
 import fr.jrds.snmpcodec.MibStore;
-import fr.jrds.snmpcodec.OIDFormatter;
 import fr.jrds.snmpcodec.OidTreeNode;
 import fr.jrds.snmpcodec.Tasks;
 

@@ -43,7 +43,7 @@ import fr.jrds.snmpcodec.smi.Trap;
 
 public class MibLoader {
 
-    public static final LogAdapter MIBPARSINGLOGGER = LogAdapter.getLogger(MibStore.class);
+    public static final LogAdapter MIBPARSINGLOGGER = LogAdapter.getLogger(MibLoader.class);
     public static final LogAdapter MIBPARSINGLOGGERERROR = LogAdapter.getLogger(MibStore.class.getPackage().getName() + ".MibParsingError");
 
     private final ModuleListener modulelistener;
@@ -66,8 +66,8 @@ public class MibLoader {
     private final Map<String, List<OidTreeNode>> names = new HashMap<>();
     private final Set<String> modules = new HashSet<>();
 
-    private final Map<String, Syntax> _syntaxes = new HashMap<>();
-    private final Map<OidTreeNode, ObjectType> _objects = new HashMap<>();
+    private final Map<String, Syntax> syntaxes = new HashMap<>();
+    private final Map<OidTreeNode, ObjectType> objects = new HashMap<>();
     private final Map<OidTreeNode, Map<Integer,Trap>> resolvedTraps = new HashMap<>();
 
     public MibLoader() {
@@ -217,7 +217,7 @@ public class MibLoader {
 
     public MibStore buildTree() {
         MIBPARSINGLOGGER.debug("Starting to build the MIB");
-        MibStore newStore = new MibStoreImpl(top, modules, names, _syntaxes, _objects, resolvedTraps);
+        MibStore newStore = new MibStoreImpl(top, modules, names, syntaxes, objects, resolvedTraps);
 
         // Check in provides symbolsalias.txt for known problems or frequent problems in mibs files
         Properties props = new Properties();
@@ -284,7 +284,7 @@ public class MibLoader {
         });
         MIBPARSINGLOGGERERROR.debug("Resolving the textual conventions");
         resolveTextualConventions();
-        types.forEach((i,j) -> _syntaxes.put(i.name, j));
+        types.forEach((i,j) -> syntaxes.put(i.name, j));
         MIBPARSINGLOGGERERROR.debug("Building the objects");
         Map<OidTreeNode, ObjectTypeBuilder> augmenters = new HashMap<>();
         buildObjects.forEach((k,v) -> {
@@ -297,7 +297,7 @@ public class MibLoader {
                     augmenters.put(node, v);
                 } else {
                     ObjectType object = v.resolve(this);
-                    _objects.put(node, object);
+                    objects.put(node, object);
                 }
             } catch (MibException e) {
                 String objectname = null;
@@ -318,7 +318,7 @@ public class MibLoader {
                 ObjectTypeBuilder builderAugmented = buildObjects.get(oidAugmented);
                 try {
                     ObjectType object = v.resolve(this, builderAugmented);
-                    _objects.put(k, object);
+                    objects.put(k, object);
                 } catch (MibException e) {
                     MIBPARSINGLOGGERERROR.warn("Incomplete OID %s: %s", k, e.getMessage());
                 }
@@ -504,7 +504,7 @@ public class MibLoader {
     }
 
 
-    void addMacroValue(Symbol s, Map<String, Object> attributes, OidPath value) throws MibException {
+    void addMacroValue(Symbol s, OidPath value) throws MibException {
         addOid(s, value, false);
     }
 

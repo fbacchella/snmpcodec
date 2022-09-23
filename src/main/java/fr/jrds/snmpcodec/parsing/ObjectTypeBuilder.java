@@ -40,8 +40,6 @@ public class ObjectTypeBuilder {
         Index newIndex = null;
         if (index != null) {
             newIndex = index.resolve(loader);
-        } else if (augments) {
-            System.out.println(loader.resolveNode(augmentedEntry).getTableEntry());
         }
         return new ObjectType(syntax, indexed, newIndex);
     }

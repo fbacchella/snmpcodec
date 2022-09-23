@@ -20,7 +20,7 @@ public class Symbol {
         } else {
             this.module = null;
         }
-        // If '.' is not found, separator = -1 +1 it return 0, hence the start
+        // If '.' is not found, separator = -1 +1 it returns 0, hence the start
         this.name = name.substring(separator + 1).intern();
     }
 

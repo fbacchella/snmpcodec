@@ -18,7 +18,7 @@ public class Referenced extends Syntax implements SyntaxContainer {
 
     @Override
     public String format(Variable v) {
-        if (this.isNamed()) {
+        if (isNamed()) {
             return getNameFromNumer(v.toInt());
         } else {
             return ref.format(v);

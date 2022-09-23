@@ -2,12 +2,13 @@ package fr.jrds.snmpcodec.parsing;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import fr.jrds.snmpcodec.smi.Symbol;
 import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.smi.Oid;
+import fr.jrds.snmpcodec.smi.Symbol;
 
 public class OidPath extends ArrayList<OidPath.OidComponent> {
 
@@ -82,6 +83,23 @@ public class OidPath extends ArrayList<OidPath.OidComponent> {
                 throw e.getNonChecked();
             }
         }).limit(size() - 1L);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        if (!super.equals(o))
+            return false;
+        OidPath that = (OidPath) o;
+        return root.equals(that.root);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), root);
     }
 
 }
