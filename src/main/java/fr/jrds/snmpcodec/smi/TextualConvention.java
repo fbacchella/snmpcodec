@@ -71,7 +71,7 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
 
         private static final AnnotedSyntax localsyntax = new AnnotedSyntax(SmiType.OctetString, null, Constraint8or11);
 
-        private static final Pattern HINTREGEX = Pattern.compile("(\\d+)-(\\d+)-(\\d+),(\\d+):(\\d+):(\\d+).(\\d+),(\\[+-])(\\d+):(\\d+)");
+        private static final Pattern HINTREGEX = Pattern.compile("(\\d+)-(\\d+)-(\\d+),(\\d+):(\\d+):(\\d+).(\\d+)(,([+-])(\\d+):(\\d+))?");
 
         public DateAndTime() {
             super(localsyntax, "2d-1d-1d,1d:1d:1d.1d,1a1d:1d", null, Constraint8or11);
@@ -87,12 +87,18 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
             int hour = buffer.get();
             int minutes = buffer.get();
             int seconds = buffer.get();
-            int deciseconds = buffer.get();
-            char directionFromUTC = Character.toChars(buffer.get())[0];
-            int hourFromUTC = buffer.get();
-            int minutesFromUTC = buffer.get();
+            int deciSeconds = buffer.get();
+            String zoneOffset;
+            if (buffer.hasRemaining()) {
+                char directionFromUTC = Character.toChars(buffer.get())[0];
+                int hourFromUTC = buffer.get();
+                int minutesFromUTC = buffer.get();
+                zoneOffset = String.format(",%c%d:%d", directionFromUTC, hourFromUTC, minutesFromUTC);
+            } else {
+                zoneOffset = "";
+            }
 
-            return String.format("%d-%d-%d,%d:%d:%d.%d,%c%d:%d", year, month, day, hour, minutes, seconds, deciseconds, directionFromUTC, hourFromUTC, minutesFromUTC);
+            return String.format("%d-%d-%d,%d:%d:%d.%d%s", year, month, day, hour, minutes, seconds, deciSeconds, zoneOffset);
         }
 
         @Override
@@ -101,7 +107,7 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
             if (!match.find()) {
                 return null;
             }
-            ByteBuffer buffer = ByteBuffer.allocate(11);
+            ByteBuffer buffer = ByteBuffer.allocate(match.group(8) != null ? 11: 8);
             buffer.order(ByteOrder.BIG_ENDIAN);
             buffer.putShort(Short.parseShort(match.group(1))); // year
             buffer.put(Byte.parseByte(match.group(2)));        // month
@@ -110,9 +116,11 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
             buffer.put(Byte.parseByte(match.group(5)));        // minutes
             buffer.put(Byte.parseByte(match.group(6)));        // seconds
             buffer.put(Byte.parseByte(match.group(7)));        // deci-seconds
-            buffer.put(match.group(8).getBytes()[0]);          // direction from UTC
-            buffer.put(Byte.parseByte(match.group(9)));        // hours from UTC*
-            buffer.put(Byte.parseByte(match.group(10)));       // hours from UTC*
+            if (match.group(8) != null) {
+                buffer.put(match.group(9).getBytes()[0]);          // direction from UTC
+                buffer.put(Byte.parseByte(match.group(10)));        // hours from UTC*
+                buffer.put(Byte.parseByte(match.group(11)));       // hours from UTC*
+            }
             return OctetString.fromByteArray(buffer.array());
         }
 

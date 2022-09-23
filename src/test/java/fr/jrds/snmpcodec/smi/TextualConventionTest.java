@@ -74,4 +74,11 @@ public class TextualConventionTest {
         Assert.assertEquals(new Counter64(2), tc.parse("2"));
     }
 
+    @Test
+    public void testDateTime() {
+        TextualConvention tc = new TextualConvention.DateAndTime();
+        Assert.assertEquals("2015-10-13,12:45:53.8,+2:0", tc.format(tc.parse("2015-10-13,12:45:53.8,+2:0")));
+        Assert.assertEquals("2015-10-13,12:45:53.8", tc.format(tc.parse("2015-10-13,12:45:53.8")));
+    }
+
 }
