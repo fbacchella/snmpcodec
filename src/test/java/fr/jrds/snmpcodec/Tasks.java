@@ -107,7 +107,7 @@ public class Tasks {
             case "RFC-1215\nRFC1215\nRFC-1213.mib":   //What a name, invalid content anyway 
                 return false;
             default:
-                return (file.toLowerCase().endsWith(".mib") || file.toLowerCase().endsWith(".txt") || file.toLowerCase().endsWith(".my"));
+                return (file.toLowerCase().endsWith(".mib") || file.toLowerCase().endsWith(".txt") || file.toLowerCase().endsWith(".my") || file.endsWith("-MIB") || file.endsWith("-SMI") || file.endsWith("-TC"));
             }
         };
 
