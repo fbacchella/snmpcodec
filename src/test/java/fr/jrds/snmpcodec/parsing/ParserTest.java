@@ -39,7 +39,7 @@ public class ParserTest {
         Assert.assertEquals(92, store.names.size());
         Assert.assertEquals(48, store.objects.size());
         Assert.assertEquals(1, store.resolvedTraps.size());
-        Assert.assertEquals(30, store.syntaxes.size());
+        Assert.assertEquals(32, store.syntaxes.size());
         int countOid = Tasks.countOid(store.top);
         Assert.assertEquals(92, countOid);
     }
