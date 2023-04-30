@@ -65,6 +65,7 @@ import fr.jrds.snmpcodec.parsing.ValueType.OidValue;
 import fr.jrds.snmpcodec.parsing.ValueType.StringValue;
 import fr.jrds.snmpcodec.parsing.ValueType.IntegerValue;
 import fr.jrds.snmpcodec.smi.Constraint;
+import fr.jrds.snmpcodec.smi.SmiType;
 import fr.jrds.snmpcodec.smi.Symbol;
 import fr.jrds.snmpcodec.smi.Syntax;
 
@@ -296,7 +297,37 @@ public class ModuleListener extends ASNBaseListener {
             return;
         }
         try {
-            store.addType(s, td.getSyntax(this));
+            Syntax sy;
+            if ("SNMPv2-SMI".equals(s.module)) {
+                switch (s.name) {
+                case "IpAddress":
+                    sy = SmiType.IpAddr;
+                    break;
+                case "Counter32":
+                    sy = SmiType.Counter32;
+                    break;
+                case "Gauge32":
+                    sy = SmiType.Gauge32;
+                    break;
+                case "Unsigned32":
+                    sy = SmiType.Unsigned32;
+                    break;
+                case "TimeTicks":
+                    sy = SmiType.TimeTicks;
+                    break;
+                case "Opaque":
+                    sy = SmiType.Opaque;
+                    break;
+                case "Counter64":
+                    sy = SmiType.Counter64;
+                    break;
+                default:
+                    sy = td.getSyntax(this);
+                }
+            } else {
+                sy = td.getSyntax(this);
+            }
+            store.addType(s, sy);
         } catch (MibException e) {
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }

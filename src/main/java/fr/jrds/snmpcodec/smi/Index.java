@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.Variable;
+import org.snmp4j.smi.IpAddress;
 
 import fr.jrds.snmpcodec.MibStore;
 import fr.jrds.snmpcodec.OidTreeNode;
@@ -48,22 +49,28 @@ public class Index {
                 break;
             }
             Syntax codec = column.getSyntax();
+            Variable v =  codec.getVariable();
             logger.debug("given %s, found %s %s", i, codec, column);
             Parsed parsed;
-            if(codec.getConstrains() != null) {
+            if (codec.getConstrains() != null) {
                 parsed = codec.getConstrains().extract(oidParsed);
+            } else if (v instanceof IpAddress) {
+                parsed = new Parsed();
+                parsed.content = Arrays.copyOf(oidParsed, 4);
+                if (oidParsed.length > 1) {
+                    parsed.next = Arrays.copyOfRange(oidParsed, 4, oidParsed.length);
+                }
             } else {
                 parsed = new Parsed();
                 parsed.content = Arrays.copyOf(oidParsed, 1);
-                if(oidParsed.length > 1) {
+                if (oidParsed.length > 1) {
                     parsed.next = Arrays.copyOfRange(oidParsed, 1, oidParsed.length);
                 }
             }
-            if(parsed == null) {
+            if (parsed == null) {
                 break;
             }
             logger.debug("parsed %s from %s with %s/%s", parsed, oidParsed, i, codec);
-            Variable v =  codec.getVariable();
             if (v == null) {
                 // The definition was incomplete, null variable returned, stop now
                 break;
