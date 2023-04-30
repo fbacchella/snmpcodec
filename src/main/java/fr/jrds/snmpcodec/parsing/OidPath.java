@@ -94,7 +94,7 @@ public class OidPath extends ArrayList<OidPath.OidComponent> {
         if (!super.equals(o))
             return false;
         OidPath that = (OidPath) o;
-        return root.equals(that.root);
+        return (root == null && that.root == null) || root.equals(that.root);
     }
 
     @Override

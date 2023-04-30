@@ -161,7 +161,7 @@ typeAssignment :
 ;
 
 application_details:
-    'APPLICATION' NUMBER;
+    'APPLICATION'? NUMBER;
 
 complexAssignement :
     macroName
