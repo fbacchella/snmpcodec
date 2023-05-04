@@ -81,8 +81,7 @@ public class LogAdapter {
         return adapter.getName();
     }
 
-    @SuppressWarnings("unchecked")
-    public <T> Iterator<T> getLogHandler() {
+    public Iterator<?> getLogHandler() {
         return adapter.getLogHandler();
     }
 
