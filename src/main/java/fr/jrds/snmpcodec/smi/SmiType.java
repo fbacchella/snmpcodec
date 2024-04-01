@@ -355,7 +355,7 @@ public abstract class SmiType extends Syntax {
         }
         @Override
         public TextualConvention getTextualConvention(String hint, Syntax type) throws MibException {
-            return new TextualConvention.Unsigned32DisplayHint<UnsignedInteger32>(type, hint);
+            return new TextualConvention.Unsigned32DisplayHint<>(type, hint);
         }
         @Override
         public int getSyntaxString() {

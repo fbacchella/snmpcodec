@@ -355,7 +355,7 @@ public class MibLoader {
                         MIBPARSINGLOGGERERROR.warn("Invalid trap: %s", e.getMessage());
                     }
                 });
-                resolvedTraps.computeIfAbsent(node, k -> new HashMap<Integer, Trap>()).putAll(traps);
+                resolvedTraps.computeIfAbsent(node, k -> new HashMap<>()).putAll(traps);
             } catch (MibException e1) {
                 MIBPARSINGLOGGERERROR.warn("Invalid trap: %s", e1.getMessage());
             }
