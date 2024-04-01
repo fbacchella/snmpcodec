@@ -66,7 +66,7 @@ public class Oid {
         return path;
     }
 
-    private final void failedPath() {
+    private void failedPath() {
         path = new ArrayList<>(components.size() + 1);
         path.add(-1);
         components.stream().map( i -> i.number).forEach(i-> path.add(i));
