@@ -59,7 +59,7 @@ public class Utils {
 
         public boolean equals(Object obj) {
             if (obj instanceof Long) {
-                return l == ((Long)obj).longValue();
+                return l == (Long) obj;
             }
             return false;
         }

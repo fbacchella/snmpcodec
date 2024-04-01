@@ -61,7 +61,7 @@ public class Oid {
             if (path == null) {
                 path = new ArrayList<>();
             }
-            components.forEach( i-> path.add(Integer.valueOf(i.number)));
+            components.forEach(i-> path.add(i.number));
         }
         return path;
     }
