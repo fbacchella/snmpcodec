@@ -111,10 +111,7 @@ public abstract class SmiType extends Syntax {
             }
             return v.toString();
         }
-        @Override
-        public String format(Variable v) {
-            return v.toString();
-        }
+
         @Override
         public Variable parse(String text) {
             return org.snmp4j.smi.OctetString.fromByteArray(text.getBytes());
@@ -492,10 +489,7 @@ public abstract class SmiType extends Syntax {
         public Object convert(Variable v) {
             return ((TimeTicks)v).toMilliseconds();
         }
-        @Override
-        public String format(Variable v) {
-            return v.toString();
-        }
+
         @Override
         public Variable parse(String text) {
             try {
