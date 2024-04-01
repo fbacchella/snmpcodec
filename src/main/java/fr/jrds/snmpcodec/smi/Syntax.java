@@ -22,9 +22,8 @@ public abstract class Syntax {
         if (names != null) {
             this.toname = new HashMap<>(names.size());
             this.fromname = new HashMap<>(names.size());
-            names.entrySet().forEach(e -> {
-                String name = e.getValue();
-                Integer val = e.getKey().intValue();
+            names.forEach((key, name) -> {
+                Integer val = key.intValue();
                 toname.put(val, name);
                 fromname.put(name, val);
             });
