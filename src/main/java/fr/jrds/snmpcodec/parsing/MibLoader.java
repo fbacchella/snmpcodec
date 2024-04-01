@@ -304,7 +304,7 @@ public class MibLoader {
                 if (node != null) {
                     objectname = node.getSymbol();
                 } else {
-                    objectname = "OID " + k.toString();
+                    objectname = "OID " + k;
                 }
                 MIBPARSINGLOGGERERROR.warn("Incomplete %s: %s", objectname, e.getMessage());
             }
@@ -335,7 +335,7 @@ public class MibLoader {
                     Symbol s =  (Symbol) i;
                     oid = buildOids.get(s);
                     if (oid == null) {
-                        throw new MibException("Trap's enterprise unknown " + s.toString());
+                        throw new MibException("Trap's enterprise unknown " + s);
                     }
                 } else {
                     throw new MibException("Wrong enterprise type " + i.getClass().getName());

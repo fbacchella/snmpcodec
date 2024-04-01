@@ -83,7 +83,7 @@ public abstract class Syntax {
         StringBuilder buffer = new StringBuilder();
         toname.forEach((i,j) -> buffer.append(String.format("%s (%d) ", j, i)));
         if (constraints != null) {
-            buffer.append(constraints.toString());
+            buffer.append(constraints);
         }
         return buffer.toString();
     }
