@@ -25,15 +25,14 @@ public class OidTreeNodeImpl extends OidTreeNode {
             //already exists, don't add
             return found;
         }
-        int[] elements = oidElements;
-        int[] oidParent = Arrays.copyOf(elements, elements.length - 1);
+        int[] oidParent = Arrays.copyOf(oidElements, oidElements.length - 1);
         //Adding a first level child
         if(oidParent.length == 0) {
-            return new OidTreeNodeImpl(root, elements[0], symbol, isTableEntry);
+            return new OidTreeNodeImpl(root, oidElements[0], symbol, isTableEntry);
         } else {
             OidTreeNode parent = root.find(oidParent);
             if(parent != null) {
-                return new OidTreeNodeImpl(parent, elements[elements.length - 1], symbol, isTableEntry);
+                return new OidTreeNodeImpl(parent, oidElements[oidElements.length - 1], symbol, isTableEntry);
             } else {
                 // Missing intermediary steps, add them
                 // The type cast is needed because search can be called from a OidTreeNode
@@ -41,9 +40,9 @@ public class OidTreeNodeImpl extends OidTreeNode {
                 for (int i=closer.length; i < oidElements.length -1 ; i++) {
                     int[] missing = Arrays.copyOf(oidElements, i);
                     OidTreeNode missingParent = root.find(missing);
-                    parent = new OidTreeNodeImpl(missingParent, elements[i], null, false);
+                    parent = new OidTreeNodeImpl(missingParent, oidElements[i], null, false);
                 }
-                return new OidTreeNodeImpl(parent, elements[elements.length - 1], symbol, isTableEntry);
+                return new OidTreeNodeImpl(parent, oidElements[oidElements.length - 1], symbol, isTableEntry);
             }
         }
     }
