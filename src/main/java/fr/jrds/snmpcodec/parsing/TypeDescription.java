@@ -64,7 +64,7 @@ public class TypeDescription {
 
     @Override
     public String toString() {
-        return "" + type + (typeDescription != null ? " " + typeDescription : "");
+        return type + (typeDescription != null ? " " + typeDescription : "");
     }
 
 
