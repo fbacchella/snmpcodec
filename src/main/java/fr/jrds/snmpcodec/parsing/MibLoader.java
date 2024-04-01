@@ -553,7 +553,7 @@ public class MibLoader {
 
     private Oid addOid(Symbol s, OidPath p, boolean tableEntry) throws MibException {
         p.getAll(tableEntry).forEach( i-> {
-            if (i.getName() != null &&  ! allOids.contains(i)) {
+            if (i.getName() != null) {
                 allOids.add(i);
             }
         });
