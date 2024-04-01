@@ -69,7 +69,7 @@ public class Check {
                 return false;
             }
             String file = i.getFileName().toString();
-            return (file.toLowerCase().endsWith(".mib") || file.toLowerCase().endsWith(".txt") || file.toLowerCase().endsWith(".my"));
+            return (file.toLowerCase().endsWith(".mib") || file.toLowerCase().endsWith(".txt") || file.toLowerCase().endsWith(".my") || file.endsWith("-MIB") || file.endsWith("-SMI") || file.endsWith("-TC"));
         };
 
         try (Stream<Path> foundStream = Files.find(Paths.get(mibs.toUri()), 10, matcher)) {
