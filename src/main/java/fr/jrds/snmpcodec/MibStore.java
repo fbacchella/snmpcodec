@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.snmp4j.smi.OID;
 import org.snmp4j.smi.Variable;
@@ -165,27 +166,31 @@ public abstract class MibStore {
                         return false;
                     }
                 })
-                .map(i -> {
-                    try {
-                        if (i.toRealPath().toFile().isDirectory()) {
-                            return Files.list(i).filter(j -> {
-                                try {
-                                    File f = j.toRealPath(LinkOption.NOFOLLOW_LINKS).toFile();
-                                    return f.isFile() && ! f.isHidden();
-                                } catch (IOException e) {
-                                    return false;
-                                }
-                            }).toArray(Path[]::new);
-                        } else {
-                            return new Path[] {i};
-                        }
-                    } catch (IOException e) {
-                        return new Path[] {};
-                    }
-                })
+                .map(MibStore::scanDirectory)
                 .forEach(loader::load);
 
         return loader.buildTree();
+    }
+
+    private static Path[] scanDirectory(Path i) {
+        try {
+            if (i.toRealPath().toFile().isDirectory()) {
+                try (Stream<Path> files = Files.list(i)) {
+                    return files.filter(j -> {
+                        try {
+                            File f = j.toRealPath(LinkOption.NOFOLLOW_LINKS).toFile();
+                            return f.isFile() && ! f.isHidden();
+                        } catch (IOException e) {
+                            return false;
+                        }
+                    }).toArray(Path[]::new);
+                }
+            } else {
+                return new Path[] {i};
+            }
+        } catch (IOException e) {
+            return new Path[] {};
+        }
     }
 
 }
