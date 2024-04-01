@@ -176,7 +176,7 @@ public abstract class SmiType extends Syntax {
      */
     @Deprecated
     public static final SmiType BitString = new SmiType() {
-        @Override @SuppressWarnings("deprecation")
+        @Override
         public Variable getVariable() {
             return new org.snmp4j.smi.BitString();
         }
