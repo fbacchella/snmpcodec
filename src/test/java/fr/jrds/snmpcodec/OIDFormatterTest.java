@@ -1,8 +1,8 @@
 package fr.jrds.snmpcodec;
 
-import java.text.ParseException;
-
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.snmp4j.SNMP4JSettings;
 import org.snmp4j.smi.OID;
@@ -11,7 +11,19 @@ import org.snmp4j.util.OIDTextFormat;
 import fr.jrds.snmpcodec.parsing.MibLoader;
 
 public class OIDFormatterTest {
-    
+
+    private static OIDTextFormat state;
+
+    @BeforeClass
+    public static void saveState() {
+        state = SNMP4JSettings.getOIDTextFormat();
+    }
+
+    @AfterClass
+    public static void restoreState() {
+        SNMP4JSettings.setOIDTextFormat(state);
+    }
+
     @Test
     public void chaining() {
         SNMP4JSettings.setOIDTextFormat(new OIDTextFormat() {
@@ -27,7 +39,7 @@ public class OIDFormatterTest {
             }
 
             @Override
-            public int[] parse(String text) throws ParseException {
+            public int[] parse(String text) {
                 throw new IllegalStateException("Empty parser");
             }
         });
