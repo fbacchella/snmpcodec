@@ -285,7 +285,7 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
                 if (currentClauses.isEmpty()) {
                     throw new MibException("Invalid display hint " + hint + " ");
                 }
-                this.clauses = currentClauses.stream().toArray(DisplayHintClause[]::new);
+                this.clauses = currentClauses.toArray(new DisplayHintClause[0]);
             } else {
                 this.clauses = new DisplayHintClause[0];
             }

@@ -90,7 +90,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
                 Object[] content = (Object[]) parsed[0];
                 String prefix = (String)content[0];
                 int[] numberPart = (int[]) content[1];
-                String suffix = String.join(".", Arrays.stream(numberPart).mapToObj(Integer::toString).collect(Collectors.toList()));
+                String suffix = Arrays.stream(numberPart).mapToObj(Integer::toString).collect(Collectors.joining("."));
                 return prefix + "." + suffix;
             } else {
                 StringBuilder buffer = new StringBuilder(parsed[0].toString());
