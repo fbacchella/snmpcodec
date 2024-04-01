@@ -77,7 +77,7 @@ public class Oid {
         if (path == null || path.isEmpty() || path.get(0) == -1) {
             return (root != null ? root  + "." : "") + components.stream().map(OidComponent::toString).collect(Collectors.joining("."));
         } else {
-            return path.stream().map(i -> i.toString()).collect(Collectors.joining("."));
+            return path.stream().map(Object::toString).collect(Collectors.joining("."));
         }
     }
 
