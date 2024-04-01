@@ -94,7 +94,7 @@ public class OIDFormatter implements OIDTextFormat, VariableTextFormat {
                 return prefix + "." + suffix;
             } else {
                 StringBuilder buffer = new StringBuilder(parsed[0].toString());
-                IntStream.range(1, parsed.length).forEach(i -> buffer.append("[" + parsed[i] + "]"));
+                IntStream.range(1, parsed.length).forEach(i -> buffer.append("[").append(parsed[i]).append("]"));
                 return buffer.toString();
             }
         } else {
