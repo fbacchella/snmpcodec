@@ -46,7 +46,7 @@ public abstract class Syntax {
     }
 
     public boolean isNamed() {
-        return toname.size() != 0;
+        return !toname.isEmpty();
     }
 
     public String getNameFromNumer(int number) {
