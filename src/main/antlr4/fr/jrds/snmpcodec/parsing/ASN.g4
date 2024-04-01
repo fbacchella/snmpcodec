@@ -1,4 +1,4 @@
-    /*
+/*
  [The "BSD licence"]
  Copyright (c) 2007-2008 Terence Parr
  All rights reserved.
@@ -41,7 +41,6 @@ of the predicates since it was too much ambiguity.
 
 If you have some comments/improvements, send me an e-mail.
 */
-
 
 grammar ASN;
 
@@ -124,7 +123,7 @@ assignment :
      | identifier='TRAP-TYPE'
      | identifier='MODULE-IDENTITY'
      | identifier='OBJECT-IDENTITY'
-     |  identifier='OBJECT-GROUP'
+     | identifier='OBJECT-GROUP'
      | identifier='MODULE-COMPLIANCE'
      | identifier='NOTIFICATION-TYPE'
      | identifier='TEXTUAL-CONVENTION'
@@ -643,4 +642,3 @@ BOM :
 SUBSTITUTE :
     '\u001a' -> skip
     ;
-
