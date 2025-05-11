@@ -49,7 +49,7 @@ fileContent :
     ;
 
 moduleDefinition :
-    IDENTIFIER ( '{' modulePath? '}' )?
+    IDENTIFIER objectIdentifierValue? ( '{' modulePath? '}' )?
     'DEFINITIONS'
     '::='
     'BEGIN'
@@ -146,10 +146,15 @@ assignementType :
 
 //Found missing or extra comma in sequence
 sequenceType :
-    'SEQUENCE' '{' (namedType ','* )+ '}'
+    'SEQUENCE' '{' (sequenceElement ','* )+ '}'
     ;
 
-sequenceOfType  : 'SEQUENCE' ( '(' (constraint | sizeConstraint) ')' )? 'OF' (type | namedType )
+sequenceElement :
+    IDENTIFIER '[' NUMBER ']' ('EXPLICIT' | 'IMPLICIT') IDENTIFIER ('DEFAULT' IDENTIFIER)? ('OPTIONAL')?
+    | namedType
+    ;
+
+sequenceOfType  : 'SEQUENCE' ( (constraint | sizeConstraint) )? 'OF' (type | namedType )
 ;
 
 typeAssignment :
@@ -338,8 +343,8 @@ builtinType :
  | bitStringType
  | choiceType
  | integerType
- | sequenceType
  | sequenceOfType
+ | sequenceType
  | objectIdentifierType
  | nullType
  | bitsType
@@ -378,7 +383,7 @@ constraint :
     '(' constraintElements ')'
     ;
 
-sizeConstraint : '(' 'SIZE' '(' constraintElements ')' ')'
+sizeConstraint : 'SIZE' '(' constraintElements ')'
     ;
 
 defValue
@@ -456,7 +461,7 @@ choiceType    : 'CHOICE' '{' (namedType ','*)+ '}'
 ;
 
 namedType :
-    IDENTIFIER type
+    IDENTIFIER ('[' NUMBER ']')? type
     ;
 
 namedNumber :

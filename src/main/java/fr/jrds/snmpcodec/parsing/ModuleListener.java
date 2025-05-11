@@ -671,14 +671,14 @@ public class ModuleListener extends ASNBaseListener {
         TypeDescription td = checkedPeek(ctx, TypeDescription.class);
         Map<String, Syntax> content = new LinkedHashMap<>();
         td.type = Asn1Type.sequenceType;
-        ctx.namedType().forEach( i -> content.put(i.IDENTIFIER().getText(), null));
+        ctx.sequenceElement().stream().map(i -> i.namedType()).forEach( i -> content.put(i.IDENTIFIER().getText(), null));
         td.typeDescription = content;
     }
 
     @Override
     public void exitSequenceType(SequenceTypeContext ctx) {
         List<TypeDescription> nt = new ArrayList<>();
-        int namedTypeCount = ctx.namedType().size();
+        int namedTypeCount = ctx.sequenceElement().size();
         for (int i = 0; i < namedTypeCount; i++ ) {
             nt.add(checkedPop(ctx, TypeDescription.class));
         }
