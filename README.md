@@ -1,6 +1,6 @@
-snmpcodec is a resilient SNMP parser and formater. It's purpose is not to manage a mib, check module or similar tasks. It's used to help processing SNMP messages, and be able to use all the broken modules that can be found all around.
+snmpcodec is a resilient SNMP parser and formater. Its purpose is not to manage a mib, check module or similar tasks. It's used to help processing SNMP messages, and be able to use all the broken modules that can be found all around.
 
-For this taks, it uses the excelent ANLTR parser generator that recover from many failure in module source. It can also take hint and help about the way to process file or missing symbols.
+For this task, it uses the excellent ANLTR parser generator that recover from many failure in module source. It can also take hint and help about the way to process file or missing symbols.
 
 It can process table index
 
@@ -33,6 +33,6 @@ It's available in Maven, just add in your dependencies:
 <dependency>
     <groupId>fr.jrds</groupId>
     <artifactId>snmpcodec</artifactId>
-    <version>0.0.5</version>
+    <version>0.0.8</version>
 </dependency>
 ```
