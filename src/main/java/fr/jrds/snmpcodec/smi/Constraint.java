@@ -9,16 +9,16 @@ import fr.jrds.snmpcodec.smi.Index.Parsed;
 public class Constraint {
 
     public static class ConstraintElement {
-        public final Number value;
-        public final Number from;
-        public final Number to;
+        public final Object value;
+        public final Object from;
+        public final Object to;
 
-        public ConstraintElement(Number value) {
+        public ConstraintElement(Object value) {
             this.value = value;
             this.from = null;
             this.to = null;
         }
-        public ConstraintElement(Number from, Number to) {
+        public ConstraintElement(Object from, Object to) {
             this.value = null;
             this.from = from;
             this.to = to;
@@ -32,22 +32,59 @@ public class Constraint {
             }
         }
     }
+    
+    public static class Builder {
+        private final Type type;
+        private final List<ConstraintElement> ranges = new ArrayList<>();
 
-    private final List<ConstraintElement> ranges = new ArrayList<>();
-    private final boolean size;
-    private boolean variableSize;
+        private Builder(Type type) {
+            this.type = type;
+        }
 
-    public Constraint(boolean size) {
-        this.size = size;
+        public Builder add(ConstraintElement newElement) {
+            this.ranges.add(newElement);
+            return this;
+        }
+
+        public Constraint build() {
+            Constraint c = new Constraint(type);
+            c.ranges.addAll(ranges);
+            if (ranges.size() > 1) {
+                c.variableSize = true;
+            } else if (ranges.size() == 1 && ranges.get(0).value == null) {
+                c.variableSize = true;
+            } else {
+                c.variableSize = false;
+            }
+            return c;
+        }
     }
 
-    public void add(ConstraintElement newElement) {
-        this.ranges.add(newElement);
+    public static Builder getBuilder(Type type) {
+        return new Builder(type);
+    }
+
+    private final List<ConstraintElement> ranges = new ArrayList<>();
+    private final Type type;
+    private boolean variableSize;
+
+    public enum Type {
+        SIZE,
+        VALUE,
+        FROM;
+    }
+
+    private Constraint(Type type) {
+        this.type = type;
+    }
+
+    public Type getType() {
+        return type;
     }
 
     Parsed extract(int[] oidElements) {
         Parsed tryExtract = new Parsed();
-        if (! size) {
+        if (type != Type.SIZE) {
             tryExtract.content = Arrays.copyOf(oidElements, 1);
             if (oidElements.length > 1) {
                 tryExtract.next = Arrays.copyOfRange(oidElements, 1, oidElements.length);
@@ -68,14 +105,15 @@ public class Constraint {
                             tryExtract.next = null;
                         }
                     }
-                } else if (oidElements.length == i.value.intValue()) {
+                } else if (i.value instanceof Number && oidElements.length == ((Number) i.value).intValue()) {
                     tryExtract.content = oidElements;
                     tryExtract.next = null;
                     return tryExtract;
-                } else if (oidElements.length > i.value.intValue()) {
-                    tryExtract.content = Arrays.copyOf(oidElements, i.value.intValue());
-                    if(i.value.intValue() + 1 <= oidElements.length) {
-                        tryExtract.next = Arrays.copyOfRange(oidElements, i.value.intValue(), oidElements.length);
+                } else if (i.value instanceof Number && oidElements.length > ((Number) i.value).intValue()) {
+                    int val = ((Number) i.value).intValue();
+                    tryExtract.content = Arrays.copyOf(oidElements, val);
+                    if(val + 1 <= oidElements.length) {
+                        tryExtract.next = Arrays.copyOfRange(oidElements, val, oidElements.length);
                     } else {
                         tryExtract.next = null;
                     }
@@ -88,16 +126,6 @@ public class Constraint {
     @Override
     public String toString() {
         return ranges.toString();
-    }
-
-    public void finish() {
-        if (ranges.size() > 1) {
-            this.variableSize = true;
-        } else if (ranges.get(0).value == null) {
-            this.variableSize = true;
-        } else {
-            this.variableSize = false;
-        }
     }
 
 }

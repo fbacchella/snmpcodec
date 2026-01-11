@@ -1,0 +1,11 @@
+Constraint
+DEFINITIONS ::=
+BEGIN
+MyInt ::= INTEGER (5)
+Age ::= INTEGER (0..150)
+Code ::= OCTET STRING (FROM ("A".."Z"))
+CodeSize ::= OCTET STRING (FROM ("A".."Z")) (SIZE (3))
+SmallInt ::= INTEGER (0..100, ..., 200..300)
+SnmpOSIAddress ::= OCTET STRING (SIZE (1 | 4..85))
+-- RelativeDistinguishedName ::= SET SIZE (1..MAX) OF AttributeTypeAndValue
+END

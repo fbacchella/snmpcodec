@@ -32,6 +32,7 @@ import fr.jrds.snmpcodec.parsing.ASNParser.ComplexAttributContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ConstraintContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ElementsContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.EnterpriseAttributeContext;
+import fr.jrds.snmpcodec.parsing.ASNParser.FromConstraintContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.IntegerTypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.IntegerValueContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleComplianceAssignementContext;
@@ -54,6 +55,7 @@ import fr.jrds.snmpcodec.parsing.ASNParser.TrapTypeAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.TypeAssignmentContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.TypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ValueAssignmentContext;
+import fr.jrds.snmpcodec.parsing.ASNParser.ValuesConstraintContext;
 import fr.jrds.snmpcodec.parsing.MibObject.MappedObject;
 import fr.jrds.snmpcodec.parsing.MibObject.ModuleIdentityObject;
 import fr.jrds.snmpcodec.parsing.MibObject.ObjectTypeObject;
@@ -620,50 +622,61 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitType(TypeContext ctx) {
-        if (stack.peek() instanceof Constraint) {
-            Constraint constrains = checkedPop(ctx, Constraint.class);
+        List<Constraint> constraints = new ArrayList<>();
+        while (stack.peek() instanceof Constraint) {
+            Constraint constrain = checkedPop(ctx, Constraint.class);
+            constraints.add(constrain);
+        }
+        if (! constraints.isEmpty()) {
             TypeDescription td = checkedPeek(ctx, TypeDescription.class);
-            td.constraints = constrains;
+            td.constraints = constraints.get(0);
         }
     }
 
     @Override
-    public void enterConstraint(ConstraintContext ctx) {
-        stack.push(new Constraint(false));
+    public void exitConstraint(ConstraintContext ctx) {
+        Constraint.Builder c = checkedPop(ctx, Constraint.Builder.class);
+        stack.push(c.build());
     }
 
     @Override
-    public void exitConstraint(ConstraintContext ctx) {
-        Constraint constrains = checkedPeek(ctx, Constraint.class);
-        constrains.finish();
+    public void enterValuesConstraint(ValuesConstraintContext ctx) {
+        stack.push(Constraint.getBuilder(Constraint.Type.VALUE));
     }
 
     @Override
     public void enterSizeConstraint(SizeConstraintContext ctx) {
-        stack.push(new Constraint(true));
+        stack.push(Constraint.getBuilder(Constraint.Type.SIZE));
     }
 
     @Override
     public void exitSizeConstraint(SizeConstraintContext ctx) {
-        Constraint constrains = checkedPeek(ctx, Constraint.class);
-        constrains.finish();
+    }
+
+    @Override
+    public void enterFromConstraint(FromConstraintContext ctx) {
+        stack.push(Constraint.getBuilder(Constraint.Type.FROM));
     }
 
     @Override
     public void exitElements(ElementsContext ctx) {
-        List<Number> values = new ArrayList<>(2);
-        while (stack.peek() instanceof IntegerValue) {
-            IntegerValue val = checkedPop(ctx, IntegerValue.class);
+        List<Object> values = new ArrayList<>(2);
+        while (stack.peek() instanceof ValueType) {
+            ValueType<?> val = checkedPop(ctx, ValueType.class);
             values.add(val.value);
         }
         Constraint.ConstraintElement c;
         if (values.size() == 1) {
             c = new Constraint.ConstraintElement(values.get(0));
+        } else if (values.size() == 0){
+            c = null;
         } else {
             c = new Constraint.ConstraintElement(values.get(1), values.get(0));
         }
-        Constraint constrains = checkedPeek(ctx, Constraint.class);
-        constrains.add(c);
+        if (c !=  null) {
+            Constraint.Builder builder = checkedPeek(ctx, Constraint.Builder.class);
+            builder.add(c);
+        }
     }
 
     @Override

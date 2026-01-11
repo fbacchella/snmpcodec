@@ -373,17 +373,27 @@ referencedType :
 elements :
     ( value '..' value )
     | value
+    | '...'
     ;
 
 constraintElements :
     elements ( '|' elements)*
     ;
 
-constraint :
-    '(' constraintElements ')'
+constraint
+    : '(' (fromConstraint | sizeConstraint | valuesConstraint) ')'
     ;
 
-sizeConstraint : 'SIZE' '(' constraintElements ')'
+sizeConstraint
+    : 'SIZE' '(' constraintElements ')'
+    ;
+
+valuesConstraint
+    : constraintElements (',' constraintElements)*
+    ;
+
+fromConstraint
+    : 'FROM' '(' constraintElements ')'
     ;
 
 defValue

@@ -19,6 +19,7 @@ import org.snmp4j.smi.Variable;
 
 import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.smi.Constraint.ConstraintElement;
+import fr.jrds.snmpcodec.smi.Constraint.Type;
 
 public abstract class TextualConvention extends AnnotedSyntax implements SyntaxContainer {
 
@@ -63,11 +64,10 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
     }
 
     public static class DateAndTime extends AbstractPatternDisplayHint<OctetString> {
-        private static final Constraint Constraint8or11 = new Constraint(true);
-        static {
-            Constraint8or11.add(new ConstraintElement(8));
-            Constraint8or11.add(new ConstraintElement(11));
-        }
+        private static final Constraint Constraint8or11 = Constraint.getBuilder(Type.SIZE)
+                .add(new ConstraintElement(8))
+                .add(new ConstraintElement(11))
+                .build();
 
         private static final AnnotedSyntax localsyntax = new AnnotedSyntax(SmiType.OctetString, null, Constraint8or11);
 
@@ -358,10 +358,9 @@ public abstract class TextualConvention extends AnnotedSyntax implements SyntaxC
     }
 
     public static class DisplayString extends AbstractPatternDisplayHint<OctetString> {
-        private static final Constraint Constraint255a = new Constraint(true);
-        static {
-            Constraint255a.add(new ConstraintElement(255));
-        }
+        private static final Constraint Constraint255a = Constraint.getBuilder(Type.SIZE)
+                .add(new ConstraintElement(255))
+                .build();
 
         private static final AnnotedSyntax localsyntax = new AnnotedSyntax(SmiType.OctetString, null, Constraint255a);
 

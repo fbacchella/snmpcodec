@@ -60,4 +60,13 @@ public class ParserTest {
         Assert.assertNull(store.top.find(new int[] { 1, 3, 6, 1, 4, 1, 1, 1, 7 }));    //oid7
     }
 
+    @Test
+    public void testConstraints() {
+        Path module = Paths.get(getClass().getClassLoader().getResource("allconstraints.txt").getFile());
+        MibLoader loader = new MibLoader();
+        loader.load(module);
+        MibStore store = loader.buildTree();
+        Assert.assertEquals(6, store.syntaxes.size());
+    }
+
 }
