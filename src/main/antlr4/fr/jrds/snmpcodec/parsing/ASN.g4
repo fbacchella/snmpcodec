@@ -49,8 +49,8 @@ fileContent :
     ;
 
 moduleDefinition :
-    IDENTIFIER objectIdentifierValue? ( '{' modulePath? '}' )?
-    'DEFINITIONS'
+    identifier objectIdentifierValue? ( '{' modulePath? '}' )?
+    'DEFINITIONS' ('EXPLICIT'|'IMPLICIT')? 'TAGS'?
     '::='
     'BEGIN'
     moduleBody
@@ -58,7 +58,7 @@ moduleDefinition :
     ;
 
 modulePath :
-    (IDENTIFIER ('(' NUMBER ')')? NUMBER? )+
+    (identifier ('(' NUMBER ')')? NUMBER? )+
     ;
 
 moduleBody :
@@ -90,7 +90,7 @@ symbolsFromModule :
     ;
 
 globalModuleReference :
-    IDENTIFIER
+    identifier objectIdentifierValue?
     ;
 
 symbolList :
@@ -98,7 +98,7 @@ symbolList :
     ;
 
 symbol :
-    IDENTIFIER 
+    identifier
     | 'OBJECT-TYPE'
     | 'TRAP-TYPE'
     | 'MODULE-IDENTITY'
@@ -117,18 +117,18 @@ assignmentList :
     assignment*
     ;
 
-assignment :
-    (identifier=IDENTIFIER
-     | identifier='OBJECT-TYPE'
-     | identifier='TRAP-TYPE'
-     | identifier='MODULE-IDENTITY'
-     | identifier='OBJECT-IDENTITY'
-     | identifier='OBJECT-GROUP'
-     | identifier='MODULE-COMPLIANCE'
-     | identifier='NOTIFICATION-TYPE'
-     | identifier='TEXTUAL-CONVENTION'
-     | identifier='NOTIFICATION-GROUP'
-     | identifier='AGENT-CAPABILITIES' )
+assignment
+    : (id='OBJECT-TYPE'
+    | id='TRAP-TYPE'
+    | id='MODULE-IDENTITY'
+    | id='OBJECT-IDENTITY'
+    | id='OBJECT-GROUP'
+    | id='MODULE-COMPLIANCE'
+    | id='NOTIFICATION-TYPE'
+    | id='TEXTUAL-CONVENTION'
+    | id='NOTIFICATION-GROUP'
+    | id='AGENT-CAPABILITIES'
+    | identifier)
     assignementType
    ;
 
@@ -146,19 +146,24 @@ assignementType :
 
 //Found missing or extra comma in sequence
 sequenceType :
-    'SEQUENCE' '{' (sequenceElement ','* )+ '}'
+    ('SEQUENCE' | 'SET') '{' (sequenceElement ','* )+ '}'
     ;
 
 sequenceElement :
-    IDENTIFIER '[' NUMBER ']' ('EXPLICIT' | 'IMPLICIT') IDENTIFIER ('DEFAULT' IDENTIFIER)? ('OPTIONAL')?
-    | namedType
+    identifier '[' NUMBER ']' ('EXPLICIT' | 'IMPLICIT') identifier ('DEFAULT' identifier)? ('OPTIONAL')?
+    | identifier '[' NUMBER ']' ('EXPLICIT' | 'IMPLICIT') type ('DEFAULT' identifier)? ('OPTIONAL')?
+    | identifier identifier 'DEFINED' 'BY' identifier 'OPTIONAL'?
+    | identifier 'BOOLEAN' ('DEFAULT' ('TRUE' | 'FALSE'))? ('OPTIONAL')?
+    | identifier '[' NUMBER ']' 'ANY' 'DEFINED' 'BY' identifier
+    | namedType ('DEFAULT' identifier)? ('OPTIONAL')?
     ;
 
-sequenceOfType  : 'SEQUENCE' ( (constraint | sizeConstraint) )? 'OF' (type | namedType )
-;
+sequenceOfType  : ('SEQUENCE' | 'SET') sizeConstraint? 'OF' (type | namedType )
+    ;
 
 typeAssignment :
       '::='
+    ( '[' universal_details ']' )?
     ( '[' application_details ']' )?
     ('IMPLICIT')?
       type
@@ -166,6 +171,9 @@ typeAssignment :
 
 application_details:
     'APPLICATION'? NUMBER;
+
+universal_details:
+    'UNIVERSAL' NUMBER;
 
 complexAssignement :
     macroName
@@ -197,7 +205,7 @@ complexAttribut:
     | name='UNITS' stringValue
     | name='REFERENCE' stringValue
     | name='DESCRIPTION' stringValue
-    | name='MODULE' IDENTIFIER?
+    | name='MODULE' identifier?
     | name='INCLUDES' groups
     | name='OBJECTS' objects
     | name='VARIABLES' variables
@@ -214,15 +222,15 @@ complexAttribut:
 ;
 
 access:
-    ( name='MAX-ACCESS' | name='ACCESS' | name='MIN-ACCESS') IDENTIFIER
+    ( name='MAX-ACCESS' | name='ACCESS' | name='MIN-ACCESS') identifier
     ;
 
 status:
-    name='STATUS' IDENTIFIER
+    name='STATUS' identifier
     ;
 
 groups:
-    '{' IDENTIFIER (','? IDENTIFIER)* ','? '}'
+    '{' identifier (','? identifier)* ','? '}'
     ;
 
 objects:
@@ -230,15 +238,15 @@ objects:
     ;
 
 variables:
-    '{' IDENTIFIER (',' IDENTIFIER)* ','? '}'
+    '{' identifier (',' identifier)* ','? '}'
     ;
 
 notifications:
-    '{' IDENTIFIER (',' IDENTIFIER)* ','? '}'
+    '{' identifier (',' identifier)* ','? '}'
     ;
 
 augments:
-    '{' IDENTIFIER '}'
+    '{' identifier '}'
     ;
 
 index:
@@ -285,14 +293,14 @@ moduleComplianceAssignement :
     ;
     
 complianceModules :
-    'MODULE' IDENTIFIER?
+    'MODULE' identifier?
     ('MANDATORY-GROUPS' groups)?
     compliance*
     ;
     
 compliance:
-    ('GROUP' IDENTIFIER 'DESCRIPTION' stringValue)
-    | ('OBJECT' IDENTIFIER ('SYNTAX' type)? ('WRITE-SYNTAX' type)? ('MIN-ACCESS' IDENTIFIER)? ('DESCRIPTION' stringValue)?)
+    ('GROUP' identifier 'DESCRIPTION' stringValue)
+    | ('OBJECT' identifier ('SYNTAX' type)? ('WRITE-SYNTAX' type)? ('MIN-ACCESS' identifier)? ('DESCRIPTION' stringValue)?)
     ;
 
 trapTypeAssignement :
@@ -304,7 +312,7 @@ trapTypeAssignement :
     ;
 
 enterpriseAttribute :
-    'ENTERPRISE' (IDENTIFIER | objectIdentifierValue)
+    'ENTERPRISE' (identifier | objectIdentifierValue)
     ;
 
 objectTypeAssignement :
@@ -319,13 +327,13 @@ macroAssignement :
     ;
 
 macroContent:
-    IDENTIFIER 'NOTATION'? ? '::=' macroVal+ ( '|' macroVal+ )*
+    identifier 'NOTATION'? ? '::=' macroVal+ ( '|' macroVal+ )*
     ;
 
 macroVal:
     CSTRING 
-    | IDENTIFIER
-    | IDENTIFIER? '(' (IDENTIFIER | 'OBJECT' | 'IDENTIFIER'| type ) * ')'
+    | identifier
+    | identifier? '(' (identifier | 'OBJECT' | 'identifier'| type ) * ')'
     ;
 
 valueAssignment :
@@ -335,7 +343,7 @@ valueAssignment :
 ;
 
 type :
-    (builtinType | referencedType) ( constraint | sizeConstraint )? ('{' namedNumberList '}')?
+    ('EXPLICIT' | 'IMPLICIT')? (builtinType | referencedType) constraint* ('{' namedNumberList '}')?
     ;
 
 builtinType :
@@ -359,7 +367,7 @@ bitsEnumeration:
     ;
 
 bitDescription:
-    IDENTIFIER '(' NUMBER ')'
+    identifier '(' NUMBER ')'
     ;
 
 nullType:
@@ -367,7 +375,7 @@ nullType:
     ;
 
 referencedType :
-    IDENTIFIER ('.' IDENTIFIER)?
+    identifier ('.' identifier)?
     ;
 
 elements :
@@ -417,15 +425,15 @@ value
     ;
 
 bitsValue:
-    '{' (IDENTIFIER ','?)* '}'
+    '{' (identifier ','?)* '}'
     ;
 
 referenceValue
-    : IDENTIFIER
+    : identifier
     ;
 
 objectIdentifierValue :
-    '{' IDENTIFIER ? objIdComponentsList '}'
+    '{' identifier ? objIdComponentsList '}'
     ;
 
 objIdComponentsList :
@@ -434,7 +442,7 @@ objIdComponentsList :
 
 objIdComponents 
     : NUMBER
-    | identifier=(OIDIDENTIFIER|IDENTIFIER) ( '(' NUMBER ')' )
+    | id=(OIDIDENTIFIER|IDENTIFIER) ( '(' NUMBER ')' )
     ;
 
 integerValue :
@@ -444,7 +452,7 @@ integerValue :
     ;
 
 choiceValue  :
-    IDENTIFIER ':' value
+    identifier ':' value
     ;
 
 stringValue
@@ -471,7 +479,7 @@ choiceType    : 'CHOICE' '{' (namedType ','*)+ '}'
 ;
 
 namedType :
-    IDENTIFIER ('[' NUMBER ']')? type
+    identifier ('[' NUMBER ']')? type
     ;
 
 namedNumber :
@@ -498,7 +506,7 @@ bitStringType    : ('BIT' 'STRING') ('{' namedBitList '}')?
 ;
 namedBitList: (namedBit) (',' namedBit)*
 ;
-namedBit      : IDENTIFIER '(' NUMBER ')'
+namedBit      : identifier '(' NUMBER ')'
     ;
 
 booleanValue:
@@ -516,6 +524,11 @@ fragment UPPER
 fragment LOWER
     : ('a'..'z')
     ;
+identifier
+   : 'ANY'
+   | 'identifier'
+   | IDENTIFIER
+   ;
 
 IP :
     DIGIT+ '.' DIGIT+  '.' DIGIT+  '.' DIGIT+ 
@@ -643,7 +656,7 @@ NameStartChar
     ;
 
 IDENTIFIER
-    :   LETTER (LETTER|JavaIDDigit)*
+    : LETTER (LETTER|JavaIDDigit)*
     ;
 
 OIDIDENTIFIER

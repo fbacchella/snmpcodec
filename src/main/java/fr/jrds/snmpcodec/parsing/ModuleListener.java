@@ -17,8 +17,8 @@ import java.util.stream.IntStream;
 import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
-import org.antlr.v4.runtime.tree.TerminalNode;
 
 import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.parsing.ASNParser.AccessContext;
@@ -63,9 +63,10 @@ import fr.jrds.snmpcodec.parsing.MibObject.OtherMacroObject;
 import fr.jrds.snmpcodec.parsing.MibObject.Revision;
 import fr.jrds.snmpcodec.parsing.MibObject.TextualConventionObject;
 import fr.jrds.snmpcodec.parsing.MibObject.TrapTypeObject;
+import fr.jrds.snmpcodec.parsing.OidPath.OidComponent;
+import fr.jrds.snmpcodec.parsing.ValueType.IntegerValue;
 import fr.jrds.snmpcodec.parsing.ValueType.OidValue;
 import fr.jrds.snmpcodec.parsing.ValueType.StringValue;
-import fr.jrds.snmpcodec.parsing.ValueType.IntegerValue;
 import fr.jrds.snmpcodec.smi.Constraint;
 import fr.jrds.snmpcodec.smi.SmiType;
 import fr.jrds.snmpcodec.smi.Symbol;
@@ -143,7 +144,7 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterModuleDefinition(ModuleDefinitionContext ctx) {
-        currentModule = ctx.IDENTIFIER().getText();
+        currentModule = ctx.identifier().getText();
         symbols.clear();
 
         //The root symbols are often forgotten
@@ -181,7 +182,13 @@ public class ModuleListener extends ASNBaseListener {
     @Override
     public void enterAssignment(AssignmentContext ctx) {
         stack.clear();
-        stack.push(resolveSymbol(ctx.identifier.getText()));
+        String identifier;
+        if (ctx.identifier() != null) {
+            identifier = ctx.identifier().getText();
+        } else {
+            identifier = ctx.id.getText();
+        }
+        stack.push(resolveSymbol(identifier));
     }
 
     @Override
@@ -367,8 +374,8 @@ public class ModuleListener extends ASNBaseListener {
     public void exitObjectIdentifierValue(ObjectIdentifierValueContext ctx) {
         OidValue stackval = checkedPeek(ctx, OidValue.class);
         OidPath oidParts = stackval.value;
-        if (ctx.IDENTIFIER() != null) {
-            String name = ctx.IDENTIFIER().getText();
+        if (ctx.identifier() != null) {
+            String name = ctx.identifier().getText();
             if (symbols.containsKey(name)) {
                 oidParts.root = symbols.get(name);
             } else {
@@ -379,14 +386,15 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterObjIdComponentsList(ObjIdComponentsListContext ctx) {
-        OidPath oidParts = ctx.objIdComponents().stream().map( i-> {
+        OidPath oidParts = ctx.objIdComponents().stream().map( i -> {
             String name = null;
             int number;
-            if( i.identifier != null) {
-                name = i.identifier.getText();
+            if (i.id != null) {
+                name = i.id.getText();
             }
+
             number = Integer.parseInt(i.NUMBER().getText());
-            return new OidPath.OidComponent(name, number);
+            return new OidComponent(name, number);
         })
                 .collect(OidPath::new, OidPath::add,
                         OidPath::addAll);
@@ -469,16 +477,16 @@ public class ModuleListener extends ASNBaseListener {
             }
             value = objects;
         } else if (ctx.groups() != null) {
-            value = ctx.groups().IDENTIFIER().stream().map(TerminalNode::getText).collect(ArrayList::new, ArrayList::add,
+            value = ctx.groups().identifier().stream().map(RuleContext::getText).collect(ArrayList::new, ArrayList::add,
                     ArrayList::addAll);
         } else if (ctx.variables() != null) {
-            value = ctx.variables().IDENTIFIER().stream().map(TerminalNode::getText).collect(ArrayList::new, ArrayList::add,
+            value = ctx.variables().identifier().stream().map(RuleContext::getText).collect(ArrayList::new, ArrayList::add,
                     ArrayList::addAll);
         } else if (ctx.notifications() != null) {
-            value = ctx.notifications().IDENTIFIER().stream().map(TerminalNode::getText).collect(ArrayList::new, ArrayList::add,
+            value = ctx.notifications().identifier().stream().map(RuleContext::getText).collect(ArrayList::new, ArrayList::add,
                     ArrayList::addAll);
         } else if (ctx.augments() != null) {
-            value = resolveSymbol(ctx.augments().IDENTIFIER().getText());
+            value = resolveSymbol(ctx.augments().identifier().getText());
         } else if (ctx.index() != null) {
             LinkedList<Symbol> types = new LinkedList<>();
             while (stack.peek() instanceof TypeDescription) {
@@ -502,8 +510,8 @@ public class ModuleListener extends ASNBaseListener {
     @Override
     public void exitEnterpriseAttribute(EnterpriseAttributeContext ctx) {
         Object enterprise;
-        if (ctx.IDENTIFIER() != null) {
-            enterprise = resolveSymbol(ctx.IDENTIFIER().getText());
+        if (ctx.identifier() != null) {
+            enterprise = resolveSymbol(ctx.identifier().getText());
         } else if ( ctx.objectIdentifierValue() != null){
             OidValue value = checkedPop(ctx, OidValue.class);
             enterprise = value.value;
@@ -519,7 +527,7 @@ public class ModuleListener extends ASNBaseListener {
     @Override
     public void exitAccess(AccessContext ctx) {
         String name = ctx.name.getText();
-        String value = ctx.IDENTIFIER().getText().intern();
+        String value = ctx.identifier().getText().intern();
         MappedObject co = checkedPeek(ctx, MappedObject.class);
         co.values.put(name.intern(), value);
     }
@@ -527,7 +535,7 @@ public class ModuleListener extends ASNBaseListener {
     @Override
     public void exitStatus(StatusContext ctx) {
         String name = ctx.name.getText();
-        String value = ctx.IDENTIFIER().getText().intern();
+        String value = ctx.identifier().getText().intern();
         MappedObject co = checkedPeek(ctx, MappedObject.class);
         co.values.put(name.intern(), value);
     }
@@ -650,10 +658,6 @@ public class ModuleListener extends ASNBaseListener {
     }
 
     @Override
-    public void exitSizeConstraint(SizeConstraintContext ctx) {
-    }
-
-    @Override
     public void enterFromConstraint(FromConstraintContext ctx) {
         stack.push(Constraint.getBuilder(Constraint.Type.FROM));
     }
@@ -668,7 +672,7 @@ public class ModuleListener extends ASNBaseListener {
         Constraint.ConstraintElement c;
         if (values.size() == 1) {
             c = new Constraint.ConstraintElement(values.get(0));
-        } else if (values.size() == 0){
+        } else if (values.isEmpty()){
             c = null;
         } else {
             c = new Constraint.ConstraintElement(values.get(1), values.get(0));
@@ -684,7 +688,7 @@ public class ModuleListener extends ASNBaseListener {
         TypeDescription td = checkedPeek(ctx, TypeDescription.class);
         Map<String, Syntax> content = new LinkedHashMap<>();
         td.type = Asn1Type.sequenceType;
-        ctx.sequenceElement().stream().map(i -> i.namedType()).forEach( i -> content.put(i.IDENTIFIER().getText(), null));
+        ctx.sequenceElement().stream().map(i -> i.namedType()).forEach( i -> content.put(i.identifier().getText(), null));
         td.typeDescription = content;
     }
 
@@ -718,7 +722,7 @@ public class ModuleListener extends ASNBaseListener {
         TypeDescription td = checkedPeek(ctx, TypeDescription.class);
         Map<String, Syntax> content = new LinkedHashMap<>();
         td.type = Asn1Type.choiceType;
-        ctx.namedType().forEach( i -> content.put(i.IDENTIFIER().getText(), null));
+        ctx.namedType().forEach( i -> content.put(i.identifier().getText(), null));
         td.typeDescription = content;
         stack.push("CHOICE");
     }
@@ -758,7 +762,7 @@ public class ModuleListener extends ASNBaseListener {
         if (ctx.bitsEnumeration() != null && ctx.bitsEnumeration().bitDescription() != null) {
             List<BitDescriptionContext> descriptions = ctx.bitsEnumeration().bitDescription();
             bits = new LinkedHashMap<>(descriptions.size());
-            IntStream.range(0, descriptions.size()).forEach(i-> bits.put(descriptions.get(i).IDENTIFIER().getText(), Integer.parseUnsignedInt(descriptions.get(i).NUMBER().getText())));
+            IntStream.range(0, descriptions.size()).forEach(i-> bits.put(descriptions.get(i).identifier().getText(), Integer.parseUnsignedInt(descriptions.get(i).NUMBER().getText())));
         } else {
             bits = Collections.emptyMap();
         }
