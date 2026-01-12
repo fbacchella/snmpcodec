@@ -1,6 +1,8 @@
-snmpcodec is a resilient SNMP parser and formater. Its purpose is not to manage a mib, check module or similar tasks. It's used to help processing SNMP messages, and be able to use all the broken modules that can be found all around.
+snmpcodec is a resilient MIB module parser and formater. Its purpose is not to manage a mib, check module or similar tasks.
+It's used to help processing SNMP messages, and be able to use all the broken modules that can be found all around.
 
-For this task, it uses the excellent ANLTR parser generator that recover from many failure in module source. It can also take hint and help about the way to process file or missing symbols.
+For this task, it uses the excellent ANLTR parser generator that recover from many failure in module source. It can also
+take hint and help about the way to process file or missing symbols.
 
 It can process table index
 
@@ -18,7 +20,7 @@ will output.
     vacmAccessSecurityLevel 'noAuthNoPriv' java.lang.String
 
 
-It can also be used with SNMP4J as it provides an help class that implement OIDTextFormat and VariableTextFormat.
+It can also be used with SNMP4J, as it provides a helper class that implements OIDTextFormat and VariableTextFormat.
 
 To use it, just call
 
@@ -33,6 +35,6 @@ It's available in Maven, just add in your dependencies:
 <dependency>
     <groupId>fr.jrds</groupId>
     <artifactId>snmpcodec</artifactId>
-    <version>0.0.8</version>
+    <version>0.1.0</version>
 </dependency>
 ```
