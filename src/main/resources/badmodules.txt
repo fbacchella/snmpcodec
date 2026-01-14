@@ -1,0 +1,5 @@
+# List of broken MIB modules to skip during extraction
+# Format: ModuleName or RFC:ModuleName
+1212:RFC1213-MIB
+1901:COMMUNITY-BASED-SNMPv2
+2578:FIZBIN-MIB

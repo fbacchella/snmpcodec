@@ -1,0 +1,3 @@
+# Additional bad modules for testing
+EXTRA-BAD-MIB
+9999:RFC-SPECIFIC-BAD-MIB

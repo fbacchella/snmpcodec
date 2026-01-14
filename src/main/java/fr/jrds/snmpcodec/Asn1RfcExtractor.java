@@ -16,6 +16,7 @@ import java.time.temporal.ChronoField;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -47,6 +48,39 @@ public class Asn1RfcExtractor {
     private static final Pattern HEADER = Pattern.compile("^RFC\\s+\\d+\\s+.+?\\s+(\\w+\\s+\\d{4})$");
     private static final Pattern DEFINITION_LINE = Pattern.compile("DEFINITIONS(\\s+[A-Z]+)*\\s+::=");
     private static final Pattern MODULE_NAME_LINE = Pattern.compile("(\\s*)([a-zA-Z0-9-]+)\\s*(\\{.*\\})?\\s*DEFINITIONS(\\s+[A-Z]+)*\\s+::=.*");
+
+    private final List<String> badModules = new ArrayList<>();
+
+    public Asn1RfcExtractor() {
+        try {
+            Enumeration<URL> urls = Asn1RfcExtractor.class.getClassLoader().getResources("badmodules.txt");
+            while (urls.hasMoreElements()) {
+                URL url = urls.nextElement();
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream(), StandardCharsets.UTF_8))) {
+                    badModules.addAll(reader.lines()
+                            .map(String::trim)
+                            .filter(line -> !line.isEmpty() && !line.startsWith("#"))
+                            .collect(Collectors.toList()));
+                } catch (IOException e) {
+                    System.err.println("Failed to load bad modules list from " + url + ": " + e.getMessage());
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to search for bad modules files: " + e.getMessage());
+        }
+    }
+
+    public void loadBadModules(Path badModulesFile) {
+        try (BufferedReader reader = Files.newBufferedReader(badModulesFile, StandardCharsets.UTF_8)) {
+            badModules.addAll(reader.lines()
+                    .map(String::trim)
+                    .filter(line -> !line.isEmpty() && !line.startsWith("#"))
+                    .collect(Collectors.toList()));
+        } catch (IOException e) {
+            System.err.println("Failed to load bad modules list from " + badModulesFile + ": " + e.getMessage());
+        }
+    }
+
     static final DateTimeFormatter ASN1_DATE_FORMAT = new DateTimeFormatterBuilder()
             .appendValueReduced(ChronoField.YEAR, 2, 4, 1970)
             .appendPattern("MMddHHmm")
@@ -60,21 +94,28 @@ public class Asn1RfcExtractor {
 
     public static void main(String[] args) {
         if (args.length < 1) {
-            System.err.println("Usage: Asn1RfcExtractor [-d extract_dir] <rfc_number>+");
+            System.err.println("Usage: Asn1RfcExtractor [-d extract_dir] [-b badmodules_file] <rfc_number>+");
             System.exit(1);
         }
         List<String> rfcs = new ArrayList<>(args.length);
         Path extractPath = Paths.get(".");
+        List<Path> badModulesFiles = new ArrayList<>();
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("-d")) {
                 i++;
                 extractPath = Paths.get(args[i]);
+            } else if (args[i].equals("-b")) {
+                i++;
+                badModulesFiles.add(Paths.get(args[i]));
             } else {
                 rfcs.add(args[i]);
             }
         }
         try {
             Asn1RfcExtractor extractor = new Asn1RfcExtractor();
+            for (Path badModulesFile : badModulesFiles) {
+                extractor.loadBadModules(badModulesFile);
+            }
             for (String rfc : rfcs) {
                 String[] rfcLines = extractor.downloadRfc(rfc);
                 extractor.extractAndSaveMibs(rfcLines, rfc, extractPath);
@@ -92,7 +133,7 @@ public class Asn1RfcExtractor {
         }
     }
 
-    private void extractAndSaveMibs(String[] rfcLines, String rfcNumber, Path rootDir) throws IOException {
+    void extractAndSaveMibs(String[] rfcLines, String rfcNumber, Path rootDir) throws IOException {
         Path extractDir = Path.of("rfc" + rfcNumber + "_mibs");
         Path outDir = rootDir.resolve(extractDir);
         Files.createDirectories(outDir);
@@ -127,32 +168,40 @@ public class Asn1RfcExtractor {
                     lineWithoutPrefix(rfcLines[j], moduleLines, indent);
                 }
             } else if (inModule && line.strip().startsWith("END") && beginEndPair == 0) {
-                System.out.println("Found module: " + moduleName);
-                lineWithoutPrefix(line, moduleLines, indent);
-                Path modulePath = outDir.resolve(moduleName + ".mib");
-                saveModule(modulePath, moduleLines, rfcDate);
+                if (isBadModule(rfcNumber, moduleName)) {
+                    System.out.println("Skipping bad module: " + moduleName + " from RFC " + rfcNumber);
+                } else {
+                    System.out.println("Found module: " + moduleName);
+                    lineWithoutPrefix(line, moduleLines, indent);
+                    Path modulePath = outDir.resolve(moduleName + ".mib");
+                    saveModule(modulePath, moduleLines, rfcDate);
+                    count++;
+                }
                 moduleLines.clear();
                 inModule = false;
-                count++;
-            }  else if (inModule && line.contains("\f")
-                                && FOOTER.matcher(rfcLines[i - 1]).matches()
-                                && (i + 1  == rfcLines.length || headerMatcher.reset(rfcLines[i + 1]).matches())
-            ) {
-                if (rfcDate == null) {
-                    rfcDate = ZonedDateTime.parse(headerMatcher.group(1), HEADER_DATE_FORMAT.withZone(java.time.ZoneOffset.UTC));
+            }  else if (inModule && line.contains("\f")) {
+                int j = i;
+                while (j < rfcLines.length && (rfcLines[j].contains("\f") || rfcLines[j].strip().isEmpty())) {
+                    j++;
                 }
-                // Remove the footer line
-                moduleLines.removeLast();
-                // Detect footer/header
-                for (int j = 0; j < 3 && !moduleLines.isEmpty(); j++) {
-                    if (! moduleLines.getLast().strip().isEmpty()) {
-                        break;
-                    } else {
-                        moduleLines.removeLast();
+                if (j < rfcLines.length && FOOTER.matcher(rfcLines[i - 1]).matches() && headerMatcher.reset(rfcLines[j]).matches()) {
+                    if (rfcDate == null) {
+                        rfcDate = ZonedDateTime.parse(headerMatcher.group(1), HEADER_DATE_FORMAT.withZone(java.time.ZoneOffset.UTC));
                     }
+                    // Remove the footer line
+                    moduleLines.removeLast();
+                    // Detect footer/header
+                    for (int k = 0; k < 3 && !moduleLines.isEmpty(); k++) {
+                        if (! moduleLines.getLast().isBlank()) {
+                            break;
+                        } else {
+                            moduleLines.removeLast();
+                        }
+                    }
+                    i = j;
+                } else {
+                    lineWithoutPrefix(line, moduleLines, indent);
                 }
-                i += 2;
-
             } else if (inModule && line.contains("BEGIN")) {
                 lineWithoutPrefix(line, moduleLines, indent);
                 beginEndPair++;
@@ -225,4 +274,13 @@ public class Asn1RfcExtractor {
             System.err.println("Failed to resolve date in " + extractPath);
         }
     }
+
+    public boolean isBadModule(String moduleName) {
+        return badModules.contains(moduleName);
+    }
+
+    public boolean isBadModule(String rfcNumber, String moduleName) {
+        return badModules.contains(rfcNumber + ":" + moduleName) || badModules.contains(moduleName);
+    }
+
 }
