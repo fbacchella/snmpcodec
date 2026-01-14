@@ -132,17 +132,17 @@ assignment
     assignementType
    ;
 
-assignementType :
-    complexAssignement
-     | valueAssignment
-     | typeAssignment
-     | textualConventionAssignement
-     | objectTypeAssignement
-     | trapTypeAssignement
-     | moduleIdentityAssignement
-     | moduleComplianceAssignement
-     | macroAssignement
-     ;
+assignementType
+    : complexAssignement
+    | typeAssignment
+    | valueAssignment
+    | textualConventionAssignement
+    | objectTypeAssignement
+    | trapTypeAssignement
+    | moduleIdentityAssignement
+    | moduleComplianceAssignement
+    | macroAssignement
+    ;
 
 //Found missing or extra comma in sequence
 sequenceType :
@@ -150,18 +150,21 @@ sequenceType :
     ;
 
 sequenceElement :
-    identifier '[' NUMBER ']' ('EXPLICIT' | 'IMPLICIT') identifier ('DEFAULT' identifier)? ('OPTIONAL')?
-    | identifier '[' NUMBER ']' ('EXPLICIT' | 'IMPLICIT') type ('DEFAULT' identifier)? ('OPTIONAL')?
+    identifier '[' NUMBER ']' ('EXPLICIT' | 'IMPLICIT') identifier ('DEFAULT' identifier)? 'OPTIONAL'?
+    | identifier '[' NUMBER ']' ('EXPLICIT' | 'IMPLICIT') type ('DEFAULT' identifier)? 'OPTIONAL'?
     | identifier identifier 'DEFINED' 'BY' identifier 'OPTIONAL'?
-    | identifier 'BOOLEAN' ('DEFAULT' ('TRUE' | 'FALSE'))? ('OPTIONAL')?
+    | identifier 'BOOLEAN' ('DEFAULT' ('TRUE' | 'FALSE'))? 'OPTIONAL'?
     | identifier '[' NUMBER ']' 'ANY' 'DEFINED' 'BY' identifier
-    | namedType ('DEFAULT' identifier)? ('OPTIONAL')?
+    | namedType ('DEFAULT' identifier)? 'OPTIONAL'?
+    | identifier identifier '.' '&' identifier '(' '{' identifier '}' ('{' '@' identifier '}')?  ')' 'OPTIONAL'?
+    | choiceType
     ;
 
 sequenceOfType  : ('SEQUENCE' | 'SET') sizeConstraint? 'OF' (type | namedType )
     ;
 
 typeAssignment :
+    ('{' class=identifier ':' val=identifier '}')?
       '::='
     ( '[' universal_details ']' )?
     ( '[' application_details ']' )?
@@ -259,7 +262,7 @@ indexTypes:
 
 moduleIdentityAssignement:
     'MODULE-IDENTITY'
-    ('LAST-UPDATED' stringValue
+    ('LAST-UPDATED' lu=stringValue
     | 'ORGANIZATION' stringValue
     | 'CONTACT-INFO' stringValue
     | 'DESCRIPTION' stringValue)+
@@ -342,8 +345,9 @@ valueAssignment :
        value
 ;
 
-type :
-    ('EXPLICIT' | 'IMPLICIT')? (builtinType | referencedType) constraint* ('{' namedNumberList '}')?
+type
+    : ('{' '{' identifier 'IDENTIFIED' 'BY' identifier '}' ',' '...' '}')
+    | (('EXPLICIT' | 'IMPLICIT')? (builtinType | referencedType) constraint* ('{' namedNumberList '}')?)
     ;
 
 builtinType :
