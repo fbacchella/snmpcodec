@@ -147,17 +147,23 @@ public class Asn1RfcExtractor {
         int count = 0;
         int indent = 0;
         int beginEndPair = 0;
+        int headerSpacing = Integer.MAX_VALUE;
+        int footerSpacing = Integer.MAX_VALUE;
         ZonedDateTime rfcDate = null;
         for (int i = 0; i < rfcLines.length; i++) {
             String line = rfcLines[i];
-            if (DEFINITION_LINE.matcher(line).find()) {
+            if (line == null) {
+                // Skip nulled lines
+            } else if (DEFINITION_LINE.matcher(line).find()) {
                 inModule = true;
                 StringBuilder buffer = new StringBuilder();
                 Matcher m = MODULE_NAME_LINE.matcher("");
                 int firstLine = -1;
                 for (int j = i; j >= 0; j--) {
-                    buffer.insert(0, " ");
-                    buffer.insert(0, rfcLines[j]);
+                    if (rfcLines[j] != null) {
+                        buffer.insert(0, " ");
+                        buffer.insert(0, rfcLines[j]);
+                    }
                     m.reset(buffer);
                     if (m.matches()) {
                         firstLine = j;
@@ -167,18 +173,35 @@ public class Asn1RfcExtractor {
                 indent = m.group(1).length();
                 moduleName = m.group(2);
                 boolean beginFound = false;
-                for (int j = firstLine; j <= i ; j++) {
-                    lineWithoutPrefix(rfcLines[j], moduleLines, indent);
-                    if (BEGIN_PATTERN.matcher(moduleLines.getLast()).find()) {
-                        beginFound = true;
+                for (int j = firstLine; j <= i; j++) {
+                    String tryLine = rfcLines[j];
+                    if ("\f".equals(tryLine)) {
+                        moduleLines.removeLast();
+                        for (j = 0; j < footerSpacing; j++) {
+                            moduleLines.removeLast();
+                        }
+                    } else if (tryLine != null) {
+                        lineWithoutPrefix(rfcLines[j], moduleLines, indent);
+                        if (BEGIN_PATTERN.matcher(moduleLines.getLast()).find()) {
+                            beginFound = true;
+                        }
                     }
                 }
                 // BEGIN might be on a following line, find it otherwise the beginEndPair counter will be wrong
-                if (! beginFound) {
-                    for (; i < rfcLines.length; ) {
-                        lineWithoutPrefix(rfcLines[++i], moduleLines, indent);
-                        if (BEGIN_PATTERN.matcher(moduleLines.getLast()).find()) {
-                            break;
+                if (!beginFound) {
+                    while (i < rfcLines.length) {
+                        String tryLine = rfcLines[++i];
+                        if ("\f".equals(tryLine)) {
+                            moduleLines.removeLast();
+                            for (int j = 0; j < footerSpacing; j++) {
+                                moduleLines.removeLast();
+                            }
+                            i += headerSpacing + 1;
+                        } else if (tryLine != null) {
+                            lineWithoutPrefix(tryLine, moduleLines, indent);
+                            if (BEGIN_PATTERN.matcher(moduleLines.getLast()).find()) {
+                                break;
+                            }
                         }
                     }
                 }
@@ -194,29 +217,36 @@ public class Asn1RfcExtractor {
                 }
                 moduleLines.clear();
                 inModule = false;
-            }  else if (inModule && line.contains("\f")) {
-                int j = i;
-                while (j < rfcLines.length && (rfcLines[j].contains("\f") || rfcLines[j].strip().isEmpty())) {
-                    j++;
-                }
-                if (j < rfcLines.length && FOOTER.matcher(rfcLines[i - 1]).matches() && headerMatcher.reset(rfcLines[j]).matches()) {
-                    if (rfcDate == null) {
-                        rfcDate = ZonedDateTime.parse(headerMatcher.group(1), HEADER_DATE_FORMAT.withZone(java.time.ZoneOffset.UTC));
-                    }
-                    // Remove the footer line
-                    moduleLines.removeLast();
-                    // Detect footer/header
-                    for (int k = 0; k < 3 && !moduleLines.isEmpty(); k++) {
-                        if (! moduleLines.getLast().isBlank()) {
-                            break;
-                        } else {
+            } else if (FOOTER.matcher(line).matches()) {
+                for (int j = 1; j <= footerSpacing; j++) {
+                    int offset = i - j;
+                    if (offset <= 0 || !rfcLines[offset].isBlank()) {
+                        footerSpacing = Math.min(footerSpacing, j - 1);
+                        break;
+                    } else {
+                        rfcLines[offset] = null;
+                        if (inModule) {
                             moduleLines.removeLast();
                         }
                     }
-                    i = j;
-                } else {
-                    lineWithoutPrefix(line, moduleLines, indent);
                 }
+                rfcLines[i] = null;
+            } else if (headerMatcher.reset(line).matches()) {
+                if (rfcDate == null) {
+                    rfcDate = ZonedDateTime.parse(headerMatcher.group(1), HEADER_DATE_FORMAT.withZone(java.time.ZoneOffset.UTC));
+                }
+                for (int j = 1; j <= headerSpacing; j++) {
+                    int offset = j + i;
+                    if (offset >= rfcLines.length || !rfcLines[offset].isBlank()) {
+                        headerSpacing = Math.min(headerSpacing, j - 1);
+                        break;
+                    } else {
+                        rfcLines[offset] = null;
+                    }
+                }
+                rfcLines[i] = null;
+            } else if (line.equals("\f")) {
+                rfcLines[i] = null;
             } else if (inModule && BEGIN_PATTERN.matcher(line).find()) {
                 lineWithoutPrefix(line, moduleLines, indent);
                 beginEndPair++;
