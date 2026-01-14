@@ -118,4 +118,27 @@ public class Asn1RfcExtractorTest {
         }
     }
 
+    @Test
+    public void testBeginFalsePositive() throws Exception {
+        String[] rfcLines = {
+                "BEGIN-FALSE-POSITIVE-MIB DEFINITIONS ::= BEGIN",
+                "    --  This is the BEGINNING of a test",
+                "    internet      OBJECT IDENTIFIER ::= { iso org(3) dod(6) 1 }",
+                "END",
+                "ANOTHER-MIB DEFINITIONS ::= BEGIN",
+                "    internet      OBJECT IDENTIFIER ::= { iso org(3) dod(6) 1 }",
+                "    --  This is the ENDDING of a test",
+                "END"
+        };
+        Path outDir = folder.newFolder("extract_false_positive").toPath();
+        Asn1RfcExtractor extractor = new Asn1RfcExtractor();
+        extractor.extractAndSaveMibs(rfcLines, "1235", outDir);
+
+        Path mibFile1 = outDir.resolve("rfc1235_mibs/BEGIN-FALSE-POSITIVE-MIB.mib");
+        Path mibFile2 = outDir.resolve("rfc1235_mibs/ANOTHER-MIB.mib");
+
+        assertTrue("First MIB file should be created", Files.exists(mibFile1));
+        assertTrue("Second MIB file should be created", Files.exists(mibFile2));
+    }
+
 }

@@ -48,6 +48,8 @@ public class Asn1RfcExtractor {
     private static final Pattern HEADER = Pattern.compile("^RFC\\s+\\d+\\s+.+?\\s+(\\w+\\s+\\d{4})$");
     private static final Pattern DEFINITION_LINE = Pattern.compile("DEFINITIONS(\\s+[A-Z]+)*\\s+::=");
     private static final Pattern MODULE_NAME_LINE = Pattern.compile("(\\s*)([a-zA-Z0-9-]+)\\s*(\\{.*\\})?\\s*DEFINITIONS(\\s+[A-Z]+)*\\s+::=.*");
+    private static final Pattern BEGIN_PATTERN = Pattern.compile("\\bBEGIN\\b");
+    private static final Pattern END_PATTERN = Pattern.compile("\\bEND\\b");
 
     private final List<String> badModules = new ArrayList<>();
 
@@ -164,8 +166,21 @@ public class Asn1RfcExtractor {
                 }
                 indent = m.group(1).length();
                 moduleName = m.group(2);
+                boolean beginFound = false;
                 for (int j = firstLine; j <= i ; j++) {
                     lineWithoutPrefix(rfcLines[j], moduleLines, indent);
+                    if (BEGIN_PATTERN.matcher(moduleLines.getLast()).find()) {
+                        beginFound = true;
+                    }
+                }
+                // BEGIN might be on a following line, find it otherwise the beginEndPair counter will be wrong
+                if (! beginFound) {
+                    for (; i < rfcLines.length; ) {
+                        lineWithoutPrefix(rfcLines[++i], moduleLines, indent);
+                        if (BEGIN_PATTERN.matcher(moduleLines.getLast()).find()) {
+                            break;
+                        }
+                    }
                 }
             } else if (inModule && line.strip().startsWith("END") && beginEndPair == 0) {
                 if (isBadModule(rfcNumber, moduleName)) {
@@ -202,10 +217,10 @@ public class Asn1RfcExtractor {
                 } else {
                     lineWithoutPrefix(line, moduleLines, indent);
                 }
-            } else if (inModule && line.contains("BEGIN")) {
+            } else if (inModule && BEGIN_PATTERN.matcher(line).find()) {
                 lineWithoutPrefix(line, moduleLines, indent);
                 beginEndPair++;
-            } else if (inModule && line.contains("END")) {
+            } else if (inModule && END_PATTERN.matcher(line).find()) {
                 lineWithoutPrefix(line, moduleLines, indent);
                 beginEndPair--;
             } else if (inModule) {
