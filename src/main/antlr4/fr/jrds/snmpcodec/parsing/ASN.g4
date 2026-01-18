@@ -50,11 +50,21 @@ fileContent :
 
 moduleDefinition :
     identifier objectIdentifierValue? ( '{' modulePath? '}' )?
-    'DEFINITIONS' ('EXPLICIT'|'IMPLICIT')? 'TAGS'?
+    'DEFINITIONS' tagDefault? extensionDefault?
     '::='
     'BEGIN'
     moduleBody
     'END'
+    ;
+
+tagDefault
+    : 'EXPLICIT' 'TAGS'
+    | 'IMPLICIT' 'TAGS'
+    | 'AUTOMATIC' 'TAGS'
+    ;
+
+extensionDefault
+    : 'EXTENSIBILITY' 'IMPLIED'
     ;
 
 modulePath :
@@ -133,7 +143,8 @@ assignment
    ;
 
 assignementType
-    : complexAssignement
+    : informationObjectSetAssignement
+    | complexAssignement
     | typeAssignment
     | valueAssignment
     | textualConventionAssignement
@@ -146,21 +157,32 @@ assignementType
 
 //Found missing or extra comma in sequence
 sequenceType :
-    ('SEQUENCE' | 'SET') '{' (sequenceElement ','* )+ '}'
+    'SEQUENCE' '{' (sequenceElement ','* )+ '}'
     ;
 
-sequenceElement :
-    identifier '[' NUMBER ']' ('EXPLICIT' | 'IMPLICIT') identifier ('DEFAULT' identifier)? 'OPTIONAL'?
-    | identifier '[' NUMBER ']' ('EXPLICIT' | 'IMPLICIT') type ('DEFAULT' identifier)? 'OPTIONAL'?
+setType :
+    'SET' '{' (sequenceElement ','* )+ '}'
+    ;
+
+sequenceElement
+    : identifier '[' NUMBER ']' ('EXPLICIT' | 'IMPLICIT')? 'ANY' 'DEFINED' 'BY' identifier
+    | identifier '[' NUMBER ']' ('EXPLICIT' | 'IMPLICIT')? type default? 'OPTIONAL'?
     | identifier identifier 'DEFINED' 'BY' identifier 'OPTIONAL'?
-    | identifier 'BOOLEAN' ('DEFAULT' ('TRUE' | 'FALSE'))? 'OPTIONAL'?
-    | identifier '[' NUMBER ']' 'ANY' 'DEFINED' 'BY' identifier
-    | namedType ('DEFAULT' identifier)? 'OPTIONAL'?
+    | identifier '[' NUMBER ']' ('EXPLICIT' | 'IMPLICIT') identifier default? 'OPTIONAL'?
+    | namedType default? 'OPTIONAL'? ('{{' identifier '}}')?
     | identifier identifier '.' '&' identifier '(' '{' identifier '}' ('{' '@' identifier '}')?  ')' 'OPTIONAL'?
     | choiceType
     ;
 
-sequenceOfType  : ('SEQUENCE' | 'SET') sizeConstraint? 'OF' (type | namedType )
+default
+    : 'DEFAULT' (value | identifier)
+    ;
+
+sequenceOfType  : ('SEQUENCE' | 'SET') constraint? 'OF' (type | namedType )
+    ;
+
+informationObjectSetAssignement
+    : '{' '...' '}'
     ;
 
 typeAssignment :
@@ -340,14 +362,12 @@ macroVal:
     ;
 
 valueAssignment :
-      type
-      '::='
-       value
+      type '::=' value
 ;
 
 type
     : ('{' '{' identifier 'IDENTIFIED' 'BY' identifier '}' ',' '...' '}')
-    | (('EXPLICIT' | 'IMPLICIT')? (builtinType | referencedType) constraint* ('{' namedNumberList '}')?)
+    | (('EXPLICIT' | 'IMPLICIT')? (builtinType | referencedType) ('{' namedNumberList '}')?)
     ;
 
 builtinType :
@@ -357,9 +377,11 @@ builtinType :
  | integerType
  | sequenceOfType
  | sequenceType
+ | setType
  | objectIdentifierType
  | nullType
  | bitsType
+ | booleanType
     ;
 
 bitsType:
@@ -378,8 +400,12 @@ nullType:
     'NULL'
     ;
 
+booleanType
+    : 'BOOLEAN'
+    ;
+
 referencedType :
-    identifier ('.' identifier)?
+    identifier ('.' identifier)? constraint?
     ;
 
 elements :
@@ -421,11 +447,12 @@ defValue
 
 value
     : referenceValue
-    |   integerValue
-    |   choiceValue
-    |   objectIdentifierValue
-    |   booleanValue
-    |   stringValue
+    | integerValue
+    | choiceValue
+    | objectIdentifierValue
+    | booleanValue
+    | stringValue
+    | nullValue
     ;
 
 bitsValue:
@@ -436,8 +463,9 @@ referenceValue
     : identifier
     ;
 
-objectIdentifierValue :
-    '{' identifier ? objIdComponentsList '}'
+objectIdentifierValue
+    : '{' identifier ? objIdComponentsList '}'
+    | identifier
     ;
 
 objIdComponentsList :
@@ -467,6 +495,10 @@ ipValue
     : IP
     ;
 
+nullValue
+    : 'NULL'
+    ;
+
 signedNumber:
     NUMBER
     ;
@@ -491,7 +523,7 @@ namedNumber :
     ;
 
 integerType :
-    'INTEGER'  ('{' namedNumberList '}')?
+    'INTEGER'  ('{' namedNumberList '}')? constraint?
     ;
 
 namedNumberList :
@@ -503,7 +535,7 @@ objectIdentifierType:
     ;
 
 octetStringType :
-    'OCTET' 'STRING'
+    'OCTET' 'STRING' constraint?
     ;
 
 bitStringType    : ('BIT' 'STRING') ('{' namedBitList '}')?
