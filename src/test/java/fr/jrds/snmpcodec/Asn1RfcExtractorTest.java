@@ -141,4 +141,22 @@ public class Asn1RfcExtractorTest {
         assertTrue("Second MIB file should be created", Files.exists(mibFile2));
     }
 
+    @Test
+    public void testDefinitionsOnSeparateLine() throws Exception {
+        String[] rfcLines = {
+                "SOME-MIB",
+                "DEFINITIONS",
+                "   ::=",
+                "BEGIN",
+                "    internet      OBJECT IDENTIFIER ::= { iso org(3) dod(6) 1 }",
+                "END"
+        };
+        Path outDir = folder.newFolder("extract_repro").toPath();
+        Asn1RfcExtractor extractor = new Asn1RfcExtractor();
+        extractor.extractAndSaveMibs(rfcLines, "9999", outDir);
+
+        Path mibFile = outDir.resolve("rfc9999_mibs/SOME-MIB.mib");
+        assertTrue("MIB file should be created even if DEFINITIONS and ::= are on separate lines", Files.exists(mibFile));
+    }
+
 }

@@ -50,6 +50,7 @@ public class Asn1RfcExtractor {
     private static final Pattern MODULE_NAME_LINE = Pattern.compile("(\\s*)([a-zA-Z0-9-]+)\\s*(\\{.*\\})?\\s*DEFINITIONS(\\s+[A-Z]+)*\\s+::=.*");
     private static final Pattern BEGIN_PATTERN = Pattern.compile("\\bBEGIN\\b");
     private static final Pattern END_PATTERN = Pattern.compile("\\bEND\\b");
+    private static final Pattern ASN1_COMMENT = Pattern.compile("--.*?(?:--|$)");
 
     private final List<String> badModules = new ArrayList<>();
 
@@ -154,15 +155,23 @@ public class Asn1RfcExtractor {
             String line = rfcLines[i];
             if (line == null) {
                 // Skip nulled lines
-            } else if (DEFINITION_LINE.matcher(line).find()) {
+            } else if (DEFINITION_LINE.matcher(line).find() || line.strip().equals("DEFINITIONS")) {
                 inModule = true;
                 StringBuilder buffer = new StringBuilder();
+                if (line.strip().equals("DEFINITIONS")) {
+                    for (int j = i + 1; j < rfcLines.length; j++) {
+                        buffer.append(ASN1_COMMENT.matcher(rfcLines[j]).replaceAll(""));
+                        if (rfcLines[j].contains("::=")) {
+                            break;
+                        }
+                    }
+                }
                 Matcher m = MODULE_NAME_LINE.matcher("");
                 int firstLine = -1;
                 for (int j = i; j >= 0; j--) {
                     if (rfcLines[j] != null) {
                         buffer.insert(0, " ");
-                        buffer.insert(0, rfcLines[j]);
+                        buffer.insert(0, ASN1_COMMENT.matcher(rfcLines[j]).replaceAll(""));
                     }
                     m.reset(buffer);
                     if (m.matches()) {
@@ -260,7 +269,7 @@ public class Asn1RfcExtractor {
         if (count == 0) {
             System.out.println("No MIB modules found in RFC " + rfcNumber);
         } else {
-            System.out.println("Total modules extracted: " + count);
+            System.out.println("Total modules extracted from RFC " + rfcNumber + ": " + count);
         }
     }
 
