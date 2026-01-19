@@ -3,6 +3,8 @@ package fr.jrds.snmpcodec;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -15,10 +17,13 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.temporal.ChronoField;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -51,21 +56,66 @@ public class Asn1RfcExtractor {
     private static final Pattern BEGIN_PATTERN = Pattern.compile("\\bBEGIN\\b");
     private static final Pattern END_PATTERN = Pattern.compile("\\bEND\\b");
     private static final Pattern ASN1_COMMENT = Pattern.compile("--.*?(?:--|$)");
+    private static final Pattern ERRATA_SECTION = Pattern.compile("\\[(\\d+)\\]");
+    private static final Pattern ERRATA_LINE = Pattern.compile("(\\d+)=(.*)");
 
     private final List<String> badModules = new ArrayList<>();
+    private final Map<String, Map<Integer, String>> errata = new HashMap<>();
+
+    public static void main(String[] args) {
+        if (args.length < 1) {
+            System.err.println("Usage: Asn1RfcExtractor [-d extract_dir] [-b badmodules_file]+ [-e errata_file]+ <rfc_number>+");
+            System.exit(1);
+        }
+        List<String> rfcs = new ArrayList<>(args.length);
+        Path extractPath = Paths.get(".");
+        List<Path> badModulesFiles = new ArrayList<>();
+        List<Path> errataFiles = new ArrayList<>();
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equals("-d")) {
+                i++;
+                extractPath = Paths.get(args[i]);
+            } else if (args[i].equals("-b")) {
+                i++;
+                badModulesFiles.add(Paths.get(args[i]));
+            } else if (args[i].equals("-e")) {
+                i++;
+                errataFiles.add(Paths.get(args[i]));
+            } else {
+                rfcs.add(args[i]);
+            }
+        }
+        try {
+            Asn1RfcExtractor extractor = new Asn1RfcExtractor();
+            for (Path badModulesFile : badModulesFiles) {
+                extractor.loadBadModules(badModulesFile);
+            }
+            for (Path errataFile : errataFiles) {
+                extractor.loadErrata(errataFile);
+            }
+            for (String rfc : rfcs) {
+                String[] rfcLines = extractor.downloadRfc(rfc);
+                extractor.extractAndSaveMibs(rfcLines, rfc, extractPath);
+            }
+        } catch (IOException e) {
+            System.err.println("Error processing RFC: " + e.getMessage());
+            System.exit(1);
+        }
+    }
 
     public Asn1RfcExtractor() {
+        loadBadModules();
+        loadErrata();
+    }
+
+    private void loadBadModules() {
         try {
             Enumeration<URL> urls = Asn1RfcExtractor.class.getClassLoader().getResources("badmodules.txt");
             while (urls.hasMoreElements()) {
-                URL url = urls.nextElement();
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream(), StandardCharsets.UTF_8))) {
-                    badModules.addAll(reader.lines()
-                            .map(String::trim)
-                            .filter(line -> !line.isEmpty() && !line.startsWith("#"))
-                            .collect(Collectors.toList()));
-                } catch (IOException e) {
-                    System.err.println("Failed to load bad modules list from " + url + ": " + e.getMessage());
+                try {
+                    loadBadModules(urls.nextElement().toURI());
+                } catch (URISyntaxException e) {
+                    System.err.println("Invalid URL for bad modules: " + e.getMessage());
                 }
             }
         } catch (IOException e) {
@@ -73,12 +123,80 @@ public class Asn1RfcExtractor {
         }
     }
 
-    public void loadBadModules(Path badModulesFile) {
+    void loadBadModules(URI uri) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(uri.toURL().openStream(), StandardCharsets.UTF_8))) {
+            readBadModules(reader);
+        } catch (IOException e) {
+            System.err.println("Failed to load bad modules list from " + uri + ": " + e.getMessage());
+        }
+    }
+
+    private void readBadModules(BufferedReader reader) {
+        badModules.addAll(reader.lines()
+                  .map(String::trim)
+                  .filter(line -> !line.isEmpty() && !line.startsWith("#"))
+                  .collect(Collectors.toList()));
+    }
+
+    private void loadErrata() {
+        try {
+            Enumeration<URL> urls = Asn1RfcExtractor.class.getClassLoader().getResources("errata.ini");
+            while (urls.hasMoreElements()) {
+                try {
+                    loadErrata(urls.nextElement().toURI());
+                } catch (URISyntaxException e) {
+                    System.err.println("Invalid URL for errata: " + e.getMessage());
+                }
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to search for errata files: " + e.getMessage());
+        }
+    }
+
+    public void loadErrata(Path path) {
+        try (BufferedReader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+            readErrata(reader);
+        } catch (IOException e) {
+            System.err.println("Failed to load errata from " + path + ": " + e.getMessage());
+        }
+    }
+
+    void loadErrata(URI uri) {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(uri.toURL().openStream(), StandardCharsets.UTF_8))) {
+            readErrata(reader);
+        } catch (IOException e) {
+            System.err.println("Failed to load errata from " + uri + ": " + e.getMessage());
+        }
+    }
+
+    private void readErrata(BufferedReader reader) throws IOException {
+        Matcher sectionMatcher = ERRATA_SECTION.matcher("");
+        Matcher lineMatcher = ERRATA_LINE.matcher("");
+        String line;
+        Map<Integer, String> currentRfcErrata = Collections.emptyMap();
+        while ((line = reader.readLine()) != null) {
+            line = line.trim();
+            if (line.isEmpty() || line.startsWith("#")) {
+                continue;
+            }
+            if (sectionMatcher.reset(line).matches()) {
+                String rfc = sectionMatcher.group(1);
+                currentRfcErrata = errata.computeIfAbsent(rfc, k -> new HashMap<>());
+            } else if (lineMatcher.reset(line).matches()) {
+                try {
+                    int lineNumber = Integer.parseInt(lineMatcher.group(1));
+                    currentRfcErrata.put(lineNumber, lineMatcher.group(2));
+                } catch (NumberFormatException e) {
+                    // Should not happen with regex matching \d+
+                    System.err.println("Invalid line number in errata: " + lineMatcher.group(1));
+                }
+            }
+        }
+    }
+
+    void loadBadModules(Path badModulesFile) {
         try (BufferedReader reader = Files.newBufferedReader(badModulesFile, StandardCharsets.UTF_8)) {
-            badModules.addAll(reader.lines()
-                    .map(String::trim)
-                    .filter(line -> !line.isEmpty() && !line.startsWith("#"))
-                    .collect(Collectors.toList()));
+            readBadModules(reader);
         } catch (IOException e) {
             System.err.println("Failed to load bad modules list from " + badModulesFile + ": " + e.getMessage());
         }
@@ -95,48 +213,26 @@ public class Asn1RfcExtractor {
                                           .parseDefaulting(ChronoField.HOUR_OF_DAY, 0)
                                           .toFormatter(Locale.ENGLISH);
 
-    public static void main(String[] args) {
-        if (args.length < 1) {
-            System.err.println("Usage: Asn1RfcExtractor [-d extract_dir] [-b badmodules_file] <rfc_number>+");
-            System.exit(1);
-        }
-        List<String> rfcs = new ArrayList<>(args.length);
-        Path extractPath = Paths.get(".");
-        List<Path> badModulesFiles = new ArrayList<>();
-        for (int i = 0; i < args.length; i++) {
-            if (args[i].equals("-d")) {
-                i++;
-                extractPath = Paths.get(args[i]);
-            } else if (args[i].equals("-b")) {
-                i++;
-                badModulesFiles.add(Paths.get(args[i]));
-            } else {
-                rfcs.add(args[i]);
-            }
-        }
-        try {
-            Asn1RfcExtractor extractor = new Asn1RfcExtractor();
-            for (Path badModulesFile : badModulesFiles) {
-                extractor.loadBadModules(badModulesFile);
-            }
-            for (String rfc : rfcs) {
-                String[] rfcLines = extractor.downloadRfc(rfc);
-                extractor.extractAndSaveMibs(rfcLines, rfc, extractPath);
-            }
-        } catch (IOException e) {
-            System.err.println("Error processing RFC: " + e.getMessage());
-            System.exit(1);
-        }
-    }
-
     private String[] downloadRfc(String rfcNumber) throws IOException {
-        URL url = new URL(String.format(RFC_URL_TEMPLATE, rfcNumber));
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream(), StandardCharsets.UTF_8))) {
-            return reader.lines().toArray(String[]::new);
+        try {
+            URI uri = new URI(String.format(RFC_URL_TEMPLATE, rfcNumber));
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(uri.toURL().openStream(), StandardCharsets.UTF_8))) {
+                return reader.lines().toArray(String[]::new);
+            }
+        } catch (URISyntaxException e) {
+            throw new IOException("Invalid RFC URL: " + e.getMessage(), e);
         }
     }
 
     void extractAndSaveMibs(String[] rfcLines, String rfcNumber, Path rootDir) throws IOException {
+        if (errata.containsKey(rfcNumber)) {
+            Map<Integer, String> rfcErrata = errata.get(rfcNumber);
+            rfcErrata.forEach((line, content) -> {
+                if (line > 0 && line <= rfcLines.length) {
+                    rfcLines[line - 1] = content;
+                }
+            });
+        }
         Path extractDir = Path.of("rfc" + rfcNumber + "_mibs");
         Path outDir = rootDir.resolve(extractDir);
         Files.createDirectories(outDir);

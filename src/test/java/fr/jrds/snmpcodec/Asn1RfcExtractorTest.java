@@ -14,6 +14,7 @@ import org.junit.rules.TemporaryFolder;
 
 import static fr.jrds.snmpcodec.Asn1RfcExtractor.ASN1_DATE_FORMAT;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -94,13 +95,13 @@ public class Asn1RfcExtractorTest {
                 "    REVISION \"202601131715Z\"",
                 "    DESCRIPTION \"initial\"",
                 "    ::= { 1 3 6 1 4 1 1 }",
-                "                  [Page 1]",
+                "Autors                  [Page 1]",
                 "\f",
                 "",
                 "RFC 1234             Some Title            January 2026",
                 "",
+                "END",
                 "next line in module",
-                "END"
         };
         Path outDir = folder.newFolder("extract").toPath();
         Asn1RfcExtractor extractor = new Asn1RfcExtractor();
@@ -110,7 +111,7 @@ public class Asn1RfcExtractorTest {
         assertTrue("MIB file should be created", Files.exists(mibFile));
         List<String> lines = Files.readAllLines(mibFile);
         // It should contain "next line in module" and not the page footer/header or the extra empty lines
-        assertTrue("Should contain next line", lines.contains("next line in module"));
+        assertFalse("Should not contain next line", lines.contains("next line in module"));
         for (String line : lines) {
             assertNotNull(line);
             assertTrue("Should not contain page footer", !line.contains("[Page 1]"));
@@ -157,6 +158,54 @@ public class Asn1RfcExtractorTest {
 
         Path mibFile = outDir.resolve("rfc9999_mibs/SOME-MIB.mib");
         assertTrue("MIB file should be created even if DEFINITIONS and ::= are on separate lines", Files.exists(mibFile));
+    }
+
+    @Test
+    public void testErrata() throws Exception {
+        String[] rfcLines = {
+                "TEST-MIB DEFINITIONS ::= BEGIN",
+                "testModule MODULE-IDENTITY",
+                "    LAST-UPDATED \"202601131715Z\"",
+                "    ORGANIZATION \"jrds\"",
+                "    CONTACT-INFO \"contact\"",
+                "    DESCRIPTION \"test\"",
+                "    REVISION \"202601131715Z\"",
+                "    DESCRIPTION \"initial\"",
+                "    ::= { 1 3 6 1 4 1 1 }",
+                "END"
+        };
+        // [1234]
+        // 3=    LAST-UPDATED "202601131715Z" -- ERRATA
+        // 4=    ORGANIZATION "jrds -- ERRATA"
+        
+        Path outDir = folder.newFolder("extract_errata").toPath();
+        Asn1RfcExtractor extractor = new Asn1RfcExtractor();
+        extractor.extractAndSaveMibs(rfcLines, "1234", outDir);
+
+        Path mibFile = outDir.resolve("rfc1234_mibs/TEST-MIB.mib");
+        assertTrue("MIB file should be created", Files.exists(mibFile));
+        List<String> lines = Files.readAllLines(mibFile);
+        assertTrue("Should contain replaced line 3", lines.contains("    LAST-UPDATED \"202601131715Z\" -- ERRATA"));
+        assertTrue("Should contain replaced line 4", lines.contains("    ORGANIZATION \"jrds -- ERRATA\""));
+        assertTrue("Should NOT contain original line 4", !lines.contains("    ORGANIZATION \"jrds\""));
+    }
+
+    @Test
+    public void testLoadErrataPath() throws Exception {
+        Path errataFile = folder.newFile("myerrata.ini").toPath();
+        Files.write(errataFile, Arrays.asList(
+                "[5678]",
+                "1=REPLACED-LINE-1"
+        ));
+        Asn1RfcExtractor extractor = new Asn1RfcExtractor();
+        extractor.loadErrata(errataFile);
+
+        String[] rfcLines = {"Line 1", "Line 2"};
+        Path outDir = folder.newFolder("extract_errata_path").toPath();
+        extractor.extractAndSaveMibs(rfcLines, "5678", outDir);
+
+        // We check the content of rfcLines because extractAndSaveMibs modifies it
+        assertEquals("REPLACED-LINE-1", rfcLines[0]);
     }
 
 }
