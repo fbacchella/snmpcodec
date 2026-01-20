@@ -27,7 +27,6 @@ import fr.jrds.snmpcodec.parsing.ASNParser.BitDescriptionContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.BitsTypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.BooleanValueContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ChoiceTypeContext;
-import fr.jrds.snmpcodec.parsing.ASNParser.ComplexAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ComplexAttributContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ConstraintContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ElementsContext;
@@ -58,7 +57,6 @@ import fr.jrds.snmpcodec.parsing.ASNParser.ValueAssignmentContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ValuesConstraintContext;
 import fr.jrds.snmpcodec.parsing.MibObject.MappedObject;
 import fr.jrds.snmpcodec.parsing.MibObject.ModuleIdentityObject;
-import fr.jrds.snmpcodec.parsing.MibObject.OtherMacroObject;
 import fr.jrds.snmpcodec.parsing.MibObject.Revision;
 import fr.jrds.snmpcodec.parsing.MibObject.TextualConventionObject;
 import fr.jrds.snmpcodec.parsing.MibObject.TrapTypeObject;
@@ -191,27 +189,6 @@ public class ModuleListener extends ASNBaseListener {
     public void enterTypeAssignment(TypeAssignmentContext ctx) {
         String identifier = ctx.typeReference().getText();
         stack.push(resolveSymbol(identifier));
-    }
-
-    @Override
-    public void enterComplexAssignement(ComplexAssignementContext ctx) {
-        stack.push(new OtherMacroObject(ctx.macroName().getText()));
-    }
-
-    @Override
-    public void exitComplexAssignement(ComplexAssignementContext ctx) {
-        OidValue value = checkedPop(ctx, OidValue.class);
-        OtherMacroObject macro = checkedPop(ctx, OtherMacroObject.class);
-        Symbol s = checkedPop(ctx, Symbol.class);
-        if (value == null || macro == null || s == null) {
-            return;
-        }
-        macro.value = value;
-        try {
-            store.addMacroValue(s, macro.value.value);
-        } catch (MibException e) {
-            parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
-        }
     }
 
     @Override

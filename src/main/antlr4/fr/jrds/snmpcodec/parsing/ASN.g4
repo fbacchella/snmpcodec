@@ -103,10 +103,6 @@ symbolsFromModule :
     symbolList 'FROM' moduleReference
     ;
 
-globalModuleReference :
-    identifier objectIdentifierValue?
-    ;
-
 symbolList :
     symbol (','? symbol)* ','?
     ;
@@ -150,16 +146,6 @@ assignment
     | trapTypeAssignement
    ;
 
-assignementType
-    : informationObjectSetAssignement
-    | complexAssignement
-    | textualConventionAssignement
-    | trapTypeAssignement
-    | moduleIdentityAssignement
-    | moduleComplianceAssignement
-    | macroAssignement
-    ;
-
 //Found missing or extra comma in sequence
 sequenceType :
     'SEQUENCE' constraint? '{' (sequenceElement ','* )+ '}'
@@ -187,35 +173,10 @@ default
 sequenceOfType  : ('SEQUENCE' | 'SET') constraint? 'OF' (type | namedType )
     ;
 
-informationObjectSetAssignement
-    : '{' '...' '}'
-    ;
-
 typeAssignment :
     typeReference
     '::='
     type
-    ;
-
-application_details:
-    'APPLICATION'? NUMBER;
-
-universal_details:
-    'UNIVERSAL' NUMBER;
-
-complexAssignement :
-    macroName
-     (complexAttribut ','*)+
-      '::='
-      value
-    ;
-
-macroName :
-    'OBJECT-GROUP'
-    | 'OBJECT-IDENTITY'
-    | 'NOTIFICATION-TYPE'
-    | 'NOTIFICATION-GROUP'
-    | 'AGENT-CAPABILITIES'
     ;
 
 complexAttribut:
