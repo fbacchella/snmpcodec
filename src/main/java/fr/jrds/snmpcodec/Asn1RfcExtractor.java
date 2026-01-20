@@ -405,16 +405,18 @@ public class Asn1RfcExtractor {
         parser.setBuildParseTree(true);
         FileContentContext ctx = parser.fileContent();
         ModuleDefinitionContext mdctx = ctx.moduleDefinition(0);
-        for (AssignmentContext assctx: mdctx.moduleBody().assignmentList().assignment()) {
-            ModuleIdentityAssignementContext modidctx = assctx.assignementType().moduleIdentityAssignement();
-            if (modidctx != null && modidctx.lu != null) {
-                try {
-                    String dateStr = modidctx.lu.getText().replace("\"", "");
-                    ZonedDateTime lastUpdate = ZonedDateTime.parse(dateStr, ASN1_DATE_FORMAT);
-                    Files.setLastModifiedTime(extractPath, FileTime.from(lastUpdate.toInstant()));
-                    return;
-                } catch (Exception e) {
-                    System.err.println("Failed to parse date: " + modidctx.lu.getText());
+        if (mdctx.moduleBody().assignmentList() !=null) {
+            for (AssignmentContext assctx: mdctx.moduleBody().assignmentList().assignment()) {
+                ModuleIdentityAssignementContext modidctx = assctx.moduleIdentityAssignement();
+                if (modidctx != null && modidctx.lu != null) {
+                    try {
+                        String dateStr = modidctx.lu.getText().replace("\"", "");
+                        ZonedDateTime lastUpdate = ZonedDateTime.parse(dateStr, ASN1_DATE_FORMAT);
+                        Files.setLastModifiedTime(extractPath, FileTime.from(lastUpdate.toInstant()));
+                        return;
+                    } catch (Exception e) {
+                        System.err.println("Failed to parse date: " + modidctx.lu.getText());
+                    }
                 }
             }
         }

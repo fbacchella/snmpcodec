@@ -49,12 +49,16 @@ fileContent :
     ;
 
 moduleDefinition :
-    identifier objectIdentifierValue? ( '{' modulePath? '}' )?
+    moduleReference objectIdentifierValue? ( '{' modulePath? '}' )?
     'DEFINITIONS' tagDefault? extensionDefault?
     '::='
     'BEGIN'
     moduleBody
     'END'
+    ;
+
+moduleReference
+    : typeReference (valueReference | objectIdentifierValue)?
     ;
 
 tagDefault
@@ -96,7 +100,7 @@ symbolsFromModuleList
     ;
 
 symbolsFromModule :
-    symbolList 'FROM' globalModuleReference
+    symbolList 'FROM' moduleReference
     ;
 
 globalModuleReference :
@@ -107,9 +111,12 @@ symbolList :
     symbol (','? symbol)* ','?
     ;
 
-symbol :
-    identifier
-    | 'OBJECT-TYPE'
+symbol
+    : typeReference
+    | valueReference
+    | identifier
+    | macroReference
+    | moduleReference
     | 'TRAP-TYPE'
     | 'MODULE-IDENTITY'
     | 'OBJECT-IDENTITY'
@@ -128,27 +135,25 @@ assignmentList :
     ;
 
 assignment
-    : (id='OBJECT-TYPE'
-    | id='TRAP-TYPE'
-    | id='MODULE-IDENTITY'
-    | id='OBJECT-IDENTITY'
-    | id='OBJECT-GROUP'
-    | id='MODULE-COMPLIANCE'
-    | id='NOTIFICATION-TYPE'
-    | id='TEXTUAL-CONVENTION'
-    | id='NOTIFICATION-GROUP'
-    | id='AGENT-CAPABILITIES'
-    | identifier)
-    assignementType
+    : typeAssignment
+    | valueAssignment
+    | macroAssignement
+    // macros from SNMP
+    | moduleComplianceAssignement
+    | moduleIdentityAssignement
+    | notificationGroupAssignement
+    | notificationTypeAssignement
+    | objectIdentityAssignement
+    | objectGroupAssignement
+    | objectTypeAssignement
+    | textualConventionAssignement
+    | trapTypeAssignement
    ;
 
 assignementType
     : informationObjectSetAssignement
     | complexAssignement
-    | typeAssignment
-    | valueAssignment
     | textualConventionAssignement
-    | objectTypeAssignement
     | trapTypeAssignement
     | moduleIdentityAssignement
     | moduleComplianceAssignement
@@ -157,11 +162,11 @@ assignementType
 
 //Found missing or extra comma in sequence
 sequenceType :
-    'SEQUENCE' '{' (sequenceElement ','* )+ '}'
+    'SEQUENCE' constraint? '{' (sequenceElement ','* )+ '}'
     ;
 
 setType :
-    'SET' '{' (sequenceElement ','* )+ '}'
+    'SET' constraint? '{' (sequenceElement ','* )+ '}'
     ;
 
 sequenceElement
@@ -172,6 +177,7 @@ sequenceElement
     | namedType default? 'OPTIONAL'? ('{{' identifier '}}')?
     | identifier identifier '.' '&' identifier '(' '{' identifier '}' ('{' '@' identifier '}')?  ')' 'OPTIONAL'?
     | choiceType
+    | identifier 'ANY'
     ;
 
 default
@@ -186,13 +192,10 @@ informationObjectSetAssignement
     ;
 
 typeAssignment :
-    ('{' class=identifier ':' val=identifier '}')?
-      '::='
-    ( '[' universal_details ']' )?
-    ( '[' application_details ']' )?
-    ('IMPLICIT')?
-      type
-;
+    typeReference
+    '::='
+    type
+    ;
 
 application_details:
     'APPLICATION'? NUMBER;
@@ -229,7 +232,7 @@ complexAttribut:
     | name='LAST-UPDATED' stringValue
     | name='UNITS' stringValue
     | name='REFERENCE' stringValue
-    | name='DESCRIPTION' stringValue
+    | description
     | name='MODULE' identifier?
     | name='INCLUDES' groups
     | name='OBJECTS' objects
@@ -252,6 +255,14 @@ access:
 
 status:
     name='STATUS' identifier
+    ;
+
+description:
+    name='DESCRIPTION' value
+    ;
+
+reference:
+    name='REFERENCE' value
     ;
 
 groups:
@@ -279,19 +290,42 @@ index:
     ;
 
 indexTypes:
-    'IMPLIED'? type
+    'IMPLIED'? valueReference
     ;
 
 moduleIdentityAssignement:
+    valueReference
     'MODULE-IDENTITY'
     ('LAST-UPDATED' lu=stringValue
     | 'ORGANIZATION' stringValue
     | 'CONTACT-INFO' stringValue
-    | 'DESCRIPTION' stringValue)+
+    | description)+
     moduleRevisions
     '::='
     objectIdentifierValue
     ;
+
+notificationGroupAssignement:
+    valueReference 'NOTIFICATION-GROUP' (complexAttribut ','*)+ '::=' objectIdentifierValue
+    ;
+
+notificationTypeAssignement:
+    valueReference 'NOTIFICATION-TYPE' (complexAttribut ','*)+ '::=' objectIdentifierValue
+    ;
+
+objectIdentityAssignement
+    : valueReference
+    'OBJECT-IDENTITY'
+    (status | description | reference)+
+    '::='
+    objectIdentifierValue
+    ;
+
+objectGroupAssignement:
+    valueReference 'OBJECT-GROUP' (complexAttribut ','*)+ '::=' objectIdentifierValue;
+
+objectTypeAssignement
+    : valueReference 'OBJECT-TYPE' (complexAttribut ','*)+ '::=' objectIdentifierValue;
 
 
 moduleRevisions:
@@ -300,17 +334,18 @@ moduleRevisions:
 
 moduleRevision:
     'REVISION' stringValue
-    'DESCRIPTION' stringValue
+    description
     ;
 
 textualConventionAssignement :
-    '::=' 'TEXTUAL-CONVENTION' (complexAttribut ','*)+
+    typeReference '::=' 'TEXTUAL-CONVENTION' (complexAttribut ','*)+
     ;
 
 moduleComplianceAssignement :
+    valueReference
     'MODULE-COMPLIANCE'
     status
-    'DESCRIPTION' stringValue
+    description
     ('REFERENCE' stringValue)?
     (complianceModules)+
     '::='
@@ -318,14 +353,14 @@ moduleComplianceAssignement :
     ;
     
 complianceModules :
-    'MODULE' identifier?
+    'MODULE' typeReference?
     ('MANDATORY-GROUPS' groups)?
     compliance*
     ;
     
 compliance:
-    ('GROUP' identifier 'DESCRIPTION' stringValue)
-    | ('OBJECT' identifier ('SYNTAX' type)? ('WRITE-SYNTAX' type)? ('MIN-ACCESS' identifier)? ('DESCRIPTION' stringValue)?)
+    ('GROUP' identifier description)
+    | ('OBJECT' identifier ('SYNTAX' type)? ('WRITE-SYNTAX' type)? ('MIN-ACCESS' identifier)? (description)?)
     ;
 
 trapTypeAssignement :
@@ -340,52 +375,70 @@ enterpriseAttribute :
     'ENTERPRISE' (identifier | objectIdentifierValue)
     ;
 
-objectTypeAssignement :
-    'OBJECT-TYPE'
-     (complexAttribut ','*)+
-      '::='
-      value
-    ;
-
-macroAssignement : 
-    'MACRO' '::=' 'BEGIN' macroContent+ 'END'
+macroAssignement :
+    macroReference 'MACRO' '::=' 'BEGIN' macroContent+ 'END'
     ;
 
 macroContent:
-    identifier 'NOTATION'? ? '::=' macroVal+ ( '|' macroVal+ )*
+    'TYPE' 'NOTATION' '::=' (typeReference | (CSTRING (typeReference | 'value' '(' type type?')' | 'type' '(' 'TYPE' type ')')))+
+    'VALUE' 'NOTATION' '::=' 'value' '(' 'VALUE' type ')'
+    (macroElement)*
+    ;
+
+macroElement:
+    typeReference '::=' macroVal+ ('|' macroVal)*
     ;
 
 macroVal:
-    CSTRING 
-    | identifier
-    | identifier? '(' (identifier | 'OBJECT' | 'identifier'| type ) * ')'
+    (CSTRING
+    | (identifier|typeReference)
+    | identifier? '(' (identifier | type | 'OBJECT' ) * ')'
+    | identifier '"("' (identifier | 'OBJECT' | type ) * '")"'
+    | CSTRING? '"{"' typeReference '"}"'
+    | CSTRING typeReference
+    | typeReference ('","' type)*
+    | CSTRING? 'value' '(' type+ ')') macroVal*
     ;
 
-valueAssignment :
-      type '::=' value
+valueAssignment
+    : valueReference type '::=' value
 ;
 
 type
-    : ('{' '{' identifier 'IDENTIFIED' 'BY' identifier '}' ',' '...' '}')
-    | (('EXPLICIT' | 'IMPLICIT')? (builtinType | referencedType) ('{' namedNumberList '}')?)
+    : builtinType constraint?
+    | referencedType constraint?
+    | typeWithConstraint
     ;
 
-builtinType :
-   octetStringType
- | bitStringType
- | choiceType
- | integerType
- | sequenceOfType
- | sequenceType
- | setType
- | objectIdentifierType
- | nullType
- | bitsType
- | booleanType
+builtinType
+    : bitStringType
+    | booleanType
+    | choiceType
+    | octetStringType
+    | integerType
+    | sequenceOfType
+    | sequenceType
+    | setType
+    | objectIdentifierType
+    | nullType
+    | bitsType
+    | prefixedType
     ;
 
 bitsType:
     'BITS' ('{' bitsEnumeration '}')?
+    ;
+
+prefixedType
+    : taggedType
+    ;
+
+taggedType
+    : tag ('EXPLICIT' | 'IMPLICIT')type
+    ;
+
+tag
+    : '[' ('UNIVERSAL' | 'APPLICATION' | 'PRIVATE') ? NUMBER ']'
     ;
 
 bitsEnumeration:
@@ -404,8 +457,12 @@ booleanType
     : 'BOOLEAN'
     ;
 
-referencedType :
-    identifier ('.' identifier)? constraint?
+referencedType
+    : typeReference ('.' identifier)? constraint?
+    ;
+
+typeWithConstraint
+    : 'typeWithConstraint'
     ;
 
 elements :
@@ -432,6 +489,11 @@ valuesConstraint
 
 fromConstraint
     : 'FROM' '(' constraintElements ')'
+    ;
+
+definedValue
+    : referenceValue
+    | VALUEREFERENCE
     ;
 
 defValue
@@ -464,17 +526,31 @@ referenceValue
     ;
 
 objectIdentifierValue
-    : '{' identifier ? objIdComponentsList '}'
-    | identifier
+    : '{' objIdComponentsList '}'
     ;
 
 objIdComponentsList :
-    (objIdComponents ','? )*
+    objIdComponents*
     ;
 
 objIdComponents 
+    : nameAndNumberForm
+    | nameForm
+    | numberForm
+    | definedValue
+    ;
+
+nameForm
+    : identifier
+    ;
+
+ numberForm
     : NUMBER
-    | id=(OIDIDENTIFIER|IDENTIFIER) ( '(' NUMBER ')' )
+    | definedValue
+    ;
+
+nameAndNumberForm
+    : valueReference '(' numberForm ')'
     ;
 
 integerValue :
@@ -535,7 +611,7 @@ objectIdentifierType:
     ;
 
 octetStringType :
-    'OCTET' 'STRING' constraint?
+    'OCTET' 'STRING'
     ;
 
 bitStringType    : ('BIT' 'STRING') ('{' namedBitList '}')?
@@ -561,9 +637,27 @@ fragment LOWER
     : ('a'..'z')
     ;
 identifier
-   : 'ANY'
-   | 'identifier'
-   | IDENTIFIER
+   : 'value' | 'type' | IDENTIFIER
+   ;
+
+macroReference
+    : 'AGENT-CAPABILITIES'
+    | 'MODULE-COMPLIANCE'
+    | 'MODULE-IDENTITY'
+    | 'NOTIFICATION-GROUP'
+    | 'NOTIFICATION-TYPE'
+    | 'OBJECT-GROUP'
+    | 'OBJECT-IDENTITY'
+    | 'OBJECT-TYPE'
+    | 'TEXTUAL-CONVENTION'
+    ;
+
+typeReference
+   : TYPEIDENTIFIER
+   ;
+
+valueReference
+   : IDENTIFIER
    ;
 
 IP :
@@ -621,82 +715,12 @@ QUOTATIONMARK:
     | '”'
     ;
 
-
-//fragment
-
-/**I found this char range in JavaCC's grammar, but Letter and Digit overlap.
-   Still works, but...
- */
-fragment
-LETTER :
-    '\u0024' |
-    '\u002d' |
-    '\u0041'..'\u005a' |
-    '\u005f' |
-    '\u0061'..'\u007a' |
-    '\u00c0'..'\u00d6' |
-    '\u00d8'..'\u00f6' |
-    '\u00f8'..'\u00ff' |
-    '\u0100'..'\u1fff' |
-    '\u3040'..'\u318f' |
-    '\u3300'..'\u337f' |
-    '\u3400'..'\u3d2d' |
-    '\u4e00'..'\u9fff' |
-    '\uf900'..'\ufaff'
-    ;
-
-fragment
-JavaIDDigit
-    :  '\u0030'..'\u0039' |
-       '\u0660'..'\u0669' |
-       '\u06f0'..'\u06f9' |
-       '\u0966'..'\u096f' |
-       '\u09e6'..'\u09ef' |
-       '\u0a66'..'\u0a6f' |
-       '\u0ae6'..'\u0aef' |
-       '\u0b66'..'\u0b6f' |
-       '\u0be7'..'\u0bef' |
-       '\u0c66'..'\u0c6f' |
-       '\u0ce6'..'\u0cef' |
-       '\u0d66'..'\u0d6f' |
-       '\u0e50'..'\u0e59' |
-       '\u0ed0'..'\u0ed9' |
-       '\u1040'..'\u1049'
-   ;
-
-fragment
-NameChar
-    :   NameStartChar
-    |   '0'..'9'
-    | '-'
-    |   '_'
-    |   '\u00B7'
-    |   '\u0300'..'\u036F'
-    |   '\u203F'..'\u2040'
-    ; 
-
-fragment
-NameStartChar
-    :   'A'..'Z' | 'a'..'z'
-    |   '\u00C0'..'\u00D6'
-    |   '\u00D8'..'\u00F6'
-    |   '\u00F8'..'\u02FF'
-    |   '\u0370'..'\u037D'
-    |   '\u037F'..'\u1FFF'
-    |   '\u200C'..'\u200D'
-    |   '\u2070'..'\u218F'
-    |   '\u2C00'..'\u2FEF'
-    |   '\u3001'..'\uD7FF'
-    |   '\uF900'..'\uFDCF'
-    |   '\uFDF0'..'\uFFFD'
+TYPEIDENTIFIER
+    : [A-Z] [A-Za-z0-9-]* [A-Za-z0-9]
     ;
 
 IDENTIFIER
-    : LETTER (LETTER|JavaIDDigit)*
-    ;
-
-OIDIDENTIFIER
-    : (LETTER|JavaIDDigit)+
+    :[a-z] [A-Za-z0-9-]* [A-Za-z0-9]
     ;
 
 BOM :

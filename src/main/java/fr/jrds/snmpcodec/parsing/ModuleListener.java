@@ -38,11 +38,11 @@ import fr.jrds.snmpcodec.parsing.ASNParser.IntegerValueContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleComplianceAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleDefinitionContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleIdentityAssignementContext;
+import fr.jrds.snmpcodec.parsing.ASNParser.ModuleReferenceContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleRevisionContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleRevisionsContext;
+import fr.jrds.snmpcodec.parsing.ASNParser.NameAndNumberFormContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ObjIdComponentsListContext;
-import fr.jrds.snmpcodec.parsing.ASNParser.ObjectIdentifierValueContext;
-import fr.jrds.snmpcodec.parsing.ASNParser.ObjectTypeAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ReferencedTypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.SequenceOfTypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.SequenceTypeContext;
@@ -58,7 +58,6 @@ import fr.jrds.snmpcodec.parsing.ASNParser.ValueAssignmentContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ValuesConstraintContext;
 import fr.jrds.snmpcodec.parsing.MibObject.MappedObject;
 import fr.jrds.snmpcodec.parsing.MibObject.ModuleIdentityObject;
-import fr.jrds.snmpcodec.parsing.MibObject.ObjectTypeObject;
 import fr.jrds.snmpcodec.parsing.MibObject.OtherMacroObject;
 import fr.jrds.snmpcodec.parsing.MibObject.Revision;
 import fr.jrds.snmpcodec.parsing.MibObject.TextualConventionObject;
@@ -144,7 +143,6 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterModuleDefinition(ModuleDefinitionContext ctx) {
-        currentModule = ctx.identifier().getText();
         symbols.clear();
 
         //The root symbols are often forgotten
@@ -156,6 +154,11 @@ public class ModuleListener extends ASNBaseListener {
         symbols.put(joint.name, joint);
 
         importedFrom.clear();
+    }
+
+    @Override
+    public void enterModuleReference(ModuleReferenceContext ctx) {
+        currentModule = ctx.typeReference().getText();
         try {
             store.newModule(currentModule);
         } catch (MibException e) {
@@ -168,7 +171,7 @@ public class ModuleListener extends ASNBaseListener {
         ctx.symbolList().symbol()
                         .forEach( i->  {
                             String name = i.getText();
-                            String module = ctx.globalModuleReference().getText();
+                            String module = ctx.moduleReference().getText();
                             importedFrom.put(name, module);
                             symbols.put(name, new Symbol(module, name));
                         });
@@ -182,12 +185,11 @@ public class ModuleListener extends ASNBaseListener {
     @Override
     public void enterAssignment(AssignmentContext ctx) {
         stack.clear();
-        String identifier;
-        if (ctx.identifier() != null) {
-            identifier = ctx.identifier().getText();
-        } else {
-            identifier = ctx.id.getText();
-        }
+    }
+
+    @Override
+    public void enterTypeAssignment(TypeAssignmentContext ctx) {
+        String identifier = ctx.typeReference().getText();
         stack.push(resolveSymbol(identifier));
     }
 
@@ -229,26 +231,6 @@ public class ModuleListener extends ASNBaseListener {
             if (macro.enterprise != null) {
                 store.addTrapType(s, macro.enterprise, macro.values, value.value);
             }
-        } catch (MibException e) {
-            parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
-        }
-    }
-
-    @Override
-    public void enterObjectTypeAssignement(ObjectTypeAssignementContext ctx) {
-        stack.push(new ObjectTypeObject());
-    }
-
-    @Override
-    public void exitObjectTypeAssignement(ObjectTypeAssignementContext ctx) {
-        OidValue vt = checkedPop(ctx, OidValue.class);
-        ObjectTypeObject macro = checkedPop(ctx, ObjectTypeObject.class);
-        Symbol s = checkedPop(ctx, Symbol.class);
-        if (vt == null || macro == null || s == null) {
-            return;
-        }
-        try {
-            store.addObjectType(s, macro.values, vt.value);
         } catch (MibException e) {
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
@@ -371,34 +353,22 @@ public class ModuleListener extends ASNBaseListener {
      ***************************************/
 
     @Override
-    public void exitObjectIdentifierValue(ObjectIdentifierValueContext ctx) {
-        OidValue stackval = checkedPeek(ctx, OidValue.class);
-        OidPath oidParts = stackval.value;
-        if (ctx.identifier() != null) {
-            String name = ctx.identifier().getText();
-            if (symbols.containsKey(name)) {
-                oidParts.root = symbols.get(name);
-            } else {
-                oidParts.root = new Symbol(currentModule, name);
-            }
-        }
+    public void enterObjIdComponentsList(ObjIdComponentsListContext ctx) {
+        stack.push(new OidPath());
     }
 
     @Override
-    public void enterObjIdComponentsList(ObjIdComponentsListContext ctx) {
-        OidPath oidParts = ctx.objIdComponents().stream().map( i -> {
-            String name = null;
-            int number;
-            if (i.id != null) {
-                name = i.id.getText();
-            }
+    public void enterNameAndNumberForm(NameAndNumberFormContext ctx) {
+        String ref = ctx.valueReference().getText();
+        int number = Integer.parseInt(ctx.numberForm().getText());
+        OidPath oidPath = this.checkedPeek(ctx, OidPath.class);
+        oidPath.add(new OidComponent(ref, number));
+    }
 
-            number = Integer.parseInt(i.NUMBER().getText());
-            return new OidComponent(name, number);
-        })
-                .collect(OidPath::new, OidPath::add,
-                        OidPath::addAll);
-        stack.push(new OidValue(oidParts));
+    @Override
+    public void exitObjIdComponentsList(ObjIdComponentsListContext ctx) {
+        OidPath oidPath = this.checkedPeek(ctx, OidPath.class);
+        stack.push(new OidValue(oidPath));
     }
 
     @Override
@@ -588,44 +558,49 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterType(TypeContext ctx) {
-        TypeDescription td = new TypeDescription();
-        if (ctx.builtinType() != null) {
-            switch(ctx.builtinType().getChild(ParserRuleContext.class, 0).getRuleIndex()) {
-            case ASNParser.RULE_integerType:
-                td.type = Asn1Type.integerType;
-                break;
-            case ASNParser.RULE_octetStringType:
-                td.type = Asn1Type.octetStringType;
-                break;
-            case ASNParser.RULE_bitStringType:
-                td.type = Asn1Type.bitStringType;
-                break;
-            case ASNParser.RULE_choiceType:
-                td.type = Asn1Type.choiceType;
-                break;
-            case ASNParser.RULE_sequenceType:
-                td.type = Asn1Type.sequenceType;
-                break;
-            case ASNParser.RULE_sequenceOfType:
-                td.type = Asn1Type.sequenceOfType;
-                break;
-            case ASNParser.RULE_objectIdentifierType:
-                td.type = Asn1Type.objectidentifiertype;
-                break;
-            case ASNParser.RULE_nullType:
-                td.type = Asn1Type.nullType;
-                break;
-            case ASNParser.RULE_bitsType:
-                td.type = Asn1Type.bitsType;
-                break;
-            default:
-                throw new ParseCancellationException();
+        try {
+            TypeDescription td = new TypeDescription();
+            if (ctx.builtinType() != null) {
+                switch(ctx.builtinType().getChild(ParserRuleContext.class, 0).getRuleIndex()) {
+                case ASNParser.RULE_integerType:
+                    td.type = Asn1Type.integerType;
+                    break;
+                case ASNParser.RULE_octetStringType:
+                    td.type = Asn1Type.octetStringType;
+                    break;
+                  case ASNParser.RULE_bitStringType:
+                    td.type = Asn1Type.bitStringType;
+                    break;
+                case ASNParser.RULE_choiceType:
+                    td.type = Asn1Type.choiceType;
+                    break;
+                case ASNParser.RULE_sequenceType:
+                    td.type = Asn1Type.sequenceType;
+                    break;
+                case ASNParser.RULE_sequenceOfType:
+                    td.type = Asn1Type.sequenceOfType;
+                    break;
+                case ASNParser.RULE_objectIdentifierType:
+                    td.type = Asn1Type.objectidentifiertype;
+                    break;
+                case ASNParser.RULE_nullType:
+                    td.type = Asn1Type.nullType;
+                    break;
+                case ASNParser.RULE_bitsType:
+                    td.type = Asn1Type.bitsType;
+                    break;
+                default:
+                    throw new ParseCancellationException();
+                }
+            } else if (ctx.referencedType() != null) {
+                td.type = Asn1Type.referencedType;
+                td.typeDescription = ctx.referencedType();
             }
-        } else if (ctx.referencedType() != null) {
-            td.type = Asn1Type.referencedType;
-            td.typeDescription = ctx.referencedType();
+            stack.push(td);
+        } catch (RuntimeException e) {
+            System.err.println(ctx.getText());
+            throw new RuntimeException(e);
         }
-        stack.push(td);
     }
 
     @Override
