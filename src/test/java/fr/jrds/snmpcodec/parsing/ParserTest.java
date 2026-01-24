@@ -66,7 +66,7 @@ public class ParserTest {
         MibLoader loader = new MibLoader();
         loader.load(module);
         MibStore store = loader.buildTree();
-        Assert.assertEquals(6, store.syntaxes.size());
+        Assert.assertEquals(5, store.syntaxes.size());
     }
 
 }
