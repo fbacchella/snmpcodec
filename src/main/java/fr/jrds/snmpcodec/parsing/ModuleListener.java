@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
@@ -19,10 +20,10 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.RuleContext;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 import fr.jrds.snmpcodec.MibException;
 import fr.jrds.snmpcodec.parsing.ASNParser.AccessContext;
-import fr.jrds.snmpcodec.parsing.ASNParser.AssignmentContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.BitDescriptionContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.BitsTypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.BooleanValueContext;
@@ -40,8 +41,8 @@ import fr.jrds.snmpcodec.parsing.ASNParser.ModuleIdentityAssignementContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleReferenceContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleRevisionContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ModuleRevisionsContext;
-import fr.jrds.snmpcodec.parsing.ASNParser.NameAndNumberFormContext;
-import fr.jrds.snmpcodec.parsing.ASNParser.ObjIdComponentsListContext;
+import fr.jrds.snmpcodec.parsing.ASNParser.ObjIdComponentContext;
+import fr.jrds.snmpcodec.parsing.ASNParser.ObjectIdentifierValueContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.ReferencedTypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.SequenceOfTypeContext;
 import fr.jrds.snmpcodec.parsing.ASNParser.SequenceTypeContext;
@@ -207,8 +208,11 @@ public class ModuleListener extends ASNBaseListener {
     @Override
     public void exitTrapTypeAssignement(TrapTypeAssignementContext ctx) {
         IntegerValue value = checkedPop(ctx, IntegerValue.class);
+        while (! (stack.peek() instanceof TrapTypeObject)) {
+            stack.pop();
+        }
         TrapTypeObject macro = checkedPop(ctx, TrapTypeObject.class);
-        Symbol s = checkedPop(ctx, Symbol.class);
+        Symbol s = this.resolveSymbol(ctx.identifier().getText());
         if (value == null || macro == null || s == null) {
             return;
         }
@@ -323,7 +327,7 @@ public class ModuleListener extends ASNBaseListener {
                 OidPath path = (OidPath) vt.value;
                 store.addValue(s, path);
             }
-        } catch (MibException e) {
+        } catch (MibException | IllegalArgumentException e) {
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
     }
@@ -333,22 +337,28 @@ public class ModuleListener extends ASNBaseListener {
      ***************************************/
 
     @Override
-    public void enterObjIdComponentsList(ObjIdComponentsListContext ctx) {
-        stack.push(new OidPath());
+    public void enterObjectIdentifierValue(ObjectIdentifierValueContext ctx) {
+        List<OidPath.OidComponent> components = new ArrayList<>(ctx.children.size());
+        ctx.objIdComponent().stream().map(this::resolveOidComponent).forEach(c -> {
+            components.add(c);
+        });
+        OidPath oid = new OidPath();
+        if (components.get(0).number == -1) {
+            oid.root = symbols.get(components.get(0).name);
+            components.remove(0);
+        }
+        oid.addAll(components);
+        stack.push(new ValueType.OidValue(oid));
     }
 
-    @Override
-    public void enterNameAndNumberForm(NameAndNumberFormContext ctx) {
-        String ref = ctx.valueReference().getText();
-        int number = Integer.parseInt(ctx.numberForm().getText());
-        OidPath oidPath = this.checkedPeek(ctx, OidPath.class);
-        oidPath.add(new OidComponent(ref, number));
-    }
-
-    @Override
-    public void exitObjIdComponentsList(ObjIdComponentsListContext ctx) {
-        OidPath oidPath = checkedPop(ctx, OidPath.class);
-        stack.push(new OidValue(oidPath));
+    private OidPath.OidComponent resolveOidComponent(ObjIdComponentContext ctx) {
+        String identifier = Optional.ofNullable(ctx.identifier()).map(RuleContext::getText).orElse(null);
+        int n = Optional.ofNullable(ctx.NUMBER())
+                        .map(TerminalNode::getText)
+                        .stream().mapToInt(Integer::parseInt)
+                        .findAny()
+                        .orElse(-1);
+        return new OidComponent(identifier, n);
     }
 
     @Override

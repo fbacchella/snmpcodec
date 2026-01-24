@@ -36,8 +36,8 @@ oid6 OBJECT IDENTIFIER ::= { test 6 }
 
 snmpcodectrap TRAP-TYPE 
     ENTERPRISE snmpcodec
-    VARIABLES { variable }
-    DESCRIPTION  ""
+    VARIABLES { Variable }
+    DESCRIPTION "description"
 --#SUMMARY   "" 
 --#CATEGORY  ""
 --#ARGUMENTS { 0 }

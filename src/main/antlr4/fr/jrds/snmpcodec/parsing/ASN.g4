@@ -334,9 +334,9 @@ trapTypeAssignement :
     identifier
     'TRAP-TYPE'
     enterpriseAttribute
-     (complexAttribut ','*)+
-      '::='
-      integerValue
+    (complexAttribut ','*)+
+    '::='
+    integerValue
     ;
 
 enterpriseAttribute :
@@ -494,31 +494,12 @@ referenceValue
     ;
 
 objectIdentifierValue
-    : '{' objIdComponentsList '}'
+    : '{' objIdComponent+ '}'
     ;
 
-objIdComponentsList :
-    objIdComponents*
-    ;
-
-objIdComponents 
-    : nameAndNumberForm
-    | nameForm
-    | numberForm
-    | definedValue
-    ;
-
-nameForm
-    : identifier
-    ;
-
- numberForm
-    : NUMBER
-    | definedValue
-    ;
-
-nameAndNumberForm
-    : valueReference '(' numberForm ')'
+objIdComponent
+    : identifier ('(' NUMBER ')' )?
+    | NUMBER
     ;
 
 integerValue :
