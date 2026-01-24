@@ -163,7 +163,7 @@ sequenceElement
     | namedType default? 'OPTIONAL'? ('{{' identifier '}}')?
     | identifier identifier '.' '&' identifier '(' '{' identifier '}' ('{' '@' identifier '}')?  ')' 'OPTIONAL'?
     | choiceType
-    | identifier 'ANY'
+    | identifier 'ANY' ('DEFINED' 'BY' identifier)?
     ;
 
 default
@@ -186,7 +186,7 @@ complexAttribut:
     | name='OBJECT' IDENTIFIER
     | name='SUPPORTS' IDENTIFIER
     | name='VARIATION' IDENTIFIER
-    | name='SYNTAX' type
+    | syntax
     | name='REVISION' stringValue
     | name='CONTACT-INFO' stringValue
     | name='ORGANIZATION' stringValue
@@ -203,7 +203,6 @@ complexAttribut:
     | name='DISPLAY-HINT' stringValue
     | name='NOTIFICATIONS' notifications
     | name='AUGMENTS' augments
-    | name='WRITE-SYNTAX' type
     | name='PRODUCT-RELEASE' stringValue
     | name='CREATION-REQUIRES' groups
     | name='DISPLAY-HINT' stringValue
@@ -226,6 +225,9 @@ reference:
     name='REFERENCE' value
     ;
 
+syntax:
+    ('SYNTAX' | 'WRITE-SYNTAX') type syntaxSubType?
+    ;
 groups:
     '{' identifier (','? identifier)* ','? '}'
     ;
@@ -235,7 +237,7 @@ objects:
     ;
 
 variables:
-    '{' identifier (',' identifier)* ','? '}'
+    '{' typeReference (',' typeReference)* ','? '}'
     ;
 
 notifications:
@@ -252,6 +254,10 @@ index:
 
 indexTypes:
     'IMPLIED'? valueReference
+    ;
+
+syntaxSubType:
+    ('{' namedNumberList '}')?
     ;
 
 moduleIdentityAssignement:
@@ -321,10 +327,11 @@ complianceModules :
     
 compliance:
     ('GROUP' identifier description)
-    | ('OBJECT' identifier ('SYNTAX' type)? ('WRITE-SYNTAX' type)? ('MIN-ACCESS' identifier)? (description)?)
+    | ('OBJECT' identifier (syntax)* ('MIN-ACCESS' identifier)? (description)?)
     ;
 
 trapTypeAssignement :
+    identifier
     'TRAP-TYPE'
     enterpriseAttribute
      (complexAttribut ','*)+
@@ -677,11 +684,11 @@ QUOTATIONMARK:
     ;
 
 TYPEIDENTIFIER
-    : [A-Z] [A-Za-z0-9-]* [A-Za-z0-9]
+    : [A-Z] ([A-Za-z0-9-]* [A-Za-z0-9])?
     ;
 
 IDENTIFIER
-    :[a-z] [A-Za-z0-9-]* [A-Za-z0-9]
+    :[a-z] ([A-Za-z0-9-]* [A-Za-z0-9])?
     ;
 
 BOM :

@@ -142,6 +142,7 @@ public class ModuleListener extends ASNBaseListener {
     @Override
     public void enterModuleDefinition(ModuleDefinitionContext ctx) {
         symbols.clear();
+        importedFrom.clear();
 
         //The root symbols are often forgotten
         Symbol ccitt = new Symbol("ccitt");
@@ -151,7 +152,19 @@ public class ModuleListener extends ASNBaseListener {
         symbols.put(iso.name, iso);
         symbols.put(joint.name, joint);
 
-        importedFrom.clear();
+    }
+
+    @Override
+    public void exitModuleDefinition(ModuleDefinitionContext ctx) {
+        if (! stack.isEmpty() && stack.peek() instanceof ValueType.OidValue) {
+            ValueType.OidValue path = checkedPop(ctx, ValueType.OidValue.class);
+            try {
+                store.addValue(resolveSymbol(path.value.get(path.value.size()-1).name), path.value);
+            } catch (MibException e) {
+                parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
+            }
+        }
+        assert stack.isEmpty();
     }
 
     @Override
@@ -179,11 +192,6 @@ public class ModuleListener extends ASNBaseListener {
      * Manage assignments and push them on stack
      * assignments: objectTypeAssignement, valueAssignment, typeAssignment, textualConventionAssignement, macroAssignement
      ***************************************/
-
-    @Override
-    public void enterAssignment(AssignmentContext ctx) {
-        stack.clear();
-    }
 
     @Override
     public void enterTypeAssignment(TypeAssignmentContext ctx) {
@@ -306,7 +314,7 @@ public class ModuleListener extends ASNBaseListener {
         ValueType<?> vt = checkedPop(ctx, ValueType.class);
         // Removed the unused TypeDescription
         checkedPop(ctx, Object.class);
-        Symbol s = checkedPop(ctx, Symbol.class);
+        Symbol s = resolveSymbol(ctx.valueReference().getText());
         if (vt == null || s == null) {
             return;
         }
@@ -318,11 +326,6 @@ public class ModuleListener extends ASNBaseListener {
         } catch (MibException e) {
             parser.notifyErrorListeners(ctx.start, e.getMessage(), new WrappedException(e, parser, parser.getInputStream(), ctx));
         }
-    }
-
-    @Override
-    public void exitAssignmentList(ASNParser.AssignmentListContext ctx) {
-        stack.clear();
     }
 
     /****************************************
@@ -344,7 +347,7 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void exitObjIdComponentsList(ObjIdComponentsListContext ctx) {
-        OidPath oidPath = this.checkedPeek(ctx, OidPath.class);
+        OidPath oidPath = checkedPop(ctx, OidPath.class);
         stack.push(new OidValue(oidPath));
     }
 
@@ -427,7 +430,7 @@ public class ModuleListener extends ASNBaseListener {
             value = ctx.groups().identifier().stream().map(RuleContext::getText).collect(ArrayList::new, ArrayList::add,
                     ArrayList::addAll);
         } else if (ctx.variables() != null) {
-            value = ctx.variables().identifier().stream().map(RuleContext::getText).collect(ArrayList::new, ArrayList::add,
+            value = ctx.variables().typeReference().stream().map(RuleContext::getText).collect(ArrayList::new, ArrayList::add,
                     ArrayList::addAll);
         } else if (ctx.notifications() != null) {
             value = ctx.notifications().identifier().stream().map(RuleContext::getText).collect(ArrayList::new, ArrayList::add,
