@@ -548,49 +548,55 @@ public class ModuleListener extends ASNBaseListener {
 
     @Override
     public void enterType(TypeContext ctx) {
-        try {
-            TypeDescription td = new TypeDescription();
-            if (ctx.builtinType() != null) {
-                switch(ctx.builtinType().getChild(ParserRuleContext.class, 0).getRuleIndex()) {
-                case ASNParser.RULE_integerType:
-                    td.type = Asn1Type.integerType;
-                    break;
-                case ASNParser.RULE_octetStringType:
-                    td.type = Asn1Type.octetStringType;
-                    break;
-                  case ASNParser.RULE_bitStringType:
-                    td.type = Asn1Type.bitStringType;
-                    break;
-                case ASNParser.RULE_choiceType:
-                    td.type = Asn1Type.choiceType;
-                    break;
-                case ASNParser.RULE_sequenceType:
-                    td.type = Asn1Type.sequenceType;
-                    break;
-                case ASNParser.RULE_sequenceOfType:
-                    td.type = Asn1Type.sequenceOfType;
-                    break;
-                case ASNParser.RULE_objectIdentifierType:
-                    td.type = Asn1Type.objectidentifiertype;
-                    break;
-                case ASNParser.RULE_nullType:
-                    td.type = Asn1Type.nullType;
-                    break;
-                case ASNParser.RULE_bitsType:
-                    td.type = Asn1Type.bitsType;
-                    break;
-                default:
-                    throw new ParseCancellationException();
-                }
-            } else if (ctx.referencedType() != null) {
-                td.type = Asn1Type.referencedType;
-                td.typeDescription = ctx.referencedType();
+        TypeDescription td = new TypeDescription();
+        if (ctx.builtinType() != null) {
+            // null needs to be filtered, mapToInt don't handle that correctly
+            int ruleIndex = Optional.ofNullable(ctx.builtinType())
+                                    .stream()
+                                    .map(bt -> bt.getChild(ParserRuleContext.class, 0))
+                                    .filter(Objects::nonNull)
+                                    .mapToInt(RuleContext::getRuleIndex)
+                                    .findAny()
+                                    .orElse(-1);
+            switch (ruleIndex) {
+            case ASNParser.RULE_integerType:
+                td.type = Asn1Type.integerType;
+                break;
+            case ASNParser.RULE_octetStringType:
+                td.type = Asn1Type.octetStringType;
+                break;
+            case ASNParser.RULE_bitStringType:
+                td.type = Asn1Type.bitStringType;
+                break;
+            case ASNParser.RULE_choiceType:
+                td.type = Asn1Type.choiceType;
+                break;
+            case ASNParser.RULE_sequenceType:
+                td.type = Asn1Type.sequenceType;
+                break;
+            case ASNParser.RULE_sequenceOfType:
+                td.type = Asn1Type.sequenceOfType;
+                break;
+            case ASNParser.RULE_objectIdentifierType:
+                td.type = Asn1Type.objectidentifiertype;
+                break;
+            case ASNParser.RULE_nullType:
+                td.type = Asn1Type.nullType;
+                break;
+            case ASNParser.RULE_bitsType:
+                td.type = Asn1Type.bitsType;
+                break;
+            case ASNParser.RULE_prefixedType:
+                td.type = Asn1Type.prefixedType;
+                break;
+            default:
+                throw new ParseCancellationException();
             }
-            stack.push(td);
-        } catch (RuntimeException e) {
-            System.err.println(ctx.getText());
-            throw new RuntimeException(e);
+        } else if (ctx.referencedType() != null) {
+            td.type = Asn1Type.referencedType;
+            td.typeDescription = ctx.referencedType();
         }
+        stack.push(td);
     }
 
     @Override
